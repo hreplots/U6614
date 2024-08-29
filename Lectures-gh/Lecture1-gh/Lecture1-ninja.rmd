@@ -1,0 +1,527 @@
+---
+title: "Data Analysis for Policy Research Using R"
+subtitle: "Introduction and R Basics"
+author: "Harold Stolper"
+institute: "Columbia | SIPA"
+date: "Fall 2024"
+output:
+  xaringan::moon_reader:
+    css: ["default-fonts", "my-style.css"]
+    lib_dir: libs
+    nature:
+      highlightStyle: github
+      highlightLines: true
+      countIncrementalSlides: false
+---
+
+```{r setup, include=FALSE}
+options(htmltools.dir.version = FALSE)
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE, 
+                      options(scipen=999))
+library(xaringan)
+#xaringan::inf_mr()
+```
+
+
+class: center, middle
+
+# What is R and how will we use it?
+
+
+---
+# What is R?
+
+- "an alternative to traditional statistical packages such as SPSS, SAS, and Stata such that it is an extensible, open-source language and computing environment for Windows, Macintosh, UNIX, and Linux platforms." [(ICPSR)](https://www.icpsr.umich.edu/icpsrweb/content/shared/ICPSR/faqs/what-is-r.html)
+
+- "an integrated suite of software facilities for data manipulation, calculation and graphical display." ([R-project.org](https://www.r-project.org/about.html))
+
+
+---
+# How will we use R?
+
+- [RStudio](https://www.rstudio.com/products/rstudio/download/preview) is a powerful user interface for R. 
+
+  - After installing R and RStudio, we'll be working entirely in the RStudio interface.
+  
+- [R scripts](https://cran.r-project.org/doc/contrib/Lemon-kickstart/kr_scrpt.html#:~:text=An%20R%20script%20is%20simply,the%20command%20line%20of%20R.%20() are basically text files that RStudio recognizes as R code, they are R's equivalent to a Stata .do file.
+
+- [R Markdown](https://rmarkdown.rstudio.com/lesson-1.html) files are used in RStudio to "both save and execute code and generate high quality reports that can be shared with an audience."
+
+  - These lecture slides were created using R Markdown.
+  
+  - Beginning with Assignment 2, everything you *submit* for this class will be a document generated with R Markdown.
+  
+  - But your workflow should always begin with an R script before writing up your work using R Markdown!
+  
+
+---
+# R packages
+
+R uses "packages" as a bundle of code, data and documentation.
+
+There are default [base packages](https://stat.ethz.ch/R-manual/R-devel/library/base/html/00Index.html) that come ready-to-use with R. Some examples:  
+
+- `base` 
+- `stats`  
+- `utils`
+
+Then there are [R packages](http://r-pkgs.had.co.nz/intro.html) developed and shared by others. Some popular R packages include:  
+
+- `tidyverse` (actually a collection of other packages)
+- `ggplot2` 
+
+More about these in later weeks...
+
+
+---
+# Installing and loading R packages
+
+You only need to install a package once.:
+
+
+```{r eval = FALSE, echo = TRUE}
+install.packages("tidyverse")
+```
+
+You also need to load a package every time you open R:
+
+```{r eval = FALSE, echo = TRUE}
+library(tidyverse)
+```
+
+*- Base packages don't need to be installed or loaded.*
+
+
+---
+#  What can you do with R+RStudio+RMarkdown?
+
+Things you can also do using Stata, but with more flexibility and power:
+
+- Data cleaning and manipulation
+- Statistical analysis and plots
+
+
+Things you generally can't do in Stata:
+
+- Generate reports and presentations
+- Generate interactive content
+  - Maps
+  - Graphs
+  - Dashboards
+
+
+---
+# What will we be doing in this class?
+
+We'll be learning how to use R to explore data to inform policy. 
+
+That means we'll be spending a lot of time working with R, but also thinking about how/when to use methods and concepts from Quant I and II:
+
+- **Research design:** understanding how data structure and methods impact analysis and causal inference
+
+- **Data wrangling:** cleaning and structuring messy data for analysis
+
+- **Exploratory analysis:** identifying and analyzing key variables
+
+- **Econometric analysis:** estimating (causal?) relationships between variables to inform policy
+
+- **Data visualization & presentation:** conveying findings to your target audience
+
+- **Policy writing & interpretation:** translating statistical analysis in accessible terms
+
+- **Data for good**: thinking critically about using *data for good* 
+
+
+---
+class: center, middle
+
+# Examples from student project work
+
+
+---
+class: center, middle
+
+```{r, eval = TRUE}
+knitr::include_graphics("lo_jo_map1.png")
+```
+
+
+---
+class: center, middle
+
+![](chiapas.png)
+
+---
+class: center, middle
+
+```{r, eval = TRUE}
+knitr::include_graphics("nm-ca_chart1.png")
+```
+
+
+---
+class: center, middle
+
+```{r, eval = TRUE ,out.width="72%"}
+knitr::include_graphics("ps_ra_regtable.png")
+```
+
+
+---
+class: center, middle
+
+# Introductions
+
+
+---
+# Harold Stolper, instructor
+
+- Graduated from SIPA many moons ago, returned to Columbia for my PhD in economics.
+
+- This is my 10th year teaching quant courses at SIPA.
+
+- Previously worked as the economist for a non-profit doing research and advocacy to promote upward mobility for low-income NYers.
+
+- Ongoing research into NYPD subway fare evasion enforcement 
+
+- Other research interests center around access and equity issues related to policing, neighborhood change, public transit, access to education, and more
+
+- Transitioned from Stata to R after years of using and teaching Stata.
+
+- Some non-academic things I really like include the NBA+WNBA, nail art, and UK drill music
+
+
+---
+# Teaching Assistants
+
+- Poorvika Mehra
+
+- Rachele Moscardo
+
+
+---
+# Student introductions
+
+1. Preferred name (and pronouns, if comfortable sharing)
+
+1. Previous R exposure/experience
+
+1. Answer one of these two questions:
+  
+  - What's something you would eventually like to learn how to do in R?
+  
+  - What's something that you have observed or think is important that people in your field aren't paying attention to?
+
+1. (optional) One piece of culture you are excited about right now
+    - e.g. music, writing, TV or movies, fashion, a meme, other art, sports, etc.
+    
+    
+---
+class: center, middle
+
+# Prerequisites, R setup, course goals
+
+
+---
+class: center, middle
+
+# Questions for you
+
+https://pollev.com/haroldpoll
+
+
+---
+class: center, middle
+
+# R interface, projects & directory structure
+
+
+---
+# RStudio [interface](https://bookdown.org/ndphillips/YaRrr/the-four-rstudio-windows.html)
+
+```{r, eval = TRUE ,out.width="82%"}
+knitr::include_graphics("rstudio-panes-labeled.jpeg")
+```
+
+
+---
+# Working directory
+
+
+R looks for files in your **working directory**. You can see all files located in your working directory in the "Files/Plots/Packages/Help/Viewer" pane .
+
+When you run code from the **R Console** or an **R Script**, or from __code chunks__ in an R Markdown file (.rmd), the working directory is:
+
+- the folder your file is saved in, or...
+- if you are working within an **R Project**, the working directory is the main directory for the project (more on that shortly!)
+
+The function `getwd()` shows the current working directory.
+
+```{r, echo = TRUE }
+getwd()
+```
+
+**For this class you should create a separate folder and R project for every week.**
+
+
+---
+class: center, middle
+
+# R Basics
+
+
+---
+# Executing code in RStudio
+
+Three ways to execute R code
+
+1. **Console:** type/paste code to run "on the fly"
+
+1. **R scripts** (.r files)
+    - Just text files full of R code
+    - Can execute one line of code at a time, several lines, or the entire script
+    
+1. **Code chunks** in R Markdown (.rmd files)
+    - Can execute "chunks" of R code, or "knit" the entire file into a document (e.g. html or pdf) that also executes R code along the way 
+    
+
+---
+# Reference: shortcuts for executing code
+
+- R scripts (.R files)
+  - __Cmd/Ctrl + Enter__: execute highlighted line(s)
+    - **Cmd/Ctrl + Shift + Enter** (without highlighting any lines): run entire script
+    
+    
+- Code chunks in RMarkdown (.rmd files)
+  - **Cmd/Ctrl + Enter**: execute highlighted line(s) within chunk
+  - **Cmd/Ctrl + Shift + k**: "knit" entire document
+   
+
+---
+# Assignment
+
+__Assignment__ means assigning a value/set of values to an "object"
+
+- `<-` is the assignment operator
+    - in other languages `=` is the assignment operator
+- good practice to put a space before and after assignment operator
+
+```{r, echo = TRUE}
+# Create an object a and assign value
+a <- 5
+a
+
+# Create an object b and assign value
+b <- "I'm so excited to be here in the lab again!"
+b
+```
+
+Note 1: comments start with a `#` 
+
+Note 2: R is caps sensitive!
+
+
+---
+# Objects and assignment
+
+R stores information in objects (like all "object-oriented" programming languages).
+
+Some objects:
+
+- numbers
+- character strings
+- vectors 
+- matrices
+- lists
+- functions
+- plots
+- data frames (the datasets of R!)
+
+
+---
+# Functions
+
+Functions do things to different objects. 
+
+Functions often accept arguments -- we "pass" arguments to functions.
+
+Functions are also objects themselves that can be "called" to do things like:
+
+- calculate and display statistics
+
+- generate output 
+
+- display part or all of objects (e.g. show some data)
+
+- manipulate objects (e.g. create a new column of data)
+
+- extract information from objects (e.g. the number of rows of data)
+
+Base R includes lots of functions. We'll be working with additional packages that include some handy functions. 
+
+
+---
+# Let's jump in!
+
+Our goals for today's R workshop example are very modest:
+
+- Create an R project including R script.
+
+- Look around and get our bearings.
+
+- Install and load a package ([gapminder](https://www.gapminder.org/)).
+
+- Use base R functions to inspect a data frame included with this package.
+
+- Use some functions to perform some very basic analysis.
+
+- Assign results from our analysis to new objects and display them.
+
+
+---
+class: center, middle
+
+# R workshop portion of class
+
+
+---
+class: center, middle
+
+# Assignments & other course responsibilities
+
+
+---
+# Assignment 1: submit an R script via CW by 11:59pm next Monday
+
+Create an R script called assignment1.r that includes code and answers (as comments) for the following:
+
+<ol start="0">
+
+<li> Create a new R project called assignment1.
+   - This is for internal project management, don't submit your R project file.
+<li> Load the gapminder data using the library function.
+   - You'll need to first install the gapminder package if you didn't follow along in class today.
+<li> Show the data structure of the gapminder data frame.
+<li> What is the average gdpPercap across all observations in the data frame?
+   - Use ?gapminder to access gapminder documentation and find the units for gdpPercap.
+   - How would you interpret this mean? i.e. what is it the mean of?
+<li> Plot year (x-axis) vs. gdpPercap (y-axis).
+   - Describe what the plot says about economic growth over time.
+<li> Create a barplot showing the number of observations in each continent.
+   - Start by using the table function with continents as its argument.
+   - Next pass the object created by this function to the barplot function.
+</ol>
+
+
+---
+# General assignment guidance
+
+- Use blank spaces liberally, code is hard to read and spaces help!
+
+- Use comments liberally throughout your R script to describe your steps.
+
+- Troubleshooting is a skill that will take time to develop! Here are some tips and resources:
+
+  - Do NOT use AI tools for assignment troubleshooting!
+  
+  - Consult the R script from class for examples.
+  
+  - Get used to using R's built in documentation by using `?`
+  
+  - Use Google liberally for examples that work.
+  
+  - When you're stuck, focus on finding examples to get your own code to work, even if you don't feel comfortable with all the syntax just yet.
+  
+  - Execute your code line by line as you go, this will help you isolate the source of any errors.
+   
+
+---
+# Collaboration and academic integrity
+
+Students must write up Assignments independently, but you are encouraged to discuss with others along the way. 
+
+If we come across answers to any parts of any assignments that are clearly not your own words, **all involved parties will receive a 0 for those parts and may be referred to Academic Affairs if appropriate.**
+
+
+---
+# Generative AI
+
+Students who violate the [Code of Academic & Professional Conduct](http://bulletin.columbia.edu/sipa/academic-policies/discipline-procedures/index.html) will be subject to the [Dean’s Disciplinary Procedures](http://bulletin.columbia.edu/sipa/academic-policies/discipline-procedures/index.html). Students who violate this code or the AI and Collaboration guidance below will be referred to Student Affairs and are subject to the Dean's Discipline Policy and Procedures. 
+
+*AI-generated code is* ***NOT PERMITTED*** *for weekly assignments.* 
+
+*AI tools are* ***PERMITTED*** *for your project work in certain instances as long as this use is properly documented.* 
+
+*Using AI tools to interpret regression results and assess internal or external validity is* ***NOT PERMITTED*** *nor is it constructive.* 
+
+
+---
+# Use Ed Discussion for help!
+
+- If you need help troubleshooting errors, posting to [Ed Discussion](https://edstem.org/us/courses/61458/discussion/) is usually a great place to start (in addition to office hours).
+
+- Your post should provide a [reproducible example](https://stackoverflow.com/help/minimal-reproducible-example), including code and a screenshot of the output/error message if applicable.
+
+- Don't be bashful about posting for help troubleshooting code or setup issues... if you're running intro trouble, odds are somebody else is too!
+
+- A teaching team member will reply soon, and you are also encouraged to reply to each others' posts if you have insight about how to resolve the issue (also an easy way to boost your participation).
+   
+
+---
+# Pre-class lessons and weekly quizzes
+
+Each week, there will be between 1 and 3 html-based lessons for you to work through.
+
+Starting next class, every class will begin with a short Courseworks quiz covering the pre-class lessons:
+
+- Typically 10 multiple choice questions in total, 5-6 minutes to complete
+
+- Will include 1 question on the Data Primer covering data used in class
+
+- Quizzes are closed-note (and Courseworks Quizzes shows a log of your quiz activity!)
+
+- I try not to emphasize detailed memorization for the quizzes but inevitably there is some
+
+  - As long as you are thoughtfully engaging with the pre-class material in advance then you're on the right track. 
+  
+  - I strongly recommend executing the code as you work through each pre-class lesson.
+
+
+---
+# Attendance and participation
+
+**Recitation:** **.my-style-ul[you must be able to attend one of the Thursday recitations]**
+
+  - Early in the semester recitation will be used to review code from class and prep for assignments
+  
+  - Later in the semester this time will be used for extra office hours and project meetings
+  
+  - Email me if you want to attend a different recitation time than the one for the section you are registered for
+  
+
+---
+# Attendance and participation
+
+**Attendance**
+
+- Lecture attendance is required, multiple unexcused absences will drive your participation grade down towards zero. 
+
+- If you are feeling unwell or dealing with personal challenges, please email me in advance of class and/or any looming deadlines. We will do our best to help you catch up on any missed material make a plan to meet any upcoming deadlines. 
+
+
+
+**Participation**
+
+- .my-style-ul[Participation—in-class and through Ed Discussion—is worth 10% of your total grade].
+- We want to create our own data community with engagement from everybody in ways they are comfortable with. Let me know if you have suggestions!
+
+
+---
+class: center, middle
+
+# Questions about the syllabus and course expectations?
+ 
+
+
+
