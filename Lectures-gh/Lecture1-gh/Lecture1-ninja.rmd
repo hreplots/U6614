@@ -6,6 +6,7 @@ institute: "Columbia | SIPA"
 date: "Fall 2024"
 output:
   xaringan::moon_reader:
+    self_contained: true
     css: ["default-fonts", "my-style.css"]
     lib_dir: libs
     nature:
