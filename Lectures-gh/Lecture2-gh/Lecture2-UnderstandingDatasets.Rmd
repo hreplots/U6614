@@ -58,7 +58,7 @@ For administrative data, on the other hand, each observation typically represent
 
 # Application: comparing two datasets on unpredictable scheduling
 
-Unpredictable scheduling refers to the practice of employers assigning shifts to their workers with short notice and irregular hours. Many low-wage employees are effectively forced to be on call to pick up shifts when told on short notice, with an unpredictable stream of income to pay bills, and often left scrambling for child care.
+Unpredictable scheduling refers to the practice of employers assigning shifts to their workers with short notice and irregular hours. Many low-wage employers are effectively forced to be on call to pick up shifts when told on short notice, with an unpredictable stream of income to pay bills, and often left scrambling for child care.
 
 ## Dataset 1: The Unheard Third Survey {.unnumbered}
 
