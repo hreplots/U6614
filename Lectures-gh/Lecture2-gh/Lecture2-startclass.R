@@ -1,272 +1,266 @@
 ################################################################################
 ##
-## [ PROJ ] < Assessing gender wage gaps using the Current Population Survey >
+## [ PROJ ] < Caste-based expenditure gaps and the ACCESS 2018 Survey >
 ## [ FILE ] < Lecture2-startclass.R >
-## [ INIT ] < Jan 23, 2024 >
+## [ INIT ] < Sept 05, 2024 >
 ##
 ################################################################################
 
 ## ---------------------------
-## libraries
+## LIBRARIES
 ## ---------------------------
 
-library(tidyverse)
+
 
 ## ---------------------------
-## directory paths
+## DIRECTORY PATHS
 ## ---------------------------
 
 getwd()
 
 
 ## -----------------------------------------------------------------------------
-## 1. load and inspect CPS data: 
+## 1. load and inspect access2018 data: 
 ##    
 ##    a. inspect the data frame and data types for each column
-##          - make sure to inspect the age, sex, race, college columns
+##        - make sure to inspect the age, gender, caste, religion, state & educ columns
 ##
-##    b. use the mutate function to create new column for sex:
-##        sex.fac = as.factor(sex),
-##        check if it worked by calling the str() function
+##    b. use the mutate function to create new column for gender:
+##        - gender.fac = as.factor(gender),
+##        - check if it worked by calling the str() function
 ##
-##    c. include sex.fac in a new data frame called cps.temp1, 
-##       also create factors for race and college education,
-##        use a pipe to exclude the columns for serial and ind
-##        after creating cps.temp1, print the first 5 observations
+##    c. in a single pipe, include gender.fac in a new data frame called access2018.temp1, 
+##       also create factors for caste, religion, state and education,
+##       and exclude the columns for HHID and date
+##       after creating access2018.temp1, print the first 5 observations
 ##
-##    d. inspect race.fac, sex.fac, and college.fac using the levels() function,
-##        what package is the levels() function located in?
+##    d. inspect caste.fac, gender.fac, religion.fac, education.fac and state.fac
+##.      using the levels() function,
+##       what package is the levels() function located in?
 ##
-##    e. use filter() to only include rows only for June 2022,
-##        store as a new object cps_2022,
-##        print the first 5 observations,
-##        confirm your data only includes observations for 2022
+##    e. use filter() to only include rows only for the state "Uttar Pradesh",
+##       store as a new object access_UP,
+##       print the first 5 observations,
+##       confirm your data only includes observations for Uttar Pradesh
 ##
-##    f. remove the cps.temp1 object from memory using the rm() function
+##.   f. what is the female share of respondents in Uttar Pradesh? 
+##       compare it to the female share of respondents in Bihar. 
+##
+##    g. remove the access2018.temp1 object from memory using the rm() function
 ## -----------------------------------------------------------------------------
 
-# load the CPS data frame and store as an object 'cps'
-  cps <- read.csv("cps_june_22-23.csv")
-  
-# this time we will remove NA values from the outset in the interest of time
-# general rule: need to understand why NA values arise before deciding what to do 
-  cps <- na.omit(cps) #remove all observations with NA values
-  
-  
 # 1a. 
 
-  
-  #we can also inspect the data frame by double-clicking in the Environment tab
-  
- 
-  
+
   
 # 1b.
 
   
   
-# 1c.
-  cps.temp1 <- FILL IN CODE
-  
-  
-  #some helpful syntax for later: 
-  #subset the first row of cps.temp1
-  cps.temp1[1,]
-  #subset the cell in the first row, 4th column (i.e. first obs for age)
-  cps.temp1[1,4]
-  
-  
+# 1c. 
+
+
+
 # 1d.
-  
 
-  
-  
-  
+
+  ?levels   
+  #note that levels is a base R function
+  #so levels can't be used with columns using tidyverse syntax (i.e. not within a pipe)
+  #make sure you understand why this won't work: cps.temp1 %>% levels(sex.fac)
+
+
 # 1e.
-  cps_2022 <- FILL IN CODE HERE 
 
 
-  
   
 # 1f.
-  rm(cps.temp1)
+
+  #Share of female respondents in UP
+
+
+  #Share of female respondents in Bihar
 
   
+
+# 1g.
+
+
+
 ## -----------------------------------------------------------------------------
-## 2. Describe the cps_2022 data frame
+## 2. Describe the access_UP data frame
 ##
-##    a. what is the unit of observation (or unit of analysis)? 
+##    a. what is the unit of observation (or unit of analysis)?
 ##
-##    b. how many individuals are observed? from how many households?
+##    b. how many individuals are observed? 
+##       how many of these are from 'Reserved' castes (i.e: Scheduled Caste, Scheduled Tribe, Other Backward Class")? 
+##       how many are "General" caste members?
+##       [Note: for this question, use the 'table' and 'prop.table' functions. 
+##             'table' will give the number of observations belonging to each caste category.
+##             'prop.table will give the proportion]
 ##
-##    c. what is the average age of individuals in the sample? youngest and oldest person?
+##    c. do you think the sample is representative of all households in India?
+##       how would you describe the population represented by this sample?
+##       is there more information you would like to see to assess the representativeness of the sample?
+##
+##    d. what is the average age of individuals in the sample? youngest and oldest person?
 ## -----------------------------------------------------------------------------
-  
-# 2a.
- 
-  
-  #NOTE: don't include all of your inspection commands in your R Markdown submission
-  #      I've included view() as a reminder, but it should never be in your submission
-  #      neither should clunky str() output, be selective about the output you show!
-  
-  
-# 2b. HINT: we need to calculate a statistic for a given column of data
-  ?summarise
+
+# 2b. Note: For this question, first run the following code to add a dummy 
+# variable 'reserved' to the 'access_UP' dataframe. This variable has two levels— 
+# 'Other Backward Class', 'Scheduled Caste' and 'Scheduled Tribe' belong to the 
+# 'Reserved' level, while the rest are assigned to 'General'.
+  access_UP <- access_UP %>% 
+    mutate(reserved = factor(if_else(caste.fac %in% c("Other Backward Class", 
+                                                      "Scheduled Caste",
+                                                      "Scheduled Tribe"),
+                                     "Reserved",
+                                     "General")))
+
+  #Number of total observations in access_UP
 
   
-  #summarise is in the dplyr package which is part of the tidyverse
-  cps_2022 %>% FILL IN CODE HERE
+  #Number of 'Reserved' and 'General' individuals
 
   
-  #short way: use in your .rmd file to reference code inline to answer questions
-  n_distinct(cps_2022$personid)
-  n_distinct(cps_2022$hhid)
-  #NOTE: you'll lose points for hardcoding numerical answers in your assignments!
-  
-  
-# 2c. 
-  #use summarise with multiple arguments, one for each statistic
-  #try ?summarise to find the syntax for different summary statistics
-  
-  cps_2022 %>% FILL IN CODE HERE
+  #Proportion of 'Reserved' and 'General' individuals
+
 
   
-## -----------------------------------------------------------------------------
-## 3. Let's now look at earnings per week for different groups in June 2022
-##
-##    a. find the observation for the top weekly earnings using the summarise() function, 
-##        assign this to a new object called max_earnings
-##
-##    b. find max weekly earnings using the arrange function instead of summarise
-##
-##    c. use the filter function to subset for the observation with max weekly earnings
-##        (don't hardcode the max earnings to filter on, refer to the max_earnings object from a),
-##        store in new data frame cps_max_earn,
-##        confirm it worked
-##
-##    d. what is the age, sex, and race of the top weekly earner in the sample?
-##
-##    e. list the age, sex, and race of the top 10 weekly earners in the sample.
-##
-##    f. how many individuals earned more than $2000 in weekly earnings?
-## -----------------------------------------------------------------------------
-  
-# 3a. 
-  cps_2022 %>% FILL IN CODE HERE
-  #Documentation: https://cps.ipums.org/cps-action/variables/EARNWEEK#codes_section
-  
-  #assign to object
-  max_earnings <- FILL IN CODE HERE
+# 2d. 
 
     
-# 3b. 
-  cps_2022 %>% FILL IN CODE HERE
-  
-  
-# 3c. 
-  
-  #HINT: your condition needs to refer to the max weekly earnings.
-  # you created max_earnings as a data frame in part a,
-  # so in your filter() call refer to the value from max_earnings that you want to filter on
-  # this requires subsetting the appropriate element from that data frame
-  # (in this case just the 1st row of a 1-row data frame).
-  # See Lecture2.1/Section 4.2 for examples of how to subset matrix/df elements
-  
-  cps_max_earn <- FILL IN CODE HERE
-  
-  
-# 3d. 
+
+
+## -----------------------------------------------------------------------------
+## 3. Let's now look at expenditures per month for different groups in Uttar Pradesh
+##
+##    a. find the observation for the top monthly expenditure using the summarize() function, 
+##        assign this to a new object called max_exp_obs1
+##
+##    b. find max monthly expenditures using the arrange function instead of summarize
+##
+##    c. use the filter function to subset for the observation with max monthly expenditure
+##        (don't hardcode the max expenditure to filter on, refer to the max_exp_obs1 object from a),
+##        store in new data frame max_exp_obs2,
+##        confirm it worked
+##
+##    d. what is the age, gender, caste and religion of the top monthly spender in the sample?
+##
+##    e. list the age, gender and caste of the top 10 monthly spenders in the sample.
+##
+##    f. how many individuals spend more than the mean monthly expenditure amount of the sample?
+## -----------------------------------------------------------------------------
+
+# 3a. 
+
 
   
+# 3b. 
+
+
   
-  #obviously better to refer to column names when you know them as we do here
-  #alternatively, you could refer to the elements you want within the cps_max_earn object
-  #by calling the 4th, 5th, and 6th columns from the first row
-  cps_max_earn[1,4:6]
+# 3c. 
+# HINT: your condition needs to refer to the max monthly expenditures (month_exp)
+# you created max_exp_obs1 as a data frame in part a,
+# so in your filter() call refer to the value from max_exp_obs1 that you want to filter on
+# this requires subsetting the appropriate element from that data frame
+# (in this case just the max_exp column of the max_exp_obs1 data frame)
   
+
+    
+# 3d.
+
+
   
 # 3e.
-  
+
 
   
 # 3f.
-  
-  #HINT: use the nrow() function to return the number of observations
 
 
   
 ## -----------------------------------------------------------------------------
-## 4. Let's look at wage gaps between males and females:
+## 4. Now, let's look at caste-based monthly expenditure gaps in Uttar Pradesh. 
+##    [Note: Since this data has no earnings data, we are using monthly expenditure 
+##    (month_exp) as a proxy for earnings.
 ##
-##    a. use the filter function to subset observations for males, 
-##        assign to new data frame, cps_2022_male,
-##        sort in descending order of weekly earnings
-##        check if it worked
+##    a. use the filter function to subset observations belonging to the 'General' caste, 
+##       assign to new data frame, access_UPgen,
+##       sort in descending order of monthly expenditure
+##       check if it worked
 ##
-##    b. repeat part a for females and create a new data frame, cps_2022_female
+##    b. repeat part a, but this time, use the filter function to subset observations 
+##       belonging to 'Reserved" castes: 'Other Backward Class', 'Scheduled Caste' or 'Scheduled Tribe', and
+##       assign them to a new data frame called 'access_UPres'. 
 ##
-##    c. use summarise to find mean, min & max for males and females, separately
-##        name each statistic appropriately (i.e. name each column in the 1-row table of stats)
-##        what is the gender gap in mean weekly earnings?
+##    c. use summarise to find mean, min & max monthly expenditure for the General 
+##       category and Reserved category of castes, separately.
+##       name each statistic appropriately (i.e. name each column in the 1-row table of stats)
+##       what is the gap in mean monthly expenditure between the two groups? 
 ##
-##    d. What is the wage gap in weekly earnings ($) between 
-##        white males and Black females?
+##    d. research suggests that people belonging to the 'General' caste category
+##       own 65% of agricultural land in India (India Human Development Survey, 2020). 
+##       they are also more likely to own land in a proportion that is much higher
+##       than their share of the population. 
+##       we will now use this data to compare 'General' versus 'Reserved' households
+##       using the 'reserved' dummy variable to understand whether this is true. 
+##       - use the 'table' and 'prop.table' functions to explore the total number 
+##         of landowners by their caste. 
+##       - here, 'landowners' are people whose primary source of income is 
+##         agriculture on their own land. So, you can use the 'incsource.fac' 
+##         variable to filter the 'access_UP' data frame for 'Agriculture (own land)'
+##       - does the number of General and Reserved caste landowners seem 
+##         proportional to the overall number of 'General' and 'Reserved' caste 
+##         individuals in Uttar Pradesh's population (as calculated in Q2 b)? 
 ##
-##    e. What is the wage gap in weekly earnings ($) between 
-##        college educated white males and college educated Black females? 
+##    e. do differences in landowning explain the expenditure gap between General and Reserved castes?
+##       i.e., does the General-Reserved expenditure gap persist among landowning families?
+##       what is the gap in mean monthly expenditures of General vs Reserved category landowners? 
+##
+##    f. is there a gap between the mean monthly expenditures of General caste male 
+##       and Reserved caste male landowners? what about the same, but for the female landowners? 
+##
+##    g. does educational attainment explain part of the expenditure gap 
+##       between General and Reserved caste landowners?
+##       what is gap between landowning General vs. Reserved household with a HS degree or more? 
 ## -----------------------------------------------------------------------------
-  
+
 # 4a. 
-  
-  #HINT: try levels(cps_2022$sex.fac) function to get the factor labels to filter on
-  
-  cps_2022_male <- FILL IN CODE HERE
 
   
-# 4b.
-  cps_2022_female <- FILL IN CODE HERE
 
-  
+# 4b. 
+
+
+
 # 4c.
 
-  #HINTt: use the newly created data frames for males and females to generate stats
-  
+    
 
-  
-  #calculate gender gap in weekly earnings:
-  #HINT: use base R to calculate the wage gap directly in your .rmd file
+# 4d.
 
-  
-# 4d. 
-  
-  #HINT: use levels() again to get the factor labels
-  
-  #create object w/observations for white males
-  cps_2022_wh_male <-  FILL IN CODE HERE
-  
-  
-  #create object w/observations for Black females
-  cps_2022_bl_female <-  FILL IN CODE HERE 
-  
-  
-  #calculate wage gap between white males and Black females
-
-  
-  #Q: do you see any potential issues with the demographic groups we just used?
-  
   
 
 # 4e. 
-  
-  #create object w/observations for white college educated males
-  cps_2022_wh_male_college <- FILL IN CODE HERE
-
-  
-  #create object w/observations for Black college educated females
-  cps_2022_bl_female_college <- FILL IN CODE HERE
-  
-  
-  #calculate wage gap
 
 
-#NOTE: above exercises are done w/weekly earnings, but can easily be converted to hourly wages
+
+# 4f. 
+
+
+  
+# 4g. 
+#Note: First run the following code to create a dummy variable 'degree' with two levels: 
+#"HS degree or above" and "Less than HS".
+
+  access_UP <- access_UP %>% 
+    mutate(degree = factor(if_else(education.fac %in% c("Grade 12", 
+                                                         "Graduate or above"),
+                                    "HS degree or above",
+                                    "Less than HS")))
+  
+  #General v Reserved landowners who have degrees
+
+  
