@@ -6,6 +6,7 @@
 ##
 ################################################################################
 
+
 ## ---------------------------
 ## LIBRARIES
 ## ---------------------------
@@ -16,6 +17,7 @@
 ## DIRECTORY PATHS
 ## ---------------------------
 
+
 getwd()
 
 
@@ -23,18 +25,18 @@ getwd()
 ## 1. load and inspect access2018 data: 
 ##    
 ##    a. inspect the data frame and data types for each column
-##        - make sure to inspect the age, gender, caste, religion, state & educ columns
+##        - make sure to inspect the age, gender, caste, income source, state & educ columns
 ##
 ##    b. use the mutate function to create new column for gender:
 ##        - gender.fac = as.factor(gender),
 ##        - check if it worked by calling the str() function
 ##
 ##    c. in a single pipe, include gender.fac in a new data frame called access2018.temp1, 
-##       also create factors for caste, religion, state and education,
+##       also create factors for caste, income source, state and education,
 ##       and exclude the columns for HHID and date
 ##       after creating access2018.temp1, print the first 5 observations
 ##
-##    d. inspect caste.fac, gender.fac, religion.fac, education.fac and state.fac
+##    d. inspect caste.fac, gender.fac, incsource.fac, education.fac and state.fac
 ##.      using the levels() function,
 ##       what package is the levels() function located in?
 ##
@@ -52,11 +54,11 @@ getwd()
 # 1a. 
 
 
-  
+
 # 1b.
 
-  
-  
+
+
 # 1c. 
 
 
@@ -64,7 +66,7 @@ getwd()
 # 1d.
 
 
-  ?levels   
+?levels   
   #note that levels is a base R function
   #so levels can't be used with columns using tidyverse syntax (i.e. not within a pipe)
   #make sure you understand why this won't work: cps.temp1 %>% levels(sex.fac)
@@ -73,7 +75,7 @@ getwd()
 # 1e.
 
 
-  
+
 # 1f.
 
   #Share of female respondents in UP
@@ -81,7 +83,7 @@ getwd()
 
   #Share of female respondents in Bihar
 
-  
+
 
 # 1g.
 
@@ -110,26 +112,24 @@ getwd()
 # variable 'reserved' to the 'access_UP' dataframe. This variable has two levels— 
 # 'Other Backward Class', 'Scheduled Caste' and 'Scheduled Tribe' belong to the 
 # 'Reserved' level, while the rest are assigned to 'General'.
-  access_UP <- access_UP %>% 
-    mutate(reserved = factor(if_else(caste.fac %in% c("Other Backward Class", 
-                                                      "Scheduled Caste",
-                                                      "Scheduled Tribe"),
-                                     "Reserved",
-                                     "General")))
+access_UP <- access_UP %>% 
+  mutate(reserved = factor(if_else(caste.fac %in% c("Other Backward Class", 
+                                                    "Scheduled Caste",
+                                                    "Scheduled Tribe"),
+                                   "Reserved",
+                                   "General")))
 
-  #Number of total observations in access_UP
-
-  
-  #Number of 'Reserved' and 'General' individuals
-
-  
-  #Proportion of 'Reserved' and 'General' individuals
+#Number of total observations in access_UP
 
 
-  
+#Number of 'Reserved' and 'General' individuals
+
+
+#Proportion of 'Reserved' and 'General' individuals
+
+
+
 # 2d. 
-
-    
 
 
 ## -----------------------------------------------------------------------------
@@ -145,7 +145,7 @@ getwd()
 ##        store in new data frame max_exp_obs2,
 ##        confirm it worked
 ##
-##    d. what is the age, gender, caste and religion of the top monthly spender in the sample?
+##    d. what is the age, gender and caste of the top monthly spender in the sample?
 ##
 ##    e. list the age, gender and caste of the top 10 monthly spenders in the sample.
 ##
@@ -155,45 +155,46 @@ getwd()
 # 3a. 
 
 
-  
+
 # 3b. 
 
 
-  
+
 # 3c. 
 # HINT: your condition needs to refer to the max monthly expenditures (month_exp)
 # you created max_exp_obs1 as a data frame in part a,
 # so in your filter() call refer to the value from max_exp_obs1 that you want to filter on
 # this requires subsetting the appropriate element from that data frame
 # (in this case just the max_exp column of the max_exp_obs1 data frame)
-  
 
-    
+
+
 # 3d.
 
 
-  
+
 # 3e.
 
 
-  
+
 # 3f.
 
 
-  
+
 ## -----------------------------------------------------------------------------
 ## 4. Now, let's look at caste-based monthly expenditure gaps in Uttar Pradesh. 
 ##    [Note: Since this data has no earnings data, we are using monthly expenditure 
-##    (month_exp) as a proxy for earnings.
+##    (month_exp) as a proxy for earnings.]
 ##
-##    a. use the filter function to subset observations belonging to the 'General' caste, 
+##   a. use the filter function and 'reserved' dummy variable to subset observations belonging to the 'General' caste, 
 ##       assign to new data frame, access_UPgen,
 ##       sort in descending order of monthly expenditure
 ##       check if it worked
 ##
 ##    b. repeat part a, but this time, use the filter function to subset observations 
-##       belonging to 'Reserved" castes: 'Other Backward Class', 'Scheduled Caste' or 'Scheduled Tribe', and
+##       belonging to 'Reserved" castes.
 ##       assign them to a new data frame called 'access_UPres'. 
+##
 ##
 ##    c. use summarise to find mean, min & max monthly expenditure for the General 
 ##       category and Reserved category of castes, separately.
@@ -229,7 +230,7 @@ getwd()
 
 # 4a. 
 
-  
+
 
 # 4b. 
 
@@ -237,11 +238,11 @@ getwd()
 
 # 4c.
 
-    
+
 
 # 4d.
 
-  
+
 
 # 4e. 
 
@@ -250,17 +251,17 @@ getwd()
 # 4f. 
 
 
-  
+
 # 4g. 
 #Note: First run the following code to create a dummy variable 'degree' with two levels: 
 #"HS degree or above" and "Less than HS".
 
-  access_UP <- access_UP %>% 
-    mutate(degree = factor(if_else(education.fac %in% c("Grade 12", 
-                                                         "Graduate or above"),
-                                    "HS degree or above",
-                                    "Less than HS")))
-  
-  #General v Reserved landowners who have degrees
+access_UP <- access_UP %>% 
+  mutate(degree = factor(if_else(education.fac %in% c("Grade 12", 
+                                                      "Graduate or above"),
+                                 "HS degree or above",
+                                 "Less than HS")))
 
-  
+#General v Reserved landowners who have degrees
+
+

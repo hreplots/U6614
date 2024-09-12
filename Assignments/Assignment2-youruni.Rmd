@@ -33,9 +33,7 @@ knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
 *Please visit [this](https://bookdown.org/yihui/rmarkdown-cookbook/install-latex.html) link for more information on TinyTex installation.*
 
 \medspace
-```{r echo = FALSE}
-library(tidyverse)
-```
+
 # Load and inspect ACCESS 2018 data: 
 
 ### 1a) Inspect the data frame and data types for each column. {-}
@@ -103,12 +101,12 @@ using the levels() function. What package is the levels() function located in? {
 
 # Caste-based monthly expenditure gaps in Uttar Pradesh. {-}
 
-### 4a) Use the filter function to subset observations belonging to the 'General' caste. {-}
+### 4a) Use the filter function and 'reserved' dummy variable to subset observations belonging to the 'General' caste. {-}
 - assign to new data frame, access_UPgen
 - sort in descending order of monthly expenditure
 - check if it worked
 
-### 4b) Repeat part a, but this time, use the filter function to subset observations belonging to 'Reserved" castes: 'Other Backward Class', 'Scheduled Caste' or 'Scheduled Tribe', and assign them to a new data frame called 'access_UPres'. {-}
+### 4b) Repeat part a, but this time, use the filter function to subset observations belonging to 'Reserved" castes, and assign them to a new data frame called 'access_UPres'. {-}
 
 ### 4c) Use summarise to find mean, min & max monthly expenditure for the General category and Reserved category of castes, separately. {-}
 - name each statistic appropriately (i.e. name each column in the 1-row table of stats)
