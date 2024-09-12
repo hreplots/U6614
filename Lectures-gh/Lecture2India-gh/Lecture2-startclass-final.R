@@ -186,14 +186,14 @@ access_UP <- access_UP %>%
 ##    [Note: Since this data has no earnings data, we are using monthly expenditure 
 ##    (month_exp) as a proxy for earnings.]
 ##
-##    a. use the filter function to subset observations belonging to the 'General' caste, 
+##    a. use the filter function and 'reserved' dummy variable to subset observations belonging to the 'General' caste, 
 ##       assign to new data frame, access_UPgen,
 ##       sort in descending order of monthly expenditure
 ##       check if it worked
 ##
 ##    b. repeat part a, but this time, use the filter function to subset observations 
-##       belonging to 'Reserved" castes: 'Other Backward Class', 'Scheduled Caste' or 'Scheduled Tribe', and
-##       assign them to a new data frame called 'access_UPres'. 
+##       belonging to 'Reserved" castes.
+##       assign them to a new data frame called 'access_UPres'.
 ##
 ##    c. use summarise to find mean, min & max monthly expenditure for the General 
 ##       category and Reserved category of castes, separately.
