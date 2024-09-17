@@ -1,0 +1,432 @@
+---
+title: 'U6614: Assignment 2'
+author: 'your name (your uni) '
+date: '`r Sys.Date()`'
+output:
+  pdf_document:
+    toc: no
+    toc_depth: '3'
+    number_sections: yes
+  html_document:
+    toc: yes
+    toc_depth: 3
+    toc_float: yes
+    number_sections: yes
+    highlight: tango
+    theme: default
+    fig_caption: yes
+    df_print: tibble
+urlcolor: blue
+---
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
+```
+
+##### *Please submit your knitted .pdf file along with the corresponding R markdown (.rmd) via Courseworks by 11:59pm on the due date.* {-}
+
+\medspace
+
+*Before knitting your rmd file as a pdf, you will need to install TinyTex for Latex distribution by running the following code:*
+
+`tinytex::install_tinytex()`
+
+*Please visit [this](https://bookdown.org/yihui/rmarkdown-cookbook/install-latex.html) link for more information on TinyTex installation.*
+
+\medspace
+```{r echo = FALSE}
+library(tidyverse)
+```
+# Load and inspect ACCESS 2018 data: 
+
+### 1a) Inspect the data frame and data types for each column. {-}
+- make sure to inspect the age, gender, caste, income source, state & educ columns
+
+```{r}
+load("access2018.RData")
+str(access2018)
+```
+
+```{r 1a}
+summary(access2018$age)
+summary(access2018$gender) #summary is not very useful with character variables
+summary(access2018$caste) #summary is not very useful with character variables
+summary(access2018$education) #summary is not very useful with character variables
+summary(access2018$state) #summary is not very useful with character variables
+```
+
+
+### 1b) Use the mutate function to create new column for gender: {-}
+- gender.fac = as.factor(gender),
+- check if it worked by calling the str() function
+
+```{r results = 'hide'}
+mutate(access2018, gender.fac = as.factor(gender)) 
+```
+  
+```{r}
+#Note: the output is an object, we're just not assigning it to the environment
+#but we can put the entire operation within str() to inspect the output
+str(mutate(access2018, gender.fac = as.factor(gender)), 
+    give.attr = FALSE) 
+```
+
+
+### 1c) In a single pipe, include gender.fac in a new data frame called access2018.temp1.{-}
+- also create factors for caste, income source, state and education
+- exclude the columns for HHID and date after creating access2018.temp1
+- print the first 5 observations
+
+```{r}
+access.temp1 <- access2018 %>% 
+  mutate(gender.fac = as.factor(gender),
+          caste.fac = as.factor(caste),
+          education.fac = as.factor(education), 
+          state.fac = as.factor(state),
+          incsource.fac = as.factor(incsource)) %>% 
+    select(-HHID, -date) 
+```
+
+```{r}
+head(access.temp1, n = 5) 
+```
+
+
+### 1d) Inspect caste.fac, gender.fac, incsource.fac, education.fac and state.fac 
+using the levels() function. What package is the levels() function located in? {-}
+
+```{r}
+levels(access.temp1$gender.fac)
+levels(access.temp1$caste.fac)
+levels(access.temp1$education.fac)
+levels(access.temp1$state.fac)
+levels(access.temp1$incsource.fac)
+
+#?levels #'?' before a function name will tell you what the function does and what package it is a part of. 
+```
+Using ?levels, we see that levels is a base R function. This means that it generally can't be called within a pipe, as it is not part of the tidyverse. 
+
+
+### 1e) Use filter() to only include rows only for the state "Uttar Pradesh." {-}
+- store as a new object access_UP
+- print the first 5 observations
+- confirm your data only includes observations for Uttar Pradesh
+
+```{r}
+access_UP <- access.temp1 %>% 
+  filter(state == "UTTAR PRADESH")
+  
+head(access_UP, n = 5)
+ 
+#validate
+summary(access_UP$state.fac)
+```
+
+### 1f) What is the female share of respondents in Uttar Pradesh? Compare it to the female share of respondents in Bihar? {-}
+
+```{r}
+#Share of female respondents in UP
+summary(access_UP$gender.fac)
+prop.table(table(access_UP$gender.fac))
+t1_UP <- prop.table(table(access_UP$gender.fac))
+
+#Share of female respondents in Bihar
+access_bihar <- access.temp1 %>% 
+  filter(state == "BIHAR")
+summary(access_bihar$gender.fac)
+prop.table(table(access_bihar$gender.fac))
+t1_bihar <- prop.table(table(access_bihar$gender.fac))
+```
+
+The share of female respondents in UP is `r round(t1_UP[1], 3)`, compared to `r round(t1_bihar[1], 3)` in Bihar.
+
+
+
+### 1g) Remove the access2018.temp1 object from memory using the rm() function. {-}
+
+```{r}
+rm(access.temp1)
+rm(access_bihar)
+```
+
+\medspace
+
+
+# Describe the access_UP data frame
+
+### 2a) What is the unit of observation (or unit of analysis)? {-}
+```{r}
+str(access_UP)
+```
+Here each row represents the responses of an individual on behalf of the households. So you could really say the unit of observation is the household or the individual, depending on the nature of the analysis and variables you are using. 
+
+
+### 2b) How many individuals are observed? {-}
+- how many of these are from 'Reserved' castes (i.e: Scheduled Caste, Scheduled Tribe, Other Backward Class")? 
+- how many are "General" caste members?
+**[Note: for this question, use the 'table' and 'prop.table' functions. 'table' will give the number of observations belonging to each caste category.'prop.table will give the proportion]**
+
+```{r echo = FALSE, results = 'hide'}
+# 2b. Note: For this question, first run the following code to add a dummy 
+# variable 'reserved' to the 'access_UP' data frame. This variable has two levels— 'Other Backward Class', 'Scheduled Caste' and 'Scheduled Tribe' belong to the 'Reserved' level, while the rest are assigned to 'General'.
+access_UP <- access_UP %>% 
+  mutate(reserved = factor(if_else(caste.fac %in% c("Other Backward Class", 
+                                                      "Scheduled Caste",
+                                                      "Scheduled Tribe"),
+                                     "Reserved",
+                                     "General")))
+```
+
+``` {r}
+#Number of total observations in access_UP
+nrow(access_UP)
+#Ans: 3002
+  
+#Number of 'Reserved' and 'General' individuals
+table(access_UP$reserved)
+#Ans: 708 (G), 2294 (R)
+  
+#Proportion of 'Reserved' and 'General' individuals
+prop.table(table(access_UP$reserved))
+#Ans: 23.5% (G), 76.4% (R)
+```
+
+The total number of observations in the access_UP data frame is `r nrow(access_UP)`. Within this, there are `r table(access_UP$reserved)[1]` General category observations and `r table(access_UP$reserved)[2]` Reserved category observations. Therefore, the proportion of General category observations is `r round(prop.table(table(access_UP$reserved))[1],3)`, while Reserved category individuals make up `r round(prop.table(table(access_UP$reserved))[2],3)` of the total observations. 
+
+
+### 2c) Do you think the sample is representative of all households in India? {-}
+- how would you describe the population represented by this sample? 
+- is there more information you would like to see to assess the representativeness of the sample?
+
+The ACCESS 2018 dataset provides valuable insights into rural households in six states (Bihar, Jharkhand, Madhya Pradesh, Odisha, Uttar Pradesh, and West Bengal), but it is not fully representative of all Indian households. These less economically diversified states rely more on agriculture and informal labor, while more diversified states like Maharashtra, Gujarat, and Tamil Nadu have significant service and manufacturing sectors, leading to different spending behaviors. The six states also have a higher proportion of Scheduled Castes (SC), Scheduled Tribes (ST), Other Backward Classes (OBC), and Muslim populations compared to more diversified states, which may have a greater presence of General castes and different religious groups. These demographic and economic differences shape spending behaviors, resulting in varied expenditure patterns across regions.
+
+To determine the representativeness of this sample, additional information is needed. This includes the sampling methodology (e.g., random or stratified sampling), whether the data is weighted to account for unequal selection probabilities, and a comparison of key demographic characteristics (caste, education, income, occupation, religion) with national datasets like the Census of India. We would also need to assess the urban-rural balance in the sample, as the dataset focuses on rural areas, and determine how representative these six states are compared to the rest of India. With this information, we could better evaluate how closely the sample mirrors the broader Indian population.
+
+
+### 2d) What is the average age of individuals in the sample? youngest and oldest person? {-}
+
+```{r}
+summary(access_UP$age)
+#Avg age: 43.41 years, youngest: 18, oldest: 98.  
+```
+The average age of individuals in this sample is `r round(summary(access_UP$age)[4], 2)`, with the youngest individual being `r round(summary(access_UP$age)[1], 0)` years old, and the oldest being `r round(summary(access_UP$age)[6], 0)` years old. 
+
+\medspace
+
+# Earnings per week for different groups in Uttar Pradesh
+
+### 3a) Find the observation for the top monthly expenditure using the summarize() function. {-}
+- assign this to a new object called max_exp_obs1
+
+```{r}
+ max_exp_obs1 <- access_UP %>% 
+    summarize(max_exp = max(month_exp)) 
+  max_exp_obs1
+```
+
+
+### 3b) Find max monthly expenditures using the arrange function instead of summarize. {-}
+
+```{r}
+access_UP %>%
+    arrange(desc(month_exp)) %>%
+    select(month_exp) %>%
+    head(n = 1)
+```
+
+
+### 3c) Use the filter function to subset for the observation with max monthly expenditure. {-}
+- (don't hardcode the max expenditure to filter on, refer to the max_exp_obs1 object from a)
+- store in new data frame max_exp_obs2
+- confirm it worked
+
+```{r}
+max_exp_obs2 <- access_UP %>% 
+                filter(month_exp == max_exp_obs1$max_exp) 
+  
+#validate
+summary(max_exp_obs2$month_exp) 
+```
+
+
+### 3d) What is the age, gender and caste of the top monthly spender in the sample? {-}
+
+```{r}
+max_exp_obs2 %>%
+  select(age, gender, caste) %>%
+  head(n = 1)
+```
+
+
+### 3e) List the age, gender and caste of the top 10 monthly spenders in the sample. {-}
+
+```{r}
+access_UP %>%
+    arrange(desc(month_exp)) %>%
+    select(age, gender, caste, month_exp) %>%
+    head(n = 10)
+```
+
+
+### 3f) How many individuals spend more than the mean monthly expenditure amount of the sample? {-}
+
+```{r}
+ access_UP %>%
+    filter(month_exp > mean(month_exp)) %>% 
+    nrow()
+```
+
+\medspace
+
+
+# Caste-based monthly expenditure gaps in Uttar Pradesh. {-}
+
+### 4a) Use the filter function and 'reserved' dummy variable to subset observations belonging to the 'General' caste. {-}
+- assign to new data frame, access_UPgen
+- sort in descending order of monthly expenditure
+- check if it worked
+
+```{r}
+access_UPgen <- access_UP %>% 
+  filter(reserved == "General") %>%
+  arrange(desc(month_exp))
+
+#validate
+  summary(access_UPgen$reserved)
+```
+
+### 4b) Repeat part a, but this time, use the filter function to subset observations belonging to 'Reserved" castes, and assign them to a new data frame called 'access_UPres'. {-}
+
+```{r}
+access_UPres <- access_UP %>% 
+  filter(reserved == "Reserved")%>%
+  arrange(desc(month_exp))
+
+#validate
+  summary(access_UPres$reserved)
+```
+
+### 4c) Use summarise to find mean, min & max monthly expenditure for the General category and Reserved category of castes, separately. {-}
+- name each statistic appropriately (i.e. name each column in the 1-row table of stats)
+- what is the gap in mean monthly expenditure between the two groups? 
+
+```{r}
+access_UPgen %>%
+  summarise(avg_monthexp_gen = mean(month_exp), 
+            min_monthexp_gen = min(month_exp), 
+            max_monthexp_gen = max(month_exp),
+            n_monthexp_gen = n())
+
+access_UPres %>%
+  summarise(avg_monthexp_res = mean(month_exp), 
+            min_monthexp_res = min(month_exp), 
+            max_monthexp_res = max(month_exp),
+            n_monthexp_res = n())
+
+mean(access_UPgen$month_exp) - mean(access_UPres$month_exp)
+#Ans: 1385.48
+```
+
+The gap in mean monthly expenditures between General and Reserved caste group households is `r round(mean(access_UPgen$month_exp) - mean(access_UPres$month_exp), 0)` Rupee.
+
+
+### 4d) Research suggests that people belonging to the 'General' caste category own 65% of agricultural land in India (India Human Development Survey, 2020). They are also more likely to own land in a proportion that is much higher than their share of the population. We will now use this data to compare 'General' versus 'Reserved' households using the 'reserved' dummy variable to understand whether this is true. {-}
+- use the 'table' and 'prop.table' functions to explore the total number of landowners by their caste. 
+- here, 'landowners' are people whose primary source of income is agriculture on their own land. So, you can use the 'incsource.fac' variable to filter the 'access_UP' data frame for 'Agriculture (own land)'
+- does the number of General and Reserved caste landowners seem proportional to the overall number of 'General' and 'Reserved' caste individuals in Uttar Pradesh's population (as calculated in Q2 b)? 
+
+```{r}
+table(access_UP$incsource.fac, access_UP$reserved)
+prop.table(table(access_UP$incsource.fac, 
+                 access_UP$reserved), 
+           margin = 1) %>% 
+  round(3)
+pt_4d <- prop.table(table(access_UP$incsource.fac, 
+                          access_UP$reserved), 
+                    margin = 1) %>% round(3)
+
+```
+
+Out of `r table(access_UP$reserved)[1]` General caste individuals, `r table(access_UP$incsource.fac, access_UP$reserved)[1,1]` are landowners, meaning `r pt_4d[1,1]*100` percent own land, while they make up 23.5% of the total population. For Reserved caste individuals, `r table(access_UP$incsource.fac, access_UP$reserved)[1,2]` out of `r table(access_UP$reserved)[2]` are landowners, equating to `r pt_4d[1,2]*100` percent, even though they account for 76.4% of the population. This shows that General caste individuals are disproportionately represented among landowners compared to their share of the overall population.
+
+
+The total number of observations in the access_UP data frame is `r nrow(access_UP)`. Within this, there are `r table(access_UP$reserved)[1]` General category observations and `r table(access_UP$reserved)[2]` Reserved category observations. Therefore, the proportion of General category observations is `r round(prop.table(table(access_UP$reserved))[1],3)`, while Reserved category individuals make up `r round(prop.table(table(access_UP$reserved))[2],3)` of the total observations. 
+
+
+
+### 4e) Do differences in landowning explain the expenditure gap between General and Reserved castes? In other words, does the General-Reserved expenditure gap persist among landowning families? What is the gap in mean monthly expenditures of General vs Reserved category landowners? {-}
+
+```{r}
+access_UPgen_land <- access_UPgen %>% 
+  filter(incsource.fac == "Agriculture (own land)") 
+
+access_UPres_land <- access_UPres %>% 
+  filter(incsource.fac == "Agriculture (own land)") 
+  
+gap_land <- mean(access_UPgen_land$month_exp) - mean(access_UPres_land$month_exp)
+gap_land 
+
+#Ans: 864.89
+```
+
+The General-Reserved expenditure gap persists among landowners only but is lower in magnitude, falling to `r round(gap_land, 0)` Rupee for landowning households, compared to `r round(mean(access_UPgen$month_exp) - mean(access_UPres$month_exp), 0)` for all households.
+
+
+### 4f) Is there a gap between the mean monthly expenditures of General caste male and Reserved caste male landowners? What about the same, but for the female landowners? {-}
+
+```{r}
+access_UPgen_male <- access_UPgen_land %>%
+  filter(gender == "Male")
+  
+access_UPgen_fem <- access_UPgen_land %>%
+  filter(gender == "Female")
+  
+access_UPres_male <- access_UPres_land %>%
+  filter(gender == "Male")
+  
+access_UPres_fem <- access_UPres_land %>%
+  filter(gender == "Female")
+  
+gap_male <- mean(access_UPgen_male$month_exp) - mean(access_UPres_male$month_exp)
+gap_male 
+#Ans: 838.74
+  
+gap_fem <- mean(access_UPgen_fem$month_exp) - mean(access_UPres_fem$month_exp)
+gap_fem 
+#Ans: 915.32
+```
+
+The General-Reserved expenditure gap for landowning households with male respondents is `r round(gap_male, 0)` Rupee, compared to `r round(gap_fem, 0)` Rupee for female respondents. If we consider the respondent to be the head of household, this implies that being a women-led household doesn't explain the expenditure gap between General and Reserved landowning families. 
+
+
+### 4g) Does educational attainment explain part of the expenditure gap between General and Reserved caste landowners? What is gap between landowning General vs. Reserved household with a HS degree or more?  {-}
+
+```{r}
+access_UP <- access_UP %>% 
+  mutate(degree = factor(if_else(education.fac %in% c("Grade 12", 
+                                                         "Graduate or above"),
+                                    "HS degree or above",
+                                    "Less than HS")))
+  
+#General v Reserved landowners who have degrees
+access_UPgen_hs <- access_UP %>%
+  filter(reserved == "General", 
+         incsource.fac == "Agriculture (own land)", 
+         degree == "HS degree or above")
+  
+access_UPres_hs <- access_UP %>%
+  filter(reserved == "Reserved", 
+         incsource.fac == "Agriculture (own land)", 
+         degree == "HS degree or above")
+  
+gap_hs_land <- mean(access_UPgen_hs$month_exp) - mean(access_UPres_hs$month_exp)
+gap_hs_land 
+#Ans: 588.62
+  
+```
+
+The expenditure gap between General and Reserved caste landowners who have at least a high school degree or higher is `r round(gap_hs_land,0)`. This suggests that even among more educated landowners, there is still a notable expenditure gap between the two groups, indicating that landowning and educational attainment do not fully explain the economic disparities between caste groups. Other structural factors likely contribute to the persistent expenditure gap.
+
+
+
+
+
