@@ -137,7 +137,19 @@ There is one more step to go to perform inference on regression coefficients usi
 # conduct inference on coefficient from linear model ols1
 coeftest(ols1, vcov = vcovHC(ols1, type="HC1")) # type="HC1" specified robust SE formula
 ```
-Now we have the exact same t-statistic (4.64) as with the conventional difference-in-means t-test assuming unequal population variances.
+Now we have the exact same t-statistic (`r round(coeftest(ols1, vcov = vcovHC(ols1, type="HC1"))[2,3], 2)`) as with the conventional difference-in-means t-test assuming unequal population variances.
+
+An alternative and simpler approach is to use the `lm_robust` function in the `estimatr` package, accessed by `summary`:
+
+```{r, message = FALSE, warning = FALSE}
+# linear model
+library(estimatr)
+ols1_lm <- lm_robust(lifeExp ~ continent_Asia, 
+          se_type="HC1",  #type="HC1" specifies robust SE formula
+          data = gap_2007_asia_eur) 
+summary(ols1_lm)
+```
+
 
 ## Model specification 
 
