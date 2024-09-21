@@ -3,7 +3,7 @@
 ## [ PROJ ] Lecture 4: Subway Fare Evasion Arrests and Racial Bias
 ## [ FILE ] Lecture4-startclass.r
 ## [ AUTH ] < YOUR NAME >
-## [ INIT ] < Feb 6, 2024 >
+## [ INIT ] < Sept 24, 2024 >
 ##
 ################################################################################
 
@@ -21,12 +21,14 @@
 ## --------------------------------------
 
 #install.packages("weights")
+#install.packages("estimatr")
 #install.packages("lmtest")
 #install.packages("sandwich")
 #install.packages("knitr")
 
 library(tidyverse)
 library(weights)
+library(estimatr)
 library(lmtest)
 library(sandwich)
 library(knitr)
@@ -62,10 +64,8 @@ getwd()
   #can also consider ungrouping the st_arrests dataframe 
   
 #2c.
-  ggplot(FILL IN CODE)
-  
-  #remember ggplot is in the tidyverse, so we can also start by passing the data into a pipe
-    st_arrests %>% FILL IN CODE
+#remember ggplot is in the tidyverse, we can start by passing the df into a pipe
+  FILL IN CODE
 
     
 ## -----------------------------------------------------------------------------
@@ -233,6 +233,11 @@ getwd()
     round(summary(ols1l)$coefficients[2,1],2) #beta1_hat
     coeftest(ols1l, vcov = vcovHC(ols1l, type="HC1"))[2,4] #p-value on beta1_hat
     
+  #same results using lm_robust() in the estimatr package
+    ols1l <- lm(arrperswipe ~ povrt_all_2016, 
+                se_type="HC1",  #type="HC1" specifies robust SE formula
+                data = stations)
+    
   #add linear prediction line to scatter plot
     ggplot(stations, 
            aes(x = povrt_all_2016, y = arrperswipe)) + 
@@ -243,11 +248,11 @@ getwd()
     
   #fit quadratic OLS model (arrest intensity vs. poverty rate)
   #HINT: see quadratic syntax from Lecture4.2 (section 4.1)
-    ols1q <- lm(FILL IN FORMULA FOR QUADRATIC SYNTAX, #include quadratic term
-                data = stations) 
+    ols1q <- lm_robust(FILL IN FORMULA FOR QUADRATIC SYNTAX, #include quadratic term
+                       se_type="HC1", #get robust SEs
+                       data = stations) 
     summary(ols1q) 
-    coeftest(ols1q, vcov = vcovHC(ols1q, type="HC1"))
-    
+
   #add quadratic prediction line to scatter plot
     ggplot(stations,
            aes(x = povrt_all_2016, y = arrperswipe)) + 
@@ -275,9 +280,11 @@ getwd()
     #QUANT II REVIEW: 
     # equivalence of diff-in-means test & bivariate regression w/dummmy regressor
     # consult Video Lecture 2.2a on the class website  
-    diff1 <- lm(arrperswipe ~ highpov, data = stations, weight = swipes2016)
+    diff1 <- lm_robust(arrperswipe ~ highpov, 
+                       se_type="HC1", #get robust SEs
+                       data = stations, 
+                       weight = swipes2016)
     summary(diff1) #get summary of the model
-    coeftest(diff1, vcov = vcovHC(diff1, type="HC1")) #get robust SEs
     
     
   #wtd.t.test function in the weights package accepts weights... but not robust SEs
