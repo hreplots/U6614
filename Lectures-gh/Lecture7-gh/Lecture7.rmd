@@ -27,11 +27,11 @@ Load packages:
 library(tidyverse)
 library(gapminder)
 library(panelr)
-library(plm)
 library(fixest)
 library(lmtest) 
 library(multiwayvcov)
 library(broom)
+library(sandwich)
 ```
 
 Resources used to create this lesson:
@@ -228,7 +228,7 @@ Here are the identical clustered SEs from Stata using the *areg* command:
 Also note that the estimated slope effect of GDP per capita on life expectancy is negative! (Try running without year fixed effects and see how the estimated slope effect changes.) In other words, once we control for time-invariant country-specific characteristics and year-specific factors shared by all countries, we estimate a negative association between GDP per capita and life expectancy -- this seems contrary to our expectations!
 
 
-## Fixed effects estimation with `feols()` and `plm()`
+## Fixed effects estimation with `feols()`
 
 
 `feols()` in the `fixest` package is another way to estimate fixed effects models, and is particularly good at handling lots of fixed effects terms really fast.
@@ -255,28 +255,6 @@ Note that here the clustered SEs differ slightly from the `lm()` approach and St
 
 [Here](https://evalf21.classes.andrewheiss.com/example/standard-errors/) is a helpful resource for obtaining robust and clustered SEs in R, with comparisons to Stata.
 
-While `feols()` is pretty easy to use, it isn't supported by the `stargazer` package for formatting regression output that we'll be introducing later in the semester. For this reason, you may need to rely on `lm()` or the `plm()` function in the package of the same name for displaying formatted regression tables. Here is the code to replicate the above fixed estimation using `plm`:
-
-```{r message=FALSE, warning=FALSE}
-#specify FE model using plm
-fe1 <- plm(lifeExp ~ gdpPercap, 
-          data = gap_long,
-          index = c("year", "country"), 
-          model = "within", 
-          effect = "twoways")
-```
-
-```{r message=FALSE, warning=FALSE}
-summary(fe1) #note that the R-squared reported w/plm does not reflect the full model!
-```
-
-The R-squared reported by `plm()` is known as the "within R-squared"; it tells us how much of the variance within the panel units (here countries) is explained by the model.
-
-```{r message=FALSE, warning=FALSE}
-#robust SEs
-coeftest(fe1, vcov = vcovHC(fe1, type = "HC1"))
-```
-
 [Here](https://alex.miller.im/posts/when-to-use-fixed-effects-vs-clustered-standard-errors-panel-data/) is a very short overview of the motivation for clustered standard errors in panel data settings along with some practical guidance, and here is a short [video lecture](https://drive.google.com/file/d/1VJk5VGqJ4hyVxt8c-tboLQy-8K7zCa5C/view?usp=sharing) on the topic from Quant II.
 
 Some additional practical guidance to keep in mind: clustered standard errors generally lead to over-rejection of the null hypothesis when the number of clusters is small (<50). See [Cameron and Miller (2015)](http://cameron.econ.ucdavis.edu/research/Cameron_Miller_JHR_2015_February.pdf) for more details.
@@ -293,7 +271,7 @@ The LSDV model reminds us that we are estimating a single slope effect for GDP p
 
 In many cases, including this one, that approach would result in way too many regression lines on the same plot -- it would just look like a big mess to have separate regression lines for every country in 2007. Moreover, we're probably not even interested in visualizing different intercepts between countries. Rather, the point is to control for these differences so they aren't a source of omitted variable bias when estimating $\beta_1$, the slope effect of GDP per capita on life expectancy.
 
-Hence the more common FE notation seen in equation (1), rather than the LSDV model. Estimation of equation 1 is implemented by using ***residualized*** (or *demeaned*) versions of GDP per capita and life expectancy. That's what FE commands like `plm()` in R and areg in Stata do. First, they regress the outcome (lifeExp) on dummy variables for every country and year, and then obtain the residual for every observation. This residual represents the variation in the outcome that is *not* explained by time-invariant country-specific characteristics, or year-specific factors shared by all countries. The regressor of interest (gdpPercap) is residualized in a similar fashion. Then the FE coefficient estimate for $\beta_1$ can be obtained by regressing residualized life expectancy on residualized GDP per capita.
+Hence the more common FE notation seen in equation (1), rather than the LSDV model. Estimation of equation 1 is implemented by using ***residualized*** (or *demeaned*) versions of GDP per capita and life expectancy. That's what FE commands like `feols()` in R and areg in Stata do. First, they regress the outcome (lifeExp) on dummy variables for every country and year, and then obtain the residual for every observation. This residual represents the variation in the outcome that is *not* explained by time-invariant country-specific characteristics, or year-specific factors shared by all countries. The regressor of interest (gdpPercap) is residualized in a similar fashion. Then the FE coefficient estimate for $\beta_1$ can be obtained by regressing residualized life expectancy on residualized GDP per capita.
 
 With this process in mind, a natural visualization of the FE coefficient estimate of interest is to plot the regression line over the scatterplot of *residualized* GDP per capita vs *residualized* life expectancy.
 
