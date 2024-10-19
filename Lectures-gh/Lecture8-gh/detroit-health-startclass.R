@@ -195,13 +195,16 @@ getwd()
     
     #one catch here: missing SI data (before 2018) should be 0's not missing
     
-    joined_temp2 <- FILL IN CODE HERE
-    
-    #after join, extend pipe:
-      #exclude two zip codes that extend past Detroit's borders: 
-        #48225 (Harper Woods) and 48127 (Dearborn Heights)
-      #inspect and rename columns so you 1 col each for year and month w/no NAs
-    
+    joined_temp2 <- full_join(joined_temp1, 
+                              si_zip_ym, 
+                              by = c("zip5", "month_year")) %>% 
+      filter(zip5 != 48225, zip5 != 48127)  %>%  
+      #drop Harper Woods & Dearborn Heights (53 obs) bc they extend past Detroit
+      mutate(si_count = replace_na(si_count, 0)) %>%
+      #fill in SI count for months w/health data but no SI present
+      rename(year = year.x, 
+             month = month.x ) %>% 
+      select(-month.y, -year.y) 
 
     #inspect
       summary(joined_temp2)
