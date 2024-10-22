@@ -362,7 +362,10 @@ getwd()
 #Approach A: LSDV model
     
   #QUESTION: FILL IN MODEL FORMULA
-  panel_total_lsdv_1 <- lm(FILL IN CODE)
+  panel_total_lsdv_1 <- lm(total_obs_1000 ~ si_1000 +
+                             zip5_fac + ym_fac, 
+                           data = zip_panel, 
+                           weight = pop)
   
     #view full set of results w/no SE adjustment
     summary(panel_total_lsdv_1) 
@@ -395,7 +398,11 @@ getwd()
 #Approach B: FE estimation (w/feols in the fixest package)
   
   #specify model with FEs for country and wave, w/ robust SEs
-    panel_total_fe_1 <- feols(FILL IN CODE)
+    panel_total_fe_1 <- feols(total_obs_1000 ~ si_1000 |
+                                factor(zip5) + factor(ym),
+                              data = zip_panel,
+                              weights = zip_panel$pop, #note the bug w/weights arg
+                              vcov = "hetero")
     
     summary(panel_total_fe_1)
     
@@ -403,7 +410,7 @@ getwd()
       tidy(panel_total_fe_1) %>% filter(term == "si_1000")
     
           
-  #QUESTION: interpret coefficient on si_1000
+  #QUESTION: interpret the coefficient on si_1000
   
       
   
@@ -466,12 +473,12 @@ getwd()
                   weights = zip_panel$pop,
                   vcov = ~zip5)
       )
-   modelsummary(models,
-                output = "markdown", #use "latex" for knitting to pdf
-                coef_omit = "Intercept",
-                gof_map = c("nobs", "adj.r.squared", "vcov.type",
-                            "FE: factor(zip5)", "FE: factor(ym)"),
-                stars = c('*' = .1, '**' = .05, '***' = .01))
+    modelsummary(models,
+                 output = "html", # Note: use output="latex" to knit to pdf
+                 coef_omit = "Intercept",
+                 gof_map = c("nobs", "adj.r.squared", "vcov.type",
+                             "FE: factor(zip5)", "FE: factor(ym)"),
+                 stars = c('*' = .1, '**' = .05, '***' = .01))
     
     save(models, file="m.Rdata")
   
@@ -480,7 +487,9 @@ getwd()
    
   #plot relationship using pooled cross-sectional data
     ggplot(zip_panel, 
-           aes(x = si_1000, y = total_obs_1000, weight = pop)) +
+           aes(x = si_1000, 
+               y = total_obs_1000, 
+               weight = pop)) +
       geom_point(alpha = 0.4) +
       geom_smooth(method = 'lm_robust', 
                   formula = y ~ x,
@@ -490,7 +499,7 @@ getwd()
     
 
     #QUESTION: why doesn't this plot correspond to our FEs estimates?
-      #HINT: in the above ggplot object, try mapping zip5.fac to the color aesthetic
+      #HINT: in the above ggplot object, try mapping zip5_fac to the color aesthetic
     
     
   #can also plot binned data (though generally not desirable to do so)
