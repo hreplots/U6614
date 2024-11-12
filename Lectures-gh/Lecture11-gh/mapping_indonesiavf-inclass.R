@@ -101,11 +101,12 @@ getwd()
     indonesia[indonesia$FID == 83, "name"] <- 'Kota Banjar'
   #or the tidyverse approach
     indonesia <- indonesia %>% 
-      mutate(name = ifelse(FID == 83, 'Kota Banjar', name))
+      mutate(name = ifelse(FID == 83,'Kota Banjar', 
+                           name))
   
 #second step: let's join and see which regencies in vf_joined have no match
   
-  vf_joined2 <- indonesia %>%
+   vf_joined2 <- indonesia %>%
     right_join(vf_joined, by = c('name' = 'regency'))
 
   #equivalent joining code
@@ -184,6 +185,15 @@ getwd()
     scale_fill_fermenter(breaks = c(0, 10000000, 20000000, 30000000, 40000000)
                          , palette = "BuPu", direction = +1)
   g2
+  
+  
+  qt <- quantile(vf_joined_final$vfund_per_poor,
+           probs = c(0, 0.25, 0.50, 0.75,1 ))
+  
+  ggplot(vf_joined_final) + 
+    geom_sf(aes(fill = vfund_per_poor)) +
+    scale_fill_fermenter(breaks = qt
+                         , palette = "BuPu", direction = +1)
   
   
 # tmap version - a bit better. specify the tm_fill layer..
