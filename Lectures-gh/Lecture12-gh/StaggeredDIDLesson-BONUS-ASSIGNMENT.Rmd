@@ -93,7 +93,7 @@ cat(tabl) # output the table in a format good for HTML/PDF/docx conversion
 ```
 
 
-## <span style="color: #1565c0;">QUESTION:</span> Load the data (castle_expanded2.rdata) and generate two new variables, one for the homicide rate (homicides per 100,000 population) and another for the natural log of the homicide rate. Convert the year column from a numeric to integer. Save the new dataset in "castle_modified.rdata". Use the `summary()` function to report the mean homicide rate and ln(homicide rate) weighted by mean state population (popwt). Only report the weighted mean for these two variables, do not show long and clunky output with summary statistics for every variable in the data frame). {#qmod}
+## <span style="color: #1565c0;">QUESTION:</span> Load the data (castle_expanded2.rdata) and generate two new variables, one for the homicide rate (homicides per 100,000 population) and another for the natural log of the homicide rate. Convert the year column from a numeric to integer. Save the new dataset in "castle_modified.rdata". Use the `weighted.mean()` function to report the mean homicide rate and ln(homicide rate) weighted by mean state population (popwt). Only report the weighted mean for these two variables, do not show long and clunky output with summary statistics for every variable in the data frame). {#qmod}
 
 
 ## How many states (the panel "entity" or "unit") and how many years are observed in the data (the panel time period)? How many observations are there in the data set? Show the code and output you used to obtain these numbers. 
@@ -244,7 +244,7 @@ The economist Scott Cunningham contextualized their findings:
 
 We have since learned that using TWFE to implement a DID design with a staggered treatment is not quite so simple. To illustrate these issues, let's begin by estimating the *event study* TWFE model, which separates out the estimated average treatment effect into year-by-year effects, rather than estimating a single average treatment effect. 
 
-First let's create a new variable that measures time relative to the event (adopting a Stand Your Ground law). We construct relative time equal to the difference between the year and treatment year. In this case, however, there are 29 never-treated states; how should we handle them? For now let's set relative time  = to -1 for all observations for never-treated states.
+## First, create a new variable that measures time relative to the event (adopting a Stand Your Ground law). Construct a variable measuring relative time equal to the difference between the year and treatment year. In this case, however, there are 29 never-treated states; how should we handle them? For now let's set relative time  = to -1 for all observations for never-treated states.
 
 ```{r, reltime}
 load('castle_expanded2.rdata')
@@ -278,7 +278,8 @@ Recall that in Part 1 of the Data Assignment it wasn't so obvious what the appro
 
 Why are we interested in the $\beta^{pre}_j$ parameters? These coefficients are falsification tests that show us how the log of the homicide rate was trending prior to adoption. Their pattern and statistical significance are a test of the key identifying assumption of parallel trends; statistically significant estimates during the pre-treatment period would be inconsistent with the parallel trends assumption. The $\beta^{post}_j$ parameters represent the causal effect of adopting a Stand Your Ground law for each relative period $j$. 
 
-Let's estimate the event study model. `fixest` includes an interaction helper function `i()`, which we'll use to generate the event study interaction terms. As described above, we will omit the event year immediately before adoption, which normalizes our results relative to that year. Let's fit the model and produce a standard event study plot, which shows $\hat \beta^{pre}_j$ and $\hat \beta^{post}_j$ in relation to relative time $j$.
+
+## Estimate the event study model. `fixest` includes an interaction helper function `i()`, which we'll use to generate the event study interaction terms. As described above, omit the event year immediately before adoption, which normalizes our results relative to that year. Fit the model and produce a standard event study plot, which shows $\hat \beta^{pre}_j$ and $\hat \beta^{post}_j$ in relation to relative time $j$.
 
 ```{r, twfe-es}
 # estimate model and show output
