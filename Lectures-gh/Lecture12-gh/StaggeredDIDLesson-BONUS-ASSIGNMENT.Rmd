@@ -136,7 +136,7 @@ Let's start by focusing on the case of Florida, and compare the change in the lo
 
 
 
-## Using the data frame you just created, compare time trends in the log of the homicide rate for Florida vs. [the population-weighted] mean for never-treated states. Try to make the visualization as clear and informative as possible, including a vertical line at 2004 to indicate the year before Florida's law took effect. Some other things to consider: axes labels, group labels for the legend, legend positioning, removing the legend title, and axis labels. {#comp1trends}
+## Using the data frame you just created, compare time trends in the log of the homicide rate for Florida vs. [the population-weighted] mean for never-treated states. Try to make the visualization as clear and informative as possible, including a vertical line at 2005 to indicate the first treatment year for Florida. Some other things to consider: axes labels, group labels for the legend, legend positioning, removing the legend title, and axis labels. {#comp1trends}
 
 #### [R Hint: comparing time trends by group using `geom_liine()` is something you did in Assignment 5. Additionally, you can use `geom_vline()` to add a vertical line indicating the year before the treatment first took effect in Florida. You will also need to convert evertreated to a factor with appropriate labels for each 'treatment' group, Florida and never-treated states.] {-}
 
@@ -167,7 +167,7 @@ Parallel trends during the treatment period can never be observed. It's a statem
 
 ## Next plot the yearly mean log homicide rate for *all 2006 adopters* compared to all never treated states. This is the same plot you showed in Question \@ref(comp1trends) but for a different treatment group than before: all 2006 adopters compared to never treated states, rather than just Florida compared to never treated states.
 
-#### [R Hint: you will have to drop all states that adopted Stand Your Ground laws in years other than 2006, similar to what you did in Question \@ref(comp1drop) but with a different conditional statement. Before proceeding, make sure you validate your filtered data as you did in \@ref(comp1drop). Then collapse the data as in Question \@ref(comp1collapse) using `group_by()` along with `summarise()` and `weighted.mean()` as a helper function. For the plot you can use `geom_vline()` to drop the event line at 2005 to indicate that the law took effect in 2006.] {-}
+#### [R Hint: you will have to drop all states that adopted Stand Your Ground laws in years other than 2006, similar to what you did in Question \@ref(comp1drop) but with a different conditional statement. Before proceeding, make sure you validate your filtered data as you did in \@ref(comp1drop). Then collapse the data as in Question \@ref(comp1collapse) using `group_by()` along with `summarise()` and `weighted.mean()` as a helper function. For the plot you can use `geom_vline()` to drop the event line at 2006 to indicate that the law took effect in 2006.] {-}
 
 
 
@@ -175,7 +175,7 @@ Parallel trends during the treatment period can never be observed. It's a statem
 
 
 
-## Consider the previous event study plot, and the estimated effect of 'Stand Your Ground' laws in 2006 adopters compared to all never treated states. Discuss any internal validity concerns that you have. Do you have any reason to be believe the widening gap we observe during the treatment period could overstate or understate the true effect?
+## Your plot should show that the gap in log homicide rate between 2006 adopters and never-treated states widens in 2006, the first year the treatment was in effect, after which the gap fluctuates a bit but is more or less stable. In other words, there is a positive and immediate effect of the law on the log homicide rate. Discuss any internal validity concerns that you have. Do you have any reason to believe that the positive effect we observe from 2005 to 2006 could overstate or understate the true effect?
 
 
 
@@ -255,11 +255,11 @@ data <- data %>%
            year = as.integer(year))
   
 data_es <- data %>% 
-  #ceate new column measuring time relative to the treatment
+  #create new column measuring time relative to the treatment
   mutate(rel_year = if_else(is.na(treatment_date) == T,
                             -1,
                             year - treatment_date)) %>%
-  #bin obsevrations 9, 8, 7 and 6 years ahead of the treatment
+  #bin observations 9, 8, 7 and 6 years ahead of the treatment
   mutate(rel_year = if_else((rel_year == -9 | rel_year == -8 | rel_year ==  -7),
                             -6, rel_year))
 
@@ -272,7 +272,7 @@ data_es <- data %>%
 Next let's estimate the following event study specification:
 
 $$ln(homrate)_{st} =  {}evertreated_s \left [ \sum_{j=-6}^{-2} \beta_j^{pre} 1\{t - t_s^* = j\} + \sum_{j=0}^{5} \beta_j^{post} 1\{t - t_s^* = j\}\right ]  + \mu_s + \tau_t + \varepsilon_{st}$$
-Here, $evertreated_s$ is a binary variable indicating states that adopted a Stand Your Ground law at any point durin this time frame, and $t_s^*$ is the year of adoption in state $s$. The $1\{t - t_s^* = y\}$ terms are dummy variables corresponding to an *event year*, i.e., the year relative to adoption at time $t_s^*$. The coefficients of interest are now $\beta^{pre}_j$ and $\beta^{post}_j$, which measure the relationship between our outcomes of interest and eligibility status in each of the 5 years leading up to adoption and 6 years after. Note that the dummy variable for the year before adoption is omitted ($j = -1$), so that the estimates of $\beta^{pre}_j$ and $\beta^{post}_j$ capture effects relative to just before adoption. 
+Here, $evertreated_s$ is a binary variable indicating states that adopted a Stand Your Ground law at any point during this time frame, and $t_s^*$ is the year of adoption in state $s$. The $1\{t - t_s^* = y\}$ terms are dummy variables corresponding to an *event year*, i.e., the year relative to adoption at time $t_s^*$. The coefficients of interest are now $\beta^{pre}_j$ and $\beta^{post}_j$, which measure the relationship between our outcomes of interest and eligibility status in each of the 5 years leading up to adoption and 6 years after. Note that the dummy variable for the year before adoption is omitted ($j = -1$), so that the estimates of $\beta^{pre}_j$ and $\beta^{post}_j$ capture effects relative to just before adoption. 
 
 Recall that in Part 1 of the Data Assignment it wasn't so obvious what the appropriate comparison group for treated states should be. In this case, there is no time relative to adoption for states that never adopted a Stand Your Ground law at all! Recall that we previously encoded relative time for these states to be $j = -1$. That's a bit odd, but effectively allows us to make comparisons with never-treated states. We'll come back to this point.
 
@@ -289,7 +289,7 @@ Why are we interested in the $\beta^{pre}_j$ parameters? These coefficients are 
                  weights = data$population)
   summary(twfe_es)
   
-# plot estimats
+# plot estimates
   ggiplot(twfe_es,   # from the ggfixest package
           geom = 'errorbar',
           xlab = "Time to treatment",
@@ -312,7 +312,7 @@ The event study plot also allows us to examine the dynamics of the treatment eff
 
 ## The problem with TWFE estimation with a staggered treatment {.unnumbered}
 
-It turns out that TWFE estimation generally works quite well when there is a single treatment year shared by all states. But TWFE estimation breaks down when the treatment is staggered over time in different states. In recent years, econometricians have come to understand problems that can arise from staggered treatments that bias estimated treatment effects—so much so that the sign of the estimated effect can flip in some cases!
+It turns out that TWFE estimation generally works quite well when there is a single treatment year shared by all states. But TWFE estimation breaks down when the treatment is staggered over time in different states. In recent years, econometricians have come to understand problems that can arise from staggered treatments and bias estimated treatment effects—so much so that the sign of the estimated effect can flip in some cases!
 
 It turns out that in a staggered treatment setting, TWFE estimation can't handle heterogeneous treatment effects within groups over time. It also relies on a comparison group that probably doesn't make much sense. Let's try to understand what the problems are.
 
