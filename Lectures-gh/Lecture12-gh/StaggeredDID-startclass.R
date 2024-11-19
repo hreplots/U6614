@@ -15,10 +15,9 @@
 # Part 1 packages
   library(tidyverse)
   library(haven)
-  library(hrbrthemes)
-  library(ggsci)
   library(knitr)
   library(kableExtra)
+  library(Manu)
 
 # Part 2 packages
   library(fixest)
