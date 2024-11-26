@@ -1,0 +1,852 @@
+<!DOCTYPE html>
+<html lang="" xml:lang="">
+  <head>
+    <title>Formatted Output &amp; R Markdown Presentations</title>
+    <meta charset="utf-8" />
+    <meta name="author" content="Harold Stolper" />
+    <script src="libs/header-attrs/header-attrs.js"></script>
+    <link href="libs/remark-css/default.css" rel="stylesheet" />
+    <link href="libs/remark-css/default-fonts.css" rel="stylesheet" />
+    <script src="libs/kePrint/kePrint.js"></script>
+    <link href="libs/lightable/lightable.css" rel="stylesheet" />
+  </head>
+  <body>
+    <textarea id="source">
+class: center, middle, inverse, title-slide
+
+.title[
+# Formatted Output &amp; R Markdown Presentations
+]
+.subtitle[
+## ᵔ ᵕ ᵔ<br/>with xaringan
+]
+.author[
+### Harold Stolper
+]
+.institute[
+### Columbia University | SIPA
+]
+
+---
+
+&lt;style&gt;
+.title-slide {
+  background-image: url("https://plus.unsplash.com/premium_photo-1668367779014-4a0073f7c04a?q=80&amp;w=2228&amp;auto=format&amp;fit=crop&amp;ixlib=rb-4.0.3&amp;ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D");
+  background-size: cover;
+  background-position: center;
+  }
+  
+  blockquote {
+  border-left: 4px solid #00aaff;
+  background-color: #f0f8ff;
+  padding: 10px 15px;
+  margin: 20px 0;
+  font-style: italic;
+  color: #333;
+}
+
+.purple-block {
+  display: inline-block; 
+  border: 2px solid #6a0dad; 
+  background-color: #e6d5f7; 
+  color: #000; 
+  padding: 2px 8px; 
+  border-radius: 5px; 
+  margin: 0; 
+}
+
+.text-plot-container {
+  display: flex;
+  align-items: center; 
+}
+
+.text-plot-container .text {
+  flex: 1; 
+  margin-right: 20px; 
+}
+
+.text-plot-container .plot {
+  flex: 2; 
+}
+
+.custom-table table {
+  font-size: 12px;
+  width: auto;
+  margin: 0 auto;
+}
+
+.custom-table th, .custom-table td {
+  padding: 5px;
+}
+
+.scrollable {
+  max-width: 100%;
+  overflow-x: auto;
+}
+}
+&lt;/style&gt;
+
+
+
+# Brief overview of xaringan 
+
+## Creating slides with R Markdown 
+
+- To create a **xaringan** presentation from R Markdown, first run the following code to download xaringan: 
+&lt;blockquote&gt; install.packages("devtools") &lt;/blockquote&gt;
+&lt;blockquote&gt;devtools::install_github("yihui/xaringan") &lt;/blockquote&gt;
+
+- Then, when opening R Markdown, go to &lt;blockquote&gt; [R Studio &gt; File &gt; New File &gt; From Template &gt; Ninja Presentation] &lt;/blockquote&gt; to get a formatted document with the basic YAML header for xaringan.
+  - or copy and and past the YAML header from this rmd file!
+
+---
+
+# Brief overview of xaringan
+
+## Creating slides with R Markdown 
+
+- Run the following code to be able to use xaringan's infinite moon reader function. This allows you to view your presentation in R's viewer pane without having to knit your presentation repeatedly: 
+&lt;blockquote&gt; 1. install.packages("Cairo") &lt;/blockquote&gt; 
+&lt;blockquote&gt; 2. library(Cairo) &lt;/blockquote&gt;
+&lt;blockquote&gt; 3. xaringan::inf_mr() &lt;/blockquote&gt;
+&lt;/blockquote&gt;
+---
+
+# Brief overview of xaringan
+
+## Basic formatting tips to remember
+
+- Begin a new slide with three dashes &lt;span class="purple-block"&gt; '---' &lt;/span&gt;
+
+- Use &lt;span class="purple-block"&gt; '#' &lt;/span&gt; to add a title to your slide, and &lt;span class="purple-block"&gt;'##'&lt;/span&gt; to add subtitles.
+
+--
+
+- Use two dashes &lt;span class="purple-block"&gt;'--'&lt;/span&gt; to show content incrementally like this bullet point. 
+
+--
+
+- You can set slides to display &lt;small&gt; smaller &lt;/small&gt; text. For example: 
+  + &lt;span class="purple-block"&gt; This is normal. &lt;/span&gt;
+  + &lt;span class="purple-block"&gt; &lt;small&gt; This is small.&lt;/small&gt; &lt;/span&gt;
+
+--
+
+- **beamer**, **ioslides** and **slidy** are other presentation types
+
+---
+
+# Brief overview of xaringan 
+
+## Additional Resources
+
+- For a brief tutorial on xaringan see [this](https://slides.yihui.org/xaringan/#1) resource.
+- For a more comprehensive treatment, see **Chapter 7** in [R Markdown: A Definitive Guide](https://bookdown.org/yihui/rmarkdown/xaringan.html).
+
+---
+
+# Including output in your slides
+
+## Loading packages 
+
+This presentation uses some familiar packages to generate and display results:
+
+- `tidyverse`
+- `fixest`
+- `lmtest`
+- `multiwayvcov`
+- `kableExtra` 
+
+--
+
+Plus some packages for creating tables with formatted output:
+
+- `stargazer`
+- `modelsummary`
+--
+
+
+
+---
+
+# Including output in your slides
+
+## Loading data objects for this presentation
+
+
+Load in the data objects you need, saved after creating in your R script.
+
+--
+
+- Can load an **.rdata** file with many objects:
+
+``` r
+load("formatted_output_slides.RData") 
+```
+
+&lt;ul&gt;&lt;ul&gt;&lt;li&gt;This file includes objects from different lessons &lt;/li&gt;&lt;/ul&gt;&lt;/ul&gt;
+
+--
+ 
+&lt;br&gt;
+ 
+- Or you can load an **.rds** file for a single object:
+
+``` r
+feDF &lt;- readRDS(file = "feDF.rds")
+```
+
+&lt;ul&gt;&lt;ul&gt;&lt;li&gt;This is a single data frame from the Medicaid lesson  &lt;/li&gt;&lt;/ul&gt;&lt;/ul&gt;
+
+--
+
+---
+
+# Including output in your slides
+
+## Difference-in-means tables &lt;small&gt;
+
+Suppose we're interested in comparing the *poverty rate* and *vfund_per_poor* of regencies between Java and Sulawesi islands.
+
+[Here](https://sebastiansauer.github.io/multiple-t-tests-with-dplyr/) is a tutorial for making this kind of table using `tidyverse` functions. 
+
+
+
+
+
+&lt;table class=" lightable-paper lightable-hover table" style="color: black; font-family: Helvetica; width: auto !important; margin-left: auto; margin-right: auto; font-size: 20px; color: black; margin-left: auto; margin-right: auto;"&gt;
+ &lt;thead&gt;
+  &lt;tr&gt;
+   &lt;th style="text-align:left;"&gt; Variable &lt;/th&gt;
+   &lt;th style="text-align:left;"&gt; Java &lt;/th&gt;
+   &lt;th style="text-align:left;"&gt; Sulawesi &lt;/th&gt;
+   &lt;th style="text-align:left;"&gt; Difference &lt;/th&gt;
+   &lt;th style="text-align:left;"&gt; p-value &lt;/th&gt;
+  &lt;/tr&gt;
+ &lt;/thead&gt;
+&lt;tbody&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Population in poverty (1000s) &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; 137.60 &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; 26.25 &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; 111.35 &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; 0.000 &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; VF allocation/poor resident ($1000s) &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; 1773.33 &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; 4603.95 &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; -2830.62 &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; 0.000 &lt;/td&gt;
+  &lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+---
+
+# Difference-in-means tables &lt;small&gt;
+
+Here is another example using the `datasummary_balance()` [function](https://modelsummary.com/man/datasummary_balance.html) in the `modelsummary` [package](https://vincentarelbundock.github.io/modelsummary/index.html).
+
+&lt;table style="NAborder-bottom: 0; color: black; width: auto !important; margin-left: auto; margin-right: auto; font-size: 14px; color: black; font-family: Cambria; margin-left: auto; margin-right: auto;" class="table table table-condensed"&gt;
+&lt;caption style="font-size: initial !important;"&gt;Difference-in-means during year of Medicaid implementation by state eligibility&lt;/caption&gt;
+ &lt;thead&gt;
+&lt;tr&gt;
+&lt;th style="empty-cells: hide;border-bottom:hidden;" colspan="1"&gt;&lt;/th&gt;
+&lt;th style="border-bottom:hidden;padding-bottom:0; padding-left:3px;padding-right:3px;text-align: center; " colspan="2"&gt;&lt;div style="border-bottom: 1px solid #ddd; padding-bottom: 5px; "&gt;High-Eligibility (N=24)&lt;/div&gt;&lt;/th&gt;
+&lt;th style="border-bottom:hidden;padding-bottom:0; padding-left:3px;padding-right:3px;text-align: center; " colspan="2"&gt;&lt;div style="border-bottom: 1px solid #ddd; padding-bottom: 5px; "&gt;Low-Eligibility (N=25)&lt;/div&gt;&lt;/th&gt;
+&lt;th style="empty-cells: hide;border-bottom:hidden;" colspan="2"&gt;&lt;/th&gt;
+&lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;th style="text-align:left;"&gt;   &lt;/th&gt;
+   &lt;th style="text-align:right;"&gt; Mean &lt;/th&gt;
+   &lt;th style="text-align:right;"&gt; Std. Dev. &lt;/th&gt;
+   &lt;th style="text-align:right;"&gt; Mean &lt;/th&gt;
+   &lt;th style="text-align:right;"&gt; Std. Dev. &lt;/th&gt;
+   &lt;th style="text-align:right;"&gt; Diff. in Means &lt;/th&gt;
+   &lt;th style="text-align:right;"&gt; p &lt;/th&gt;
+  &lt;/tr&gt;
+ &lt;/thead&gt;
+&lt;tbody&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; afdc_rate &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 3.01 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 0.73 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 1.56 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 0.33 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; −1.45 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; &amp;amp;lt;0.01 &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; income_pc &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 3.39 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 0.68 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 3.21 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 0.32 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; −0.18 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 0.33 &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; hospitals_pc &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 0.03 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 0.01 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 0.03 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 0.02 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 0.00 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 0.40 &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; beds_pc &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 4.90 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 0.74 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 5.09 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 0.71 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 0.19 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 0.44 &lt;/td&gt;
+  &lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;tfoot&gt;&lt;tr&gt;&lt;td style="padding: 0; " colspan="100%"&gt;
+&lt;sup&gt;&lt;/sup&gt; Note: States are weighted by child population.&lt;/td&gt;&lt;/tr&gt;&lt;/tfoot&gt;
+&lt;/table&gt;
+
+---
+
+# Difference-in-means tables
+
+**Upside to the `datasummary_balance()` function:**
+
+- Can show formatted output without much work
+
+--
+
+&lt;br&gt;
+ 
+**Downside:**
+
+- Isn't very flexible compared to previous approach
+
+---
+
+# Using Stargazer for formatted output
+
+`stargazer` is an R package that creates LATEX code, HTML code and ASCII text for well-formatted regression tables, with multiple models side-by-side, as well as for summary statistics tables, data frames, vectors and matrices."
+
+--
+
+[Here](https://www.jakeruss.com/cheatsheets/stargazer) is a good tutorial with numerous stargazer examples and formatting options.
+
+---
+
+# Regression results
+
+&lt;span class="purple-block"&gt; Make we sure you present your PRF before reporting regression results! &lt;/span&gt;
+
+--
+
+We should also know how you estimate SEs, weight observations, and any other critical details.
+
+--
+
+`$$total\_obs\_1000_{zt} = \beta_0 + \beta_1 si\_1000_{zt} + \beta_2 vac\_res\_p100_{zt} + \phi_z + \theta_t + u_{zt}$$`
+&lt;small&gt;
+- `\(z\)` and `\(t\)` indicate zipcodes and year, respectively
+- `\(total\_obs\_1000_{zt}\)`: total hospitalizations per 1,000 population
+- `\(si\_1000_{zt}\)`: shutoffs per 1,000 population
+- `\(vac\_res\_p100_{zt}\)`: vacancy rate
+- `\(\phi_z\)`: zipcode fixed effects
+- `\(\theta_{t}\)`: year-month fixed effects
+- `\(u_{zt}\)`: idiosyncratic error term
+&lt;/small&gt;
+
+---
+
+# Regression results
+
+For our Medicaid example, here is the PRF for our base difference-in-difference model with state and year fixed effects, 
+
+`$$Y_{st} = \beta D_{st} + X_{st}' \gamma + \mu_s + \tau_t + \varepsilon_{st}$$`
+where `\(Y_{st}\)` is the outcome of interest in state `\(s\)` and year `\(t\)`; `\(D_{st}\)` is a binary variable indicating treatment status for a state-year; `\(X_{st}\)` is a vector of time-varying controls (income, hospitals, and hospital beds per capita); `\(\mu_s\)` represents state fixed effects; `\(\tau_{t}\)` represents year fixed effects; and `\(\varepsilon_{st}\)` is an idiosyncratic error term.
+
+
+---
+## Regression tables &lt;small&gt;
+
+
+Using `modelsummary()` with minimal customization:
+
+&lt;style type="text/css"&gt;
+table {
+  font-size: 12px;     
+}
+&lt;/style&gt;
+
+&lt;table style="NAborder-bottom: 0; color: black; width: auto !important; margin-left: auto; margin-right: auto; font-size: 13px; color: black; font-family: Cambria; margin-left: auto; margin-right: auto;" class="table table table-condensed"&gt;
+ &lt;thead&gt;
+  &lt;tr&gt;
+   &lt;th style="text-align:left;"&gt;   &lt;/th&gt;
+   &lt;th style="text-align:center;"&gt; FE 1 &lt;/th&gt;
+   &lt;th style="text-align:center;"&gt; &amp;amp;nbsp;FE 2 &lt;/th&gt;
+   &lt;th style="text-align:center;"&gt; &amp;amp;nbsp;FE 3 &lt;/th&gt;
+   &lt;th style="text-align:center;"&gt; &amp;amp;nbsp;FE 4 &lt;/th&gt;
+   &lt;th style="text-align:center;"&gt; &amp;amp;nbsp;FE 5 &lt;/th&gt;
+  &lt;/tr&gt;
+ &lt;/thead&gt;
+&lt;tbody&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; D &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; 0.101*** &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; 0.051** &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; 0.038*** &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; 0.038** &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; 0.045*** &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt;  &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; (0.018) &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; (0.021) &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; (0.013) &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; (0.015) &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; (0.014) &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; hospitals_pc &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt;  &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; 0.513 &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; 2.017 &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; 2.605** &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; 1.208 &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt;  &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt;  &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; (1.107) &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; (1.397) &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; (1.072) &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; (1.443) &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; beds_pc &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt;  &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; −0.011 &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; −0.013 &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; −0.009 &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; −0.007 &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt;  &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt;  &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; (0.011) &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; (0.009) &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; (0.010) &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; (0.010) &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; income_pc &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt;  &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; 0.025*** &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; 0.024 &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; 0.040* &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; 0.036* &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;box-shadow: 0px 1.5px"&gt;  &lt;/td&gt;
+   &lt;td style="text-align:center;box-shadow: 0px 1.5px"&gt;  &lt;/td&gt;
+   &lt;td style="text-align:center;box-shadow: 0px 1.5px"&gt; (0.004) &lt;/td&gt;
+   &lt;td style="text-align:center;box-shadow: 0px 1.5px"&gt; (0.020) &lt;/td&gt;
+   &lt;td style="text-align:center;box-shadow: 0px 1.5px"&gt; (0.020) &lt;/td&gt;
+   &lt;td style="text-align:center;box-shadow: 0px 1.5px"&gt; (0.021) &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Num.Obs. &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; 685 &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; 685 &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; 685 &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; 685 &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; 685 &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; R2 &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; 0.662 &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; 0.824 &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; 0.906 &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; 0.888 &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; 0.923 &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; R2 Adj. &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; 0.636 &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; 0.810 &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; 0.886 &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; 0.860 &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; 0.890 &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; RMSE &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; 0.04 &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; 0.03 &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; 0.03 &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; 0.02 &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; 0.02 &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Std.Errors &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; by: stfips &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; by: stfips &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; by: stfips &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; by: stfips &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; by: stfips &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; FE: stfips &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; X &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; X &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; X &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; X &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; X &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; FE: region^year &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt;  &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt;  &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; X &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt;  &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; X &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; FE: year_mcaid^year &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt;  &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt;  &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt;  &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; X &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; X &lt;/td&gt;
+  &lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;tfoot&gt;&lt;tr&gt;&lt;td style="padding: 0; " colspan="100%"&gt;
+&lt;sup&gt;&lt;/sup&gt; * p &amp;lt; 0.1, ** p &amp;lt; 0.05, *** p &amp;lt; 0.01&lt;/td&gt;&lt;/tr&gt;&lt;/tfoot&gt;
+&lt;/table&gt;
+---
+## Regression tables &lt;small&gt;
+
+
+Using `modelsummary()` with additional customization:
+
+&lt;style type="text/css"&gt;
+table {
+  font-size: 12px;     
+}
+&lt;/style&gt;
+
+&lt;table style="NAborder-bottom: 0; color: black; width: auto !important; margin-left: auto; margin-right: auto; font-size: 13px; color: black; font-family: Cambria; margin-left: auto; margin-right: auto;" class="table table"&gt;
+&lt;caption style="font-size: initial !important;"&gt;Effect of high Medicaid eligibility on public insurance use&lt;/caption&gt;
+ &lt;thead&gt;
+  &lt;tr&gt;
+   &lt;th style="text-align:left;"&gt;   &lt;/th&gt;
+   &lt;th style="text-align:center;"&gt; FE 1 &lt;/th&gt;
+   &lt;th style="text-align:center;"&gt; &amp;amp;nbsp;FE 2 &lt;/th&gt;
+   &lt;th style="text-align:center;"&gt; &amp;amp;nbsp;FE 3 &lt;/th&gt;
+   &lt;th style="text-align:center;"&gt; &amp;amp;nbsp;FE 4 &lt;/th&gt;
+   &lt;th style="text-align:center;"&gt; &amp;amp;nbsp;FE 5 &lt;/th&gt;
+  &lt;/tr&gt;
+ &lt;/thead&gt;
+&lt;tbody&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; High-eligibility &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; 0.101*** &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; 0.051** &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; 0.038*** &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; 0.038** &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; 0.045*** &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt;  &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; (0.018) &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; (0.021) &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; (0.013) &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; (0.015) &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; (0.014) &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Hospitals per capita &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt;  &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; 0.513 &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; 2.017 &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; 2.605** &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; 1.208 &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt;  &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt;  &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; (1.107) &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; (1.397) &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; (1.072) &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; (1.443) &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Hospital beds per capita &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt;  &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; −0.011 &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; −0.013 &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; −0.009 &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; −0.007 &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt;  &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt;  &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; (0.011) &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; (0.009) &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; (0.010) &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; (0.010) &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Income per capita &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt;  &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; 0.025*** &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; 0.024 &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; 0.040* &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; 0.036* &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;box-shadow: 0px 1.5px"&gt;  &lt;/td&gt;
+   &lt;td style="text-align:center;box-shadow: 0px 1.5px"&gt;  &lt;/td&gt;
+   &lt;td style="text-align:center;box-shadow: 0px 1.5px"&gt; (0.004) &lt;/td&gt;
+   &lt;td style="text-align:center;box-shadow: 0px 1.5px"&gt; (0.020) &lt;/td&gt;
+   &lt;td style="text-align:center;box-shadow: 0px 1.5px"&gt; (0.020) &lt;/td&gt;
+   &lt;td style="text-align:center;box-shadow: 0px 1.5px"&gt; (0.021) &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; N &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; 685 &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; 685 &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; 685 &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; 685 &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; 685 &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Adj. R-squared &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; 0.636 &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; 0.81 &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; 0.886 &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; 0.86 &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; 0.89 &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; State FEs &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; X &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; X &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; X &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; X &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; X &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Region-Year FEs &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt;  &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt;  &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; X &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt;  &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; X &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Medicaid timing-by-Year FEs &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt;  &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt;  &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt;  &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; X &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; X &lt;/td&gt;
+  &lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;tfoot&gt;
+&lt;tr&gt;&lt;td style="padding: 0; " colspan="100%"&gt;
+&lt;sup&gt;&lt;/sup&gt; * p &amp;lt; 0.1, ** p &amp;lt; 0.05, *** p &amp;lt; 0.01&lt;/td&gt;&lt;/tr&gt;
+&lt;tr&gt;&lt;td style="padding: 0; " colspan="100%"&gt;
+&lt;sup&gt;&lt;/sup&gt; Robust standard errors clustered by state are shown in parentheses.&lt;br&gt;                      Observations are weighted by the child population in each state.&lt;/td&gt;&lt;/tr&gt;
+&lt;/tfoot&gt;
+&lt;/table&gt;
+&lt;br&gt;
+See this [resource](https://vincentarelbundock.github.io/modelsummary/articles/modelsummary.html) for more details on `modelsummary().`
+
+---
+
+#Additional R Markdown formatting 
+
+## Creating bullet points lists 
+
+- This is a bullet point 
+
+--
+
+- This is another bullet point 
+
+--
+
+  + With a sub bullet 
+
+
+---
+
+## Add a plot 
+
+
+&lt;div class="text-plot-container"&gt;
+  &lt;div class="text"&gt;
+   &lt;span class="purple-block"&gt; Make sure to clearly label your axes and legend! &lt;/span&gt;
+
+Note that when you're working with panel data, descriptive time series plots by group can help motivate your analysis.
+
+  &lt;/div&gt;
+  &lt;div class="plot"&gt; 
+  
+![](slides_xaringan_final_files/figure-html/ggplot-1.png)&lt;!-- --&gt;
+
+---
+
+## Tips for your presentation 
+
+
+- Remember to do all of your work in &lt;span class="purple-block"&gt; R script(s) &lt;/span&gt; and only load the objects you need into your .rmd file (use .RData and .rds files)
+
+--
+
+- Don't describe your code and nonessential data management details, describe your &lt;span class="purple-block"&gt; analysis and results &lt;/span&gt;
+
+--
+
+- Having extra appendix slides on hand is fine, but don't try to cover too much! &lt;span class="purple-block"&gt; Stick to the essential parts of your story. &lt;/span&gt;
+
+--
+
+- Don't forget to spellcheck and review your knitted document!
+    </textarea>
+<style data-target="print-only">@media screen {.remark-slide-container{display:block;}.remark-slide-scaler{box-shadow:none;}}</style>
+<script src="https://remarkjs.com/downloads/remark-latest.min.js"></script>
+<script>var slideshow = remark.create({
+"highlightStyle": "github",
+"highlightLines": true,
+"countIncrementalSlides": false
+});
+if (window.HTMLWidgets) slideshow.on('afterShowSlide', function (slide) {
+  window.dispatchEvent(new Event('resize'));
+});
+(function(d) {
+  var s = d.createElement("style"), r = d.querySelector(".remark-slide-scaler");
+  if (!r) return;
+  s.type = "text/css"; s.innerHTML = "@page {size: " + r.style.width + " " + r.style.height +"; }";
+  d.head.appendChild(s);
+})(document);
+
+(function(d) {
+  var el = d.getElementsByClassName("remark-slides-area");
+  if (!el) return;
+  var slide, slides = slideshow.getSlides(), els = el[0].children;
+  for (var i = 1; i < slides.length; i++) {
+    slide = slides[i];
+    if (slide.properties.continued === "true" || slide.properties.count === "false") {
+      els[i - 1].className += ' has-continuation';
+    }
+  }
+  var s = d.createElement("style");
+  s.type = "text/css"; s.innerHTML = "@media print { .has-continuation { display: none; } }";
+  d.head.appendChild(s);
+})(document);
+// delete the temporary CSS (for displaying all slides initially) when the user
+// starts to view slides
+(function() {
+  var deleted = false;
+  slideshow.on('beforeShowSlide', function(slide) {
+    if (deleted) return;
+    var sheets = document.styleSheets, node;
+    for (var i = 0; i < sheets.length; i++) {
+      node = sheets[i].ownerNode;
+      if (node.dataset["target"] !== "print-only") continue;
+      node.parentNode.removeChild(node);
+    }
+    deleted = true;
+  });
+})();
+// add `data-at-shortcutkeys` attribute to <body> to resolve conflicts with JAWS
+// screen reader (see PR #262)
+(function(d) {
+  let res = {};
+  d.querySelectorAll('.remark-help-content table tr').forEach(tr => {
+    const t = tr.querySelector('td:nth-child(2)').innerText;
+    tr.querySelectorAll('td:first-child .key').forEach(key => {
+      const k = key.innerText;
+      if (/^[a-z]$/.test(k)) res[k] = t;  // must be a single letter (key)
+    });
+  });
+  d.body.setAttribute('data-at-shortcutkeys', JSON.stringify(res));
+})(document);
+(function() {
+  "use strict"
+  // Replace <script> tags in slides area to make them executable
+  var scripts = document.querySelectorAll(
+    '.remark-slides-area .remark-slide-container script'
+  );
+  if (!scripts.length) return;
+  for (var i = 0; i < scripts.length; i++) {
+    var s = document.createElement('script');
+    var code = document.createTextNode(scripts[i].textContent);
+    s.appendChild(code);
+    var scriptAttrs = scripts[i].attributes;
+    for (var j = 0; j < scriptAttrs.length; j++) {
+      s.setAttribute(scriptAttrs[j].name, scriptAttrs[j].value);
+    }
+    scripts[i].parentElement.replaceChild(s, scripts[i]);
+  }
+})();
+(function() {
+  var links = document.getElementsByTagName('a');
+  for (var i = 0; i < links.length; i++) {
+    if (/^(https?:)?\/\//.test(links[i].getAttribute('href'))) {
+      links[i].target = '_blank';
+    }
+  }
+})();
+// adds .remark-code-has-line-highlighted class to <pre> parent elements
+// of code chunks containing highlighted lines with class .remark-code-line-highlighted
+(function(d) {
+  const hlines = d.querySelectorAll('.remark-code-line-highlighted');
+  const preParents = [];
+  const findPreParent = function(line, p = 0) {
+    if (p > 1) return null; // traverse up no further than grandparent
+    const el = line.parentElement;
+    return el.tagName === "PRE" ? el : findPreParent(el, ++p);
+  };
+
+  for (let line of hlines) {
+    let pre = findPreParent(line);
+    if (pre && !preParents.includes(pre)) preParents.push(pre);
+  }
+  preParents.forEach(p => p.classList.add("remark-code-has-line-highlighted"));
+})(document);</script>
+
+<script>
+slideshow._releaseMath = function(el) {
+  var i, text, code, codes = el.getElementsByTagName('code');
+  for (i = 0; i < codes.length;) {
+    code = codes[i];
+    if (code.parentNode.tagName !== 'PRE' && code.childElementCount === 0) {
+      text = code.textContent;
+      if (/^\\\((.|\s)+\\\)$/.test(text) || /^\\\[(.|\s)+\\\]$/.test(text) ||
+          /^\$\$(.|\s)+\$\$$/.test(text) ||
+          /^\\begin\{([^}]+)\}(.|\s)+\\end\{[^}]+\}$/.test(text)) {
+        code.outerHTML = code.innerHTML;  // remove <code></code>
+        continue;
+      }
+    }
+    i++;
+  }
+};
+slideshow._releaseMath(document);
+</script>
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+(function () {
+  var script = document.createElement('script');
+  script.type = 'text/javascript';
+  script.src  = 'https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-MML-AM_CHTML';
+  if (location.protocol !== 'file:' && /^https?:/.test(script.src))
+    script.src  = script.src.replace(/^https?:/, '');
+  document.getElementsByTagName('head')[0].appendChild(script);
+})();
+</script>
+  </body>
+</html>
