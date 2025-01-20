@@ -3,7 +3,7 @@
 ## [ PROJ ] Lecture1-startclass: Getting familiar with RStudio
 ## [ FILE ] Lecture1-startclass.r
 ## [ AUTH ] INSTRUCTOR FILE 
-## [ INIT ] Sep 3, 2024 
+## [ INIT ] Jan 21, 2025 
 ##
 ################################################################################
 

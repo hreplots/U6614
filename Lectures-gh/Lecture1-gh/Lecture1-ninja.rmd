@@ -3,7 +3,7 @@ title: "Data Analysis for Policy Research Using R"
 subtitle: "Introduction and R Basics"
 author: "Harold Stolper"
 institute: "Columbia | SIPA"
-date: "Fall 2024"
+date: "Spring 2025"
 output:
   xaringan::moon_reader:
     self_contained: true
@@ -150,6 +150,12 @@ knitr::include_graphics("lo_jo_map1.png")
 ---
 class: center, middle
 
+![](indonesia_womens_lfp.PNG)
+
+
+---
+class: center, middle
+
 ![](chiapas.png)
 
 ---
@@ -189,13 +195,13 @@ class: center, middle
 
 - Transitioned from Stata to R after years of using and teaching Stata.
 
-- Some non-academic things I really like include the NBA+WNBA, nail art, and UK drill music
+- Some non-academic things I really like include the NBA+WNBA, nail art, and UK drill music.
 
 
 ---
 # Teaching Assistants
 
-- Poorvika Mehra
+- Nico Rojas
 
 - Rachele Moscardo
 
@@ -524,5 +530,10 @@ class: center, middle
 # Questions about the syllabus and course expectations?
  
 
+---
+class: center, middle
 
+# A survey on student belonging
+
+![](belongingQR.png)
 
