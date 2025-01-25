@@ -2,7 +2,7 @@
 ##
 ## [ PROJ ] < Caste-based expenditure gaps and the ACCESS 2018 Survey >
 ## [ FILE ] < Lecture2-startclass.R >
-## [ INIT ] < Sept 05, 2024 >
+## [ INIT ] < Jan 28, 2024 >
 ##
 ################################################################################
 
