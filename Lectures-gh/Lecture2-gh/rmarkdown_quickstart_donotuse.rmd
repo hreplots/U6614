@@ -1,0 +1,159 @@
+
+---
+title: "Getting up and running with R Markdown"
+author: "Your Name (your-uni)"
+date: "`r Sys.Date()`"
+output:
+  pdf_document:
+    toc: no
+    toc_depth: '3'
+    number_sections: yes
+  html_document:
+    toc: yes
+    toc_depth: 3
+    toc_float: yes
+    number_sections: yes
+    highlight: tango
+    theme: default
+    fig_caption: yes
+    df_print: tibble
+urlcolor: blue
+---
+
+For your assignments, copy and paste the YAML header from the class website (.rtf file) exactly at the top of your R Markdown document.
+
+Remember to also include the setup chunk right below the YAML header, and load your libraries right after that.
+
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
+```
+
+```{r}
+#Load libraries
+library(tidyverse)
+library(gapminder) #only for this example
+```
+
+We can write normal text here.
+
+We can also make **bold** and *italic* script. 
+
+```{r}
+#I can also write text as comments within a code chunk.
+#The shortcut is cmd+alt+i (or ctrl+alt+i in windows).
+```
+
+Here is how numbering works.
+
+# Heading 
+## Subheading
+### Sub-subheading
+
+\medspace
+
+I can suppress default numbering, by adding "{-}"
+
+## Suppressed numbering here. {-}
+
+\newpage
+
+We can execute code in a code chunk, like this:
+```{r}
+2+2
+```
+
+We can do the same thing using inline code: two plus two equals `r 2 + 2`. 
+
+\medspace
+
+Here is a code chunk, displaying a table and the code used to generate it.
+```{r}
+gapminder %>% 
+  head(5)
+```
+
+\medspace
+
+Here is another code chunk, displaying a plot and the code used to generate it.
+```{r}
+plot(gapminder$year, gapminder$gdpPercap)
+```
+
+\newpage
+
+## Code chunk display options {-}
+
+In the setup chunk we set the global knit options to display **both code and results**, and suppress warnings and messages in our pdf output.
+
+Usually, you will **not** have to change these settings when answering assignment questions.
+
+For example, suppose I want to display the structure of the gapminder dataset.
+
+- Use **{r}** for the default options
+
+```{r}
+table(gapminder$continent)
+#default display, inherited from the setup chunk.
+#this is how to display answers for most assignment questions.
+```
+
+\medspace
+
+In very rare cases, we *can* change the display options within the code chunk.
+Suppose I only want to display results, and not code. 
+
+- Use **"{r echo = FALSE}"** in the chunk header to do this.
+
+```{r echo=FALSE}
+table(gapminder$continent)
+```
+
+\medspace
+
+I can also display code, without results.
+
+- Use **"{r results = 'hide'}"** in the chunk header to do this.
+
+```{r results='hide'}
+table(gapminder$continent)
+```
+
+\newpage
+
+## Additional tips {-}
+
+Don't include "clunky" output that is not integral to answering the question.
+
+As an example, consider the following question: *what is the mean GDP per capita of the gapminder dataset?*
+
+The following is not a very good approach, since the output is clunky.
+```{r}
+summary(gapminder)
+#by inspection, 7215.3
+```
+
+\medspace 
+
+The following is neater, but also not very good, since it still displays unecessary information, and the answer is "hard coded" - i.e. numbers are typed in - this is bad practice.
+```{r}
+summary(gapminder$gdpPercap)
+#by inspection, 7215.3
+```
+
+\medspace 
+
+The best way is to use inline code, as per below:
+
+**The mean GDP in the gapminder dataset is `r round(mean(gapminder$gdpPercap),1)`.** *(Note here that the number is generated using code, not typed out)*
+
+\medspace 
+
+## Some final remarks {-}
+
+- Do not hard code (i.e. do not type numeric values directly), instead, use inline code for simple calculations and code chunks for more complicated operations
+
+-  **Fill in code in your .R script first, and make sure everything works as intended. Only transfer your code to R Markdown when you are happy with your .R script.**
+
+For more detail on R Markdown visit [Yihui Xie's website](https://bookdown.org/yihui/rmarkdown/).
+
