@@ -224,10 +224,10 @@ getwd()
 
   
 # 3b. 
-  access_UP %>%
+   access_UP %>%
     arrange(desc(month_exp)) %>%
     select(month_exp) %>%
-    head(n = 1)
+    head(n=1)
 
   
 # 3c. 
