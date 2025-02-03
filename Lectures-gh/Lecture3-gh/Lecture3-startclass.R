@@ -3,7 +3,7 @@
 ## [ PROJ ] Lecture 3: Subway Fare Evasion Arrests in Brooklyn
 ## [ FILE ] Lecture3-startclass.r
 ## [ AUTH ] < YOUR NAME >
-## [ INIT ] < Sept 17, 2024 >
+## [ INIT ] < Feb 4, 2025 >
 ##
 ################################################################################
 
@@ -56,7 +56,7 @@ getwd()
 ##  c. inspect and describe the coding of race/ethnicity information in each dataset
 ##
 ##  d. are there any data limitations you think are important to note from the outset? 
-##     - note that messy data isn't a limitation, it just means we have work to do.
+##     - note that messy data isn't a limitation, it just means we have work to do!
 ##     - limitations might include information that is missing in this data/sample
 
 ## -----------------------------------------------------------------------------
@@ -122,10 +122,10 @@ getwd()
 #3a. BDS race
 
   #inspect
-  #NOTE: don't show all of this in your R Markdown submission, only what is needed
+  #NOTE: don't show all of this in your R Markdown submission, it's just for you!
 
     
-  #here's a quick and easy way to show crosstabs using base R (just show this!)
+  #here's a quick and easy way to show a crosstab using base R (just show this!)
 
       
       
@@ -154,6 +154,7 @@ getwd()
 #3b. BDS ethnicity
       
   #inspect
+  #NOTE: don't show all of this in your R Markdown submission, it's just for yoU!
 
   
   #now let's recode by creating a hispanic column where:
