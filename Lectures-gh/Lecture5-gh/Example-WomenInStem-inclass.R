@@ -144,7 +144,7 @@ wbgender <- read_csv("worldbank-genderstats.csv", na = "..")
                label = `Country Code`, 
                color = unmetcontr)) + 
       geom_point() + 
-      stat_dens2d_filter(geom = "text_repel", keep.fraction = 0.2) +
+      # stat_dens2d_filter(geom = "text_repel", keep.fraction = 0.2) +
       scale_colour_gradient(low = "blue", high = "red") +
       ylab("Female share of graduates from STEM programs") + xlab("Days of paid maternity leave") +
       labs(color = "Unmet need \nfor contraception \n(% of married women \nages 15-49)") + 

@@ -3,7 +3,7 @@
 ## [ PROJ ] Lecture 7: Water shutoffs, race, and health in Detroit (Part 1)
 ## [ FILE ] detroit-exploratory.r
 ## [ AUTH ] < YOUR NAME >
-## [ INIT ] < Feb 27, 2024 >
+## [ INIT ] < March 4, 2025 >
 ##
 ################################################################################
 
@@ -106,10 +106,10 @@ getwd()
 
 ### START HERE IN CLASS
 
-#load ACS data
+# load ACS data
   MI_acs_tract_10_17 <- readRDS("Data/MI_acs_tract_10_17.rds")
 
-#inspect
+# inspect
   str(MI_acs_tract_10_17)
   summary(MI_acs_tract_10_17)
 
@@ -122,23 +122,23 @@ getwd()
 ## Get service interruption (SI) data - shutoff records (microdata)
 ## -----------------------------------------------------------------------------
   
-#get service interruption data
+# get service interruption data
 input_si <- read.dta13("data/si_1017_cleaned.dta")
   
   #what is the unit of observation? each observation is a shutoff record.
     
     
-#focus on key variables to identify period/location of every shutoff
-#we'll want to join to demographic data based on tractid and get tract-level obs
+# focus on key variables to identify period/location of every shutoff
+# we'll want to join to demographic data based on tractid and get tract-level obs
   si.clean <- input_si %>% 
     select(si_order_number, census_tract_long, year, month) %>% 
     rename(tractid = census_tract_long) %>% 
     arrange(tractid, year, month)
 
-#aggregate to tract-year/month totals
+# aggregate to tract-year/month totals
   si_tract_ym <- FILL IN CODE
 
-  #inspect
+  # inspect
     summary(si_tract_ym) 
     table(si_tract_ym$month, si_tract_ym$year) #what does this tell us?
 
@@ -147,37 +147,37 @@ input_si <- read.dta13("data/si_1017_cleaned.dta")
 ## Join shutoff & demographic data: construct tract-year/month panel w tract-level totals
 ## -----------------------------------------------------------------------------
 
-#join tract-year demographic data (MI_acs_tract_10_17) to tract-month shutoff data (si_tract_ym)
-#only keep tracts that are in the shutoff data (si_tract_ym)
-  #acs_tract.clean includes Detroit tracts (Wayne County), 
-  #but also tracts outside of Detroit across the state of Michigan
-#want to end up with a tract-year-month panel
-#new df should include: all columns from two dfs and a new date column
-#also filter out observation for 2017-11-01 due to incomplete data
+# join tract-year demographic data (MI_acs_tract_10_17) to tract-month shutoff data (si_tract_ym)
+# only keep tracts that are in the shutoff data (si_tract_ym)
+  # acs_tract.clean includes Detroit tracts (Wayne County), 
+  # but also tracts outside of Detroit across the state of Michigan
+# want to end up with a tract-year-month panel
+# new df should include: all columns from two dfs and a new date column
+# also filter out observation for 2017-11-01 due to incomplete data
     
-#HINT: what column(s) do you want to join on?
-#HINT: what kind of join would work here?
+# HINT: what column(s) do you want to join on?
+# HINT: what kind of join would work here?
     
 tract_ym <- FILL IN CODE
 
-  #inspect
+  # inspect
     summary(tract_ym)
     
-  #do we have a balanced panel? 
+  # do we have a balanced panel? 
     table(tract_ym$month, tract_ym$year)
   
     tract_ym %>% 
       group_by(tractid) %>%
       count(tractid) %>% 
       arrange(n)
-      #nope. if a tract had 0 shutoffs one month -> no row for that tract-month
+      # nope. if a tract had 0 shutoffs one month -> no row for that tract-month
       
 
-#collapse to tract-level totals (summed over all year-months)
-#i.e. a single obs per tract with shutoffs summed over all years
-#include time-invariant measures of other variables
-#NOTE: this allows us to focus on variation between tracts (not within-tracts over time)
-  #will no longer be a panel dataframe
+# collapse to tract-level totals (summed over all year-months)
+# i.e. a single obs per tract with shutoffs summed over all years
+# include time-invariant measures of other variables
+# NOTE: this allows us to focus on variation between tracts (not within-tracts over time)
+  # will no longer be a panel dataframe
   tract <- tract_ym %>%
     group_by(tractid) %>% 
     summarise(si_count = sum(si_count),
@@ -200,34 +200,32 @@ tract_ym <- FILL IN CODE
 ## 1. Cross-sectional analysis of relationships between tract-level income, race & shutoffs
 ## -------------------------------------------------------------------------------------
 
-#NOTE: here "cross-sectional" means 1 obs/tract (w/shutoffs summed over all years)
+# NOTE: here "cross-sectional" means 1 obs/tract (w/shutoffs summed over all years)
     
-#scatterplot: % black vs shutoffs
+# scatterplot: % black vs shutoffs
   ggplot(data = tract, 
          aes(x = blackshare, y = si_1000)) + 
     geom_point() 
     
-#compute correlation for assessing model fit (in addition to visual inspection)
+# compute correlation for assessing model fit (in addition to visual inspection)
   cor(tract$blackshare, tract$si_1000, use = "pairwise.complete.obs")
   wtd.cor(tract$blackshare, tract$si_1000, weight = tract$pop)
     
-#QUESTION: how can we improve the above plot?
+# QUESTION: how can we improve the above plot?
   IMPROVE ggplot() FUNCTION CALL ABOVE
 
-#for A5: 
-  #play around w/aesthetics including color, labels etc. to improve this plot
+# for A5: play around w/aesthetics and labels to improve these plots, including:
+    # xlab() and ylab()
   
-  
-  
-#scatterplot: median income vs shutoffs
+# scatterplot: median income vs shutoffs
 FILL IN CODE SIMILAR TO ABOVE BUT USE medianinc RATHER THAN blackshare
   
   #correlations for model fit
    FILL IN CODE SIMILAR TO ABOVE
+
   
-  
-#scatterplot: median income & race vs shutoffs
-  #HINT: try plotting Black share on the X-axis and median income on the Y-axis
+# scatterplot: median income & race vs shutoffs
+  # HINT: try plotting Black share on the X-axis and median income on the Y-axis
   #      then experiment w/different aesthetics to indicate greater shutoff rates
   #      e.g. focus on marker size, color, transparency, etc.
   ggplot(data = tract, 
@@ -235,33 +233,33 @@ FILL IN CODE SIMILAR TO ABOVE BUT USE medianinc RATHER THAN blackshare
              y = medianinc, 
              FILL IN OTHER AESTHETIC MAPPING ARGUMENTS)) + 
     geom_point(alpha = 0.1) #alpha adjusts the transparency of points 
-  #HINT: try ?scale_size(), this is a function to adjust the size aesthetic
-  #HINT: try ?scale_color_gradient() to see how to create a diverging color gradient
-
+  # HINT: try ?scale_size(), this is a function to adjust the size aesthetic
+  # HINT: try ?scale_color_gradient() to see how to create a diverging color gradient
+  # HINT: use labs(color = "") to label legend for the color aesthetic, for example
+  
+  # for A5: play around w/aesthetics and labels to improve this plot
+  
   
 ## -----------------------------------------------------------------------------------
 ## 2.0 Time series plots of citywide shutoffs (aggregate across all tracts in every month)
 ## -----------------------------------------------------------------------------------
   
-#get total population of Detroit (for simplicity, assume pop doesn't change over time
-  #we estimate it by summing the `pop` column in the dataframe `tract`)
+# get total population of Detroit (for simplicity, assume pop doesn't change over time
+  # we estimate it by summing the `pop` column in the dataframe `tract`)
   detroit_pop <- FILL IN CODE
 
-
-#first let's get citywide time series of shutoffs per capita
-#aggregate tract-level observations in tract_ym into 1 observation for every month
+# first let's get citywide time series of shutoffs per capita
+# aggregate tract-level observations in tract_ym into 1 observation for every month
   ym <- tract_ym %>% 
     group_by(date) %>% 
     summarise(si_count = sum(si_count)) %>% 
     mutate(si_1000 = si_count / (detroit_pop / 1000) )
   
-  #use the transformed (aggregated) data 
-  ggplot(ym, aes(x = date, y = si_1000)) + 
+  # use the transformed (aggregated) data 
+  ggplot(ym, 
+         aes(x = date, y = si_1000)) + 
     geom_line() 
   
-  #plot raw shutoff counts by manually specifying ggplot transformation
-  ggplot(tract_ym, aes(x = date, y = si_count)) +
-    stat_summary(fun = sum, geom = "line")   
 
 
 ## -----------------------------------------------------------------------------------
@@ -279,9 +277,8 @@ FILL IN CODE SIMILAR TO ABOVE BUT USE medianinc RATHER THAN blackshare
     summarise(sum(pop)) %>%
     as.numeric()
 
-  
-#time series of shutoffs per capita for tracts above/below citywide median income
-  #what should the unit of observation be for this new data frame?
+# time series of shutoffs per capita for tracts above/below citywide median income
+  # what should the unit of observation be for this new data frame?
   ym_inc <- tract_ym %>% 
     group_by(FILL IN GROUPING VARIABLE(S) TO GET RIGHT UNIT OF ANALYSIS) %>% 
     summarise(si_count = sum(si_count)) %>%
@@ -291,13 +288,12 @@ FILL IN CODE SIMILAR TO ABOVE BUT USE medianinc RATHER THAN blackshare
            si_1000 = si_count / (pop / 1000)) %>%
     na.omit()
   
-  #validation
+  # validation
 
-
-#note that we are missing 1 row (we only have 187 instead of 2 * 94 = 188 rows)
-#the reason is that in Feb 2016 there is only 1 tract with shutoffs (w/income below the median)
-#that means we are missing a row corresponding to Feb 2016, high income
-#in order to solve this, here is one possible solution:
+# note that we are missing 1 row (we only have 187 instead of 2 * 94 = 188 rows)
+# the reason is that in Feb 2016 there is only 1 tract with shutoffs (w/income below the median)
+# that means we are missing a row corresponding to Feb 2016, high income
+# in order to solve this, here is one possible solution:
   
   ym_inc <- tract_ym %>% 
     group_by(FILL IN GROUPING VARIABLES TO GET RIGHT UNIT OF ANALYSIS) %>% 
@@ -312,35 +308,36 @@ FILL IN CODE SIMILAR TO ABOVE BUT USE medianinc RATHER THAN blackshare
                          detroit_pop_lo_inc),
            si_1000 = si_count / (pop / 1000)) 
 
+# plot time series: separate lines for tracts above/below median income
+  ym_inc %>%
+    ggplot(aes(x = date,
+               y = si_1000,
+               color = inc_above_median)) +
+    geom_line()
 
-#plot time series: separate lines for tracts above/below median income
-  ggplot(ym_inc, 
-         aes(x = date, y = si_1000)) + 
-    geom_line(aes(group = inc_above_median, 
-                  color = inc_above_median))
-  #QUESTION: why did we specify both group and color aes() arguments?
-
-
-#QUESTION:
-  #should inc_above_median be treated as a numeric variable?
-  #what is a better way to store this information?
+# QUESTION:
+  # should inc_above_median be treated as a numeric variable?
+  # what is a better way to store this information?
   
   
-#ANSWER: let's convert to a factor that works better with plots
-    #turn inc_above_median into a factor with clear category labels
+# ANSWER: let's convert to a factor that works better with plots
+    # turn inc_above_median into a factor with clear category labels
   ym_inc$inc_above_median <- factor(ym_inc$inc_above_median,
                                     levels = c(0,1),
-                                    labels = c("Below median income", "Above median income"))
+                                    labels = c("Below median income", 
+                                               "Above median income"))
 
-  
-#now plot time series by income group again using a factor variable for the color argument
-  ggplot(ym_inc, 
-         aes(x = date, y = si_1000, color = inc_above_median)) + 
+# now plot time series by income group again using a factor variable for the color argument
+  ym_inc %>% 
+    ggplot(aes(x = date,
+               y = si_1000,
+               color = inc_above_median)) +
     geom_line()
 
 #note that here the color aesthetic can be set in ggplot() or geom_line()
-  ggplot(ym_inc, 
-         aes(x = date, y = si_1000)) + 
+  ym_inc %>% 
+    ggplot(aes(x = date,
+               y = si_1000)) +
     geom_line(aes(color = inc_above_median))
   
 
@@ -359,7 +356,6 @@ FILL IN CODE SIMILAR TO ABOVE BUT USE medianinc RATHER THAN blackshare
     filter(black75 == 0) %>%
     summarise(sum(pop)) %>%
     as.numeric()
-
     
 #get time series of shutoffs per capita by tracts above/below 75% black
   ym_race <- tract_ym %>% 
