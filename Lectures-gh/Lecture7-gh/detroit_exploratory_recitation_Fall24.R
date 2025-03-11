@@ -108,7 +108,7 @@ getwd()
 ### START HERE IN CLASS
 
 #load ACS data
-MI_acs_tract_10_17 <- readRDS("Data/MI_acs_tract_10_17.rds")
+MI_acs_tract_10_17 <- readRDS("MI_acs_tract_10_17.rds")
 
 #inspect
 str(MI_acs_tract_10_17)
@@ -142,7 +142,7 @@ MI_acs_tract_10_17 %>%
 ## -----------------------------------------------------------------------------
 
 #get service interruption data
-input_si <- read.dta13("Data/si_1017_cleaned.dta")
+input_si <- read.dta13("si_1017_cleaned.dta")
 input_si <- si_1017_cleaned
 #what is the unit of observation? each observation is a shutoff record.
 
