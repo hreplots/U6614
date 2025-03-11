@@ -33,9 +33,6 @@ library(tidyverse)
 library(lubridate)
 library(fastDummies)
 library(weights)
-library(lmtest)
-library(sandwich)
-library(multiwayvcov)
 library(fixest)
 library(estimatr)
 library(modelsummary)
@@ -285,7 +282,7 @@ getwd()
                                 data = zip_cross, 
                                 weight = pop, 
                                 se_type = "stata")
-  summary(cross_total_1alt)
+  summary(cross_total_1)
   
   # QUESTION: Write out the PRF and interpret coefficient
   
