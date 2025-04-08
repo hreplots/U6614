@@ -210,31 +210,10 @@ summary(twfe_did_rob)
 ## -----------------------------------------------------------------------------  
 
 # mutate column for relative time and inspect
-  data_es <- data %>% 
-    mutate(rel_year = if_else(is.na(treatment_date) == T,
-                              -1,
-                              year - treatment_date)) %>%
-    mutate(rel_year = if_else((rel_year == -9 |
-                                 rel_year == -8 |
-                                 rel_year ==  -7),
-                              -6, rel_year))
-  table(data_es$rel_year)
-  
-  data_es %>% 
-    select(sid, state, year, treatment_date, rel_year, homicide_c, l_hom_rate)
   
   
 # TWFE event study estimation
-  twfe_es <- feols(l_hom_rate ~ i(rel_year, evertreated, ref = -1) | sid + year, 
-                 data = data_es,
-                 cluster = ~sid,
-                 weights = data$population)
-  summary(twfe_es)               
-  ggiplot(twfe_es,   # from the ggfixest package
-          geom = 'errorbar',
-          xlab = "Time to treatment",
-          main = "Effect on ln(homicide rate)",
-          theme = theme_minimal() )
+
 
 
 ## -----------------------------------------------------------------------------
@@ -242,28 +221,14 @@ summary(twfe_did_rob)
 ## -----------------------------------------------------------------------------   
 
 # get data frame with decomposition results
-  df_bacon <- bacon(l_hom_rate ~ D,
-                    data = data,
-                    id_var = "state",
-                    time_var = "year")
+
 
 # show the weighted average of the decomp estimates = TWFE estimate
-  coef_bacon <- sum(df_bacon$estimate * df_bacon$weight)
-  print(paste("Weighted sum of decomposition =", round(coef_bacon, 4)))
+
 
 # plot decomposition
-  ggplot(df_bacon) +
-    aes(x = weight, 
-        y = estimate, 
-        color = factor(type), 
-        shape = factor(type)) +
-    geom_point() + 
-    geom_hline(yintercept = coef_bacon, lty  = 2) +
-    labs(x = "Weight", y = "Estimate", shape = "Type") +
-    labs(color = "Type", 
-         shape = "Type") +
-    scale_colour_manual(values = get_pal("Gloomy_Nudi"))
-  
+ 
+
 
   
 ## -----------------------------------------------------------------------------
@@ -272,44 +237,26 @@ summary(twfe_did_rob)
 
 # recode treatment_date into new variable with 0s for nevertreated instead of NA
 # (bc the att_gt() function identifies nevertreated units as 0s)
-  data_es <- data_es %>% 
-    mutate(treatment_group = if_else(is.na(treatment_date) == T,
-                                     0,
-                                     treatment_date) )
+ 
+
   
 # estimate group-time average treatment effects
-  atts <- att_gt(yname = "l_hom_rate", # LHS variable
-                 tname = "year", # time variable
-                 idname = "sid", # id variable
-                 gname = "treatment_group", # first treatment period variable
-                 data = data_es, # data
-                 xformla = NULL, # no covariates
-                 #xformla = ~ l_police, # with covariates
-                 est_method = "dr", # "dr" is doubly robust. "ipw" is inverse probability weighting. "reg" is regression
-                 control_group = "nevertreated", # set the comparison group which is either "nevertreated" or "notyettreated" 
-                 bstrap = TRUE, # if TRUE compute bootstrapped SE
-                 biters = 1000, # number of bootstrap iterations
-                 print_details = FALSE, # if TRUE, print detailed results
-                 clustervars = "sid", # cluster level
-                 panel = TRUE) # whether the data is panel or repeated cross-sectional
-  
+ 
+
   # Aggregate ATT
-  agg_effects <- aggte(atts, type = "group")
-  summary(agg_effects)
-  
+ 
+
   # Group-time ATTs
-  summary(atts)
+ 
   
   # Plot group-time ATTs
-  ggdid(atts)
+
   
   # Event-study
-  agg_effects_es <- aggte(atts, type = "dynamic")
-  summary(agg_effects_es)
+ 
   
   # Plot event-study coefficients
-  ggdid(agg_effects_es)
-  
+
   
 #-------------------------------------------------------------------------------  
 # text for additional control variables: region x year dummies 
