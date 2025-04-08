@@ -1,3 +1,4 @@
+
 ---
 title: "Difference-in-differences with Staggered Treatments"
 subtitle: "Gun-related Deaths and Stand Your Ground Laws (Cheng & Hoekstra 2013)"
