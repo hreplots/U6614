@@ -1,10 +1,8 @@
 
 ---
-title: "Difference-in-differences with Staggered Treatments"
-subtitle: "Gun-related Deaths and Stand Your Ground Laws (Cheng & Hoekstra 2013)"
-author: 
- - "Instructor: Harold Stolper"
- - "Submission author: YOUR NAME"
+title: "Assignment 6: Difference-in-differences with Staggered Treatments"
+subtitle: "SOLUTIONS"
+author: "Instructor: Harold Stolper"  
 date: "`r Sys.Date()`"
 output: 
   bookdown::html_document2:
@@ -22,9 +20,6 @@ header-includes:
 ```{r setup, include = FALSE}
 knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
 ```
-
-### <span style="color: #FF00FF;"> For **Assignment 6**, please complete all of the questions from sections 1 through 4. We will review the remainder of the lesson, sections 5 through 7, during class. You may review those sections in advance of class, but only sections 1 through 4 will be graded. </span> {.unnumbered}
-
 
 ```{r}
 library(tidyverse)
@@ -101,31 +96,119 @@ cat(tabl) # output the table in a format good for HTML/PDF/docx conversion
 
 ## <span style="color: #1565c0;">QUESTION:</span> Load the data (castle_expanded2.rdata) and generate two new variables, one for the homicide rate (homicides per 100,000 population) and another for the natural log of the homicide rate. Convert the year column from a numeric to integer. Save the new dataset in "castle_modified.rdata". Use the `weighted.mean()` function to report the mean homicide rate and ln(homicide rate) weighted by mean state population (popwt). Only report the weighted mean for these two variables, do not show long and clunky output with summary statistics for every variable in the data frame). {#qmod}
 
+```{r prep}
+# read in data from rdata file
+  load("castle_expanded2.rdata")
+
+# generate new columns for the hom rate and ln(hom rate), convert year to integer
+  data <- data %>% 
+    mutate(hom_rate = homicide_c / (population / 100000),
+           l_hom_rate = log(hom_rate),
+           year = as.integer(year))
+
+# save as new data frame for future reference  
+  save(data, file="castle_modified.rdata")
+```
+
+```{r desc2-1}
+weighted.mean(data$hom_rate, data$popwt, na.rm = FALSE)
+weighted.mean(data$l_hom_rate, data$popwt, na.rm = FALSE)
+```
+
+> <span style="color: #1565c0;"><font size="4">ANSWER: The mean homicide rate observed in this sample is 5.53 homicides per 100,000 population, while the mean of the log of the homicide rate is 1.64.</font> </span>
+
 
 ## How many states (the panel "entity" or "unit") and how many years are observed in the data (the panel time period)? How many observations are there in the data set? Show the code and output you used to obtain these numbers. 
+
+```{r desc2-2}
+table(data$year)
+n_distinct(data$year)
+```
+
+> <span style="color: #1565c0;"><font size="4">ANSWER: The above output indicates that all 50 states are observed for 11 years, with 550 observations in total.</font> </span>
 
 
 ## How many states adopted Stand Your Ground laws between 2000 and 2010? {#qcollapse}
 
 #### [R Hint: there are surely numerous approaches to this. I got the answer by obtaining the number of distinct states that were ever treated.] {-}
 
+```{r desc2-3}
+data %>% 
+  group_by(evertreated) %>% 
+  summarise(n_distinct(state)) %>% 
+  kbl() %>%
+  kable_styling(full_width = F)
+```
+
+> <span style="color: #1565c0;"><font size="4">ANSWER: 21 states adopted Stand Your Ground laws between 2000 and 2010.</font> </span>
 
 
 ## What was the population-weighted average homicide rate of the adopting states (`evertreated == 1`) and non-adopting states (`evertreated == 0`) in 2000? 
 
 #### [R Hint: again, try grouping by `evertreated` and then using `summarise` to obtain the population-weighted mean.] {-}
 
+```{r desc2.4}
+data %>% 
+  filter(year == 2000) %>% 
+  group_by(evertreated) %>% 
+  summarise(weighted_mean = weighted.mean(hom_rate, popwt)) %>% 
+  kbl() %>%
+  kable_styling(full_width = F)
+
+```
+
+> <span style="color: #1565c0;"><font size="4">ANSWER: The population-weighted average homicide rate of adopting states was 6.40 homicides per 100,000 population, compared to 5.05 in non-adopting states. This tell us something about *selection into the treatment*: states that adopted Stand Your Ground laws had higher homicide rates to begin with.</font> </span>
 
 
 ## Show two seperate histograms for 2000, one for the homicide rate another for ln(hom_rate), using bin widths of 1 and .25, respectively, by specifying the optional `binwidth` argument of the `geom_histogram()` layer. Based on visual inspection, which distribution has a shorter right hand tail?
 
+```{r desc2-5}
+# hom_rate histogram
+  data %>% 
+    ggplot(aes(x = hom_rate)) + 
+    geom_histogram(binwidth = 1)
+
+# ln(hom_rate) histogram
+  data %>% 
+    ggplot(aes(x = l_hom_rate)) + 
+    geom_histogram(binwidth = 0.25)
+```
+
+
+> <span style="color: #1565c0;"><font size="4">ANSWER: The log transformation reduces the right skew and results in a more symmetric and normal distribution. </font> </span>
 
 
 ## Calculate the change in the homicide rate from 2000 to 2010 for each state. Visualize the distribution of this change, try to make your chart as informative as possible. Use the `fill` or `color` aesthetics to indicate states that were ever treated. Some other things to consider: axes labels, legend or no legend and legend positioning/title/labels, sorting values, and color and aesthetics. Qualitatively describe the distribution you observe.
 
 #### [R Hints:<br><br>1. Reshape from long to wide form panel data using `pivot_wider()`, then you can mutate a new column for $\Delta$hom_rate equal to the difference between the two columns containing endyear values. [Here](https://dcl-wrangle.stanford.edu/pivot-basic.html) is a good tutorial on `pivot_wider()`.<br><br> 2. For the plot you can use `geom_bar()` along with `coord_flip()`, as in the first example [here](https://r-graph-gallery.com/267-reorder-a-variable-in-ggplot2.html).] {-}
 
+```{r desc2-6}
+# reshape from long to wide to get change over time
+  data_wide <- data %>% 
+    select(year, sid, state, hom_rate, evertreated) %>% 
+    pivot_wider(names_from = year, 
+                values_from = hom_rate) %>% 
+    mutate(delta_hom_rate = `2010`-`2000`) %>% 
+    mutate(evertreated = as.factor(evertreated))
 
+# get factor level labels for ever treated
+  data_wide$evertreated <- fct_recode(data_wide$evertreated,
+                                      "treated" = "1",
+                                      "never treated" = "0")
+
+# barplot  
+  data_wide %>% 
+    mutate(state = fct_reorder(state, delta_hom_rate)) %>%
+    ggplot(aes(x = state, y = delta_hom_rate, fill = as.factor(evertreated))) + 
+    geom_bar(stat = "identity") +
+    scale_fill_manual(values=c('orange', 'red')) +
+    coord_flip() +
+    ylab("change in homicide rate (2000 to 2010)") +
+    guides(fill = guide_legend(title = "")) # remove legend title
+
+```
+
+> <span style="color: #1565c0;"><font size="4">ANSWER: Over the period under study, the distribution of homicide rate changes ranges from -3 to just over 2 homicides per 100,000 population, with more states experiencing declines in the homicide rate. Note that some of the states with the biggest declines in homicide rates adopted Stand Your Grand laws at some point during this period; the question is whether adopting the law slowed the decline in homicide rates, i.e. whether the counterfactual post-treatment decline for these states would have been larger.</font> </span>
 
 <br>
 
@@ -137,20 +220,60 @@ Let's start by focusing on the case of Florida, and compare the change in the lo
 
 #### [R Hint: specifiy the appropriate conditional statement to filter on, and assign to a new data frame. For validation, think about what two variables to include in a cross-tab.{-}
 
+```{r, desc3-1}
+dataFLtoNever <- data %>% 
+  filter(state == "Florida" | evertreated == 0)
+
+table(dataFLtoNever$state, dataFLtoNever$evertreated) %>% 
+  kbl() %>%
+  kable_styling(full_width = F)
+```
 
 
 ## Next let's collapse to year-group observations by grouping by year and evertreated. In other words, the new data frame should include the year by year mean for Florida and the year by year mean for all never treated states for the homicide rate and ln(homicide rate), weighted by mean population. Confirm you did this successfully by using the `head()` function to print the first few observations of the new collapsed data frame. {#comp1collapse}
 
 #### [R Hint: use `group_by()` along with `summarise()` and `weighted.mean()` as a helper function.] {-}
 
+```{r, FLtoNever1}
+dataFLtoNever.bytreat <- dataFLtoNever %>% 
+  group_by(year, evertreated) %>% 
+  summarise(hom_rate = round(weighted.mean(hom_rate, popwt), 2),
+            l_hom_rate = round(weighted.mean(l_hom_rate, popwt), 2)) 
+head(dataFLtoNever.bytreat)
+
+```
 
 
 ## Using the data frame you just created, compare time trends in the log of the homicide rate for Florida vs. [the population-weighted] mean for never-treated states. Try to make the visualization as clear and informative as possible, including a vertical line at 2004 to indicate the year before the treatment took effect in Florida. Some other things to consider: axes labels, group labels for the legend, legend positioning, removing the legend title, and axis labels. {#comp1trends}
 
 #### [R Hint: comparing time trends by group using `geom_line()` is something you did in Assignment 5. Additionally, you can use `geom_vline()` to add a vertical line indicating the year before the treatment first took effect in Florida. You will also need to convert evertreated to a factor with appropriate labels for each 'treatment' group, Florida and never-treated states.] {-}
 
-
-<br>
+```{r, FLtoNever-es}
+# convert ever treated into a factor
+  dataFLtoNever.bytreat <- dataFLtoNever.bytreat %>% 
+    mutate(evertreated = factor(evertreated))
+  
+# get factor level labels for ever treated
+  dataFLtoNever.bytreat$evertreated <- fct_recode(dataFLtoNever.bytreat$evertreated,
+                                                  "Florida" = "1",
+                                                  "never treated" = "0")
+# time series plot
+  dataFLtoNever.bytreat %>% 
+    ggplot(aes(x = year, y = l_hom_rate,
+               group = evertreated,
+               color = evertreated)) + 
+    geom_line() + 
+    geom_vline(xintercept = 2004, # adds vertical line for the year before law takes effect
+               linetype = 'dashed',
+               color = 'grey20',
+               size = .8) +
+    theme_minimal() +
+    scale_color_manual(values = c("#8795E8", "#FF6AD5"))  +
+    ylab("ln(homicides per 100,000 population)") +
+    guides(color = guide_legend(title = "")) + # remove legend title
+    theme(legend.position = "bottom") +
+    scale_x_continuous(breaks = c(2001, 2003, 2005, 2007, 2009, 2011)) # x-axis labels
+```
 
 The plot you just created is the basis for an event study approach (period by period) to a familiar difference-in-difference setup with a treatment and control group that are fixed over time. Recall the Card and Krueger (1994) setup with two groups (a treatment, Pennsylvania, and a control, New Jersey), and two time periods (before and after the minimum wage increase in Pennsylvania). We can think of the Card and Kruger setup as a simple *2x2* DID, with 2 groups and 2 periods. Data permitting, an *event study* approach extends the analysis to look period-by-period both further ahead and behind the treatment event, as you have shown here.
 
@@ -170,23 +293,79 @@ Parallel trends during the treatment period can never be observed. It's a statem
 
 ## Based on what you observe in the event study plot you just created for the Florida vs never treated states DID design, would you argue that the evidence is consistent with parallel trends?
 
+> <span style="color: #1565c0;"><font size="4">ANSWER: We observe parallel trends in the log of the homicide rate from 2001 through 2004, just before the treatment takes effect in 2005. Outcomes diverge from 2000 to 2001, but the recent trend is a parallel one.</font> </span>
+
 
 ## Florida was just 1 of the treated states. Which states passed Stand Your Ground laws in 2006? Show your code and output.
+
+```{r, 2006}
+data %>% 
+  filter(treatment_date == 2006) %>% 
+  group_by(state) %>% 
+  summarise(first(treatment_date)) %>% 
+  kbl() %>%
+  kable_styling(full_width = F)
+```
 
 
 ## Next plot the yearly mean log homicide rate for *all 2006 adopters* compared to all never treated states. This is the same plot you showed in Question \@ref(comp1trends) but for a different treatment group than before: all 2006 adopters compared to never treated states, rather than just Florida compared to never treated states.
 
 #### [R Hint: you will have to drop all states that adopted Stand Your Ground laws in years other than 2006, similar to what you did in Question \@ref(comp1drop) but with a different conditional statement. Before proceeding, make sure you validate your filtered data as you did in \@ref(comp1drop). Then collapse the data as in Question \@ref(comp1collapse) using `group_by()` along with `summarise()` and `weighted.mean()` as a helper function. For the plot you can use `geom_vline()` to drop the event line at 2005 to indicate the year before the law took effect.] {-}
 
+```{r, 2006toNever}
+# filter data from
+  data2006toNever <- data %>% 
+    filter(treatment_date == 2006 | evertreated == 0)
+  table(data2006toNever$state, data2006toNever$evertreated)
+  
+  
+# collapse data to obtain weighted means for T and C groups
+  data2006toNever.bytreat <- data2006toNever %>% 
+    group_by(year, evertreated) %>% 
+    summarise(hom_rate = weighted.mean(hom_rate, popwt),
+              l_hom_rate = weighted.mean(l_hom_rate, popwt))
+  
+# convert ever treated into a factor 
+  data2006toNever.bytreat <- data2006toNever.bytreat %>% 
+    mutate(evertreated = factor(evertreated))
+  
+# get factor level labels for ever treated
+  data2006toNever.bytreat$evertreated <- fct_recode(data2006toNever.bytreat$evertreated,
+                                                  "never treated" = "0",
+                                                  "2006 adopters" = "1")
+# plot
+  data2006toNever.bytreat %>% 
+    ggplot(aes(x = year, y = l_hom_rate,
+               group = evertreated, 
+               color = evertreated)) + 
+    geom_line() + 
+    geom_vline(xintercept = 2005, 
+               linetype = 'dashed', 
+               color = 'grey20', 
+               size = .8) +
+    theme_minimal() +
+    scale_color_manual(values = c("#8795E8", "#FF6AD5")) +
+    ylab("ln(homicides per 100,000 population)") +
+    guides(color = guide_legend(title = "")) +
+    theme(legend.position = "bottom") +
+    scale_x_continuous(breaks = c(2001, 2003, 2005, 2007, 2009, 2011))
+```
+
+
 
 ## Based on what you observe in the event study plot you just created for the 2006 adopters vs never treated states DID design, would you argue that evidence is consistent with parallel trends?
+
+> <span style="color: #1565c0;"><font size="4">ANSWER: We observe a narrowing of the gap in the average log of the homicide rate prior to the treatment, which is inconsistent with the parallel trends assumption.</font> </span>
 
 
 ## Your plot should show that the gap in log homicide rate between 2006 adopters and never-treated states widens in 2006, the first year the treatment was in effect, after which the gap fluctuates a bit but is more or less stable. In other words, there is a positive and immediate effect of the law on the log homicide rate. Discuss any internal validity concerns that you have. Do you have any reason to believe that the positive effect we observe from 2005 to 2006 could overstate or understate the true effect?
 
+> <span style="color: #1565c0;"><font size="4">ANSWER: The fact that that the log of the homicide rate is converging prior to the treatment in 2006 suggests that there are omitted time varying factors that are affecting outcomes in the treatment and comparison groups differently. A violation of parallel trends is a form of omitted variable bias which threatens the internal validity of the estimated treatment effect.<br><br>If this narrowing gap would have persisted into the treatment period in the absence of the treatment, it implies that the counterfactual gap between 2006 adopters and never treated states would have been even smaller. If this were the case, estimated effects would be understated relative to the true effect.</font> </span>
 
 
 ## Discuss any external validity concerns that you have.
+
+> <span style="color: #1565c0;"><font size="4">ANSWER: External validity concerns for this comparison rest on the fact that we are only considering a subset of treated states. It is unlikely that the effects for 2006 adopters would generalize to states that adopted later, or earlier (Florida).</font> </span>
 
 
 
@@ -222,17 +401,27 @@ Before we estimate the above model, let's first recall the guidance on clustered
 
 ## Estimate equation 1 using `feols()` in the `fixest` package, with standards error clustered by state. Report the coefficient of interest and the standard error. {#twfedid}
 
+```{r}
+twfe_did <- feols(l_hom_rate ~ D | factor(state) + factor(year), 
+              data = data,
+              vcov = ~sid)
+summary(twfe_did) 
+```
+
+
+> <span style="color: #1565c0;"><font size="4">ANSWER: The coefficient of interest, $\hat{\delta}$, is .0694 with a standard error of 0.0559. </font> </span>
 
 
 ## Interpret the estimated coefficient on $D_{it}$. Assess statistical significance.
 
-<br>
+> <span style="color: #1565c0;"><font size="4">ANSWER: Adopting a Stand Your Ground law is associated with a 0.0694*100 = 6.94% increase in the homicide rate, controlling for time invariant factors that vary between states, and time varying factors shared by all states. The p-value is 0.220, so the estimated effect is not statistically significant with standard errors clustered at the state level. Interestingly, heteroskedasticity-robust standard errors do permit rejection of the null hypothesis of no effect at the 5% significance level (p-value = 0.044); in other words, clustering by state is indeed a more conservative approach to hypothesis testing.</font> </span>
 
 
 Cheng and Hoekstra (2013) note that their estimated effect amounts to around 600 additional homicides per year in the 21 adopting states. That is a lot of additional lives lost.
 
 ## Consider a hypothetical national law that made it harder to purchase weapons in, say, 2005. Would this law affect the internal validity of the previous TWFE estimates.
 
+> <span style="color: #1565c0;"><font size="4">ANSWER: Because this law is a time varying factor that affects all states, it is already accounted for by year fixed effects. Thus it would not introduce bias in the TWFE DID estimate that limits internal validity.</font> </span>
 
 <br>
 
@@ -243,11 +432,6 @@ The economist Scott Cunningham contextualized their findings:
 > Thinking back to to the killing of Trayvon Martin by George Zimmerman, one is left to wonder whether Trayvon might still be alive had Florida not passed Stand Your Ground. This kind of counterfactual reasoning can drive you crazy, because it is unanswerable—we simply don’t know, cannot know, and never will know the answer to counterfactual questions. The fundamental problem of causal inference states that we need to know what would have happened that fateful night without Stand Your Ground and compare that with what happened with Stand Your Ground to know what can and cannot be placed at the feet of that law. What we do know is that under certain assumptions related to the DD design, homicides were on net around 8%–10% higher than they would’ve been when compared against explicit counterfactuals. And while that doesn’t answer every question, it suggests that a nontrivial number of deaths can be blamed on laws similar to Stand Your Ground.
 
 
-<br>
-
-### <span style="color: #FF00FF;"> [*Assignment 6 ends here.*] </span> {.unnumbered}
-
-<br>
 
 # The TWFE event study 
 
@@ -282,7 +466,6 @@ The event study plot also allows us to examine the dynamics of the treatment eff
 ## Based on the above event study plot, are any of the estimated treatment effects for specific relative time periods statistically significant? Be specific about which relative time periods $j = \{0, 1, 2, 3, 4, 5\}$ have estimated effects that are/aren't significant, and explain how you can determine this from the above plot.
 
 
-<br>
 
 ## The problem with TWFE estimation with a staggered treatment {.unnumbered}
 
