@@ -1,0 +1,598 @@
+---
+title: "Assignment 6: Difference-in-differences with Staggered Treatments"
+subtitle: "FULL SOLUTIONS"
+author: "Instructor: Harold Stolper"  
+date: "`r Sys.Date()`"
+output: 
+  bookdown::html_document2:
+    toc: true
+    toc_float:
+      collapsed: false
+    toc_depth: 1
+    number_sections: true
+    code_folding: show
+    df_print: paged
+header-includes:
+- \usepackage{amsmath}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
+```
+
+```{r}
+library(tidyverse)
+library(knitr)
+library(kableExtra)
+library(fixest)
+library(ggfixest)
+library(bacondecomp)
+library(Manu)
+```
+
+<style type="text/css">
+
+h2 { /* Header 2 */
+    font-size: 18px;
+    font-weight: bold;
+}
+</style>
+
+<br>
+
+This lesson draws heavily from Scott Cunningham's *Causal Inference: The Mixtape*, [Chapter 9](https://mixtape.scunning.com/09-difference_in_differences), and Nick Huntington-Klein's *The Effect: An Introduction to Research Design and Causality*, [Chapter 18](https://theeffectbook.net/ch-DifferenceinDifference.html).
+
+___
+
+#### <span style="text-decoration:underline">Instructions</span>: Write up your answers in the provided rmd file, make sure to maintain the same numbering in this document to ensure proper credit for your responses. <span style="text-decoration:underline">Your submission should include</span>: ***(1) all R code and output you used to answer each question should appear under each question number in your document;*** and **(2) written answers to each question along with your reasoning.** {.unnumbered}
+
+___
+<br>
+
+# **Part I: A 'Staggered Treatment' Natural Experiment** {.unnumbered}
+
+# Introduction
+
+In 2022, there were 48,202 gun related deaths in the United States, with Black individuals more than 2.5 times likely to die from gun violence, according to [CDC data](https://wisqars.cdc.gov/create-tables/).
+Seventeen year old Trayvon Martin was one such victim, a young black man who was killed by an attacker in a gated community in Florida. In 2005, Florida passed what has become known as a 'Stand Your Ground' law, removing the duty to retreat from an attacker before using deadly force, and removing civil liability for any death or injury inflicted. Between 2000 and 2010, 21 states passed similar 'Stand Your Ground' laws. These laws are based on the Castle Doctrine, which specifically removes the duty to retreat from a home intruder when acting in purported self-defense. They effectively expand the “castle doctrine” to public spaces, explains the [Brady Campaign](https://www.bradyunited.org/resources/issues/stand-your-ground-laws), allowing for a person to legally shoot and kill another person for "legally unjustifiable reasons" under a “shoot first, ask questions later” model. Critics argue that these laws perpetuate racial disparities in gun violence that disproportionately harm Black Americans.
+
+Cheng and Hoekstra (2013) evaluated the effects of these 'Stand Your Ground' laws on gun-related deaths using a difference-in-differences (DID) design. This particular DID design relies on what is known as a staggered treatment, or differential timing of the treatment across states. This assignment will walk you through some of the key steps of this empirical study, tasking you with writing R code to replicate the analysis and wrestling with the DID design and use of fixed effects. Part I focuses more on descriptive statistics and understanding the natural experiment. Part II focuses on the DID design and estimation.
+
+
+# Descriptive analysis
+
+<br>
+```{r vartable, echo=FALSE, message=FALSE, warnings=FALSE, results='asis'}
+tabl <- "
+| Variable name | Description                                                                         |
+|-----------------|:----------------------------------------------------------------------------------|
+| state           | state name                                                                        |
+| sid             | state ID                                                                          |
+| year            | year                                                                              |
+| evertreated     | = 1 if state ever expanded Stand Your Ground laws over this period, = 0 otherwise |
+| D               | = 1 if expanded Stand Your Ground law was in effect, = 0 otherwise                |
+| treatment_date  | year a Stand Your Ground law was passed for each state, if any                  |
+| homicide_c      | homicide count                                                                    |
+| population      | state population                                                                  |
+| popwt           | mean of state population (2000-2010)                                              |
+| blackm_15_24    | % of black male ager 15-24                                                        |
+| whitem_15_24    | % of white male ager 15-24                                                        |
+| blackm_25_44    | % of black male ager 25-44                                                        |
+| whitem_25_44    | % of white male ager 25-44                                                        |
+| l_exp_subsidy   | natural log of government spending per capita on subsidy                          |
+| l_exp_pubwelfare| natural log of government spending per capita on public welfare                   |
+| l_police        | natural log of full-time equivalent police per 100,000 state population           |
+| unemployrt      | unemployment rate                                                                 |
+| poverty         | poverty rate                                                                      |
+| l_income        | natural log of state median income                                                |
+| l_prisoner      | natural log of incarceration rate per 100,000 state population                    |
+| l_lagprisoner   | natural log of lagged incarceration rate per 100,000 state population             |
+|                 |                                                                                   |
+"
+cat(tabl) # output the table in a format good for HTML/PDF/docx conversion
+```
+
+
+## <span style="color: #1565c0;">QUESTION:</span> Load the data (castle_expanded2.rdata) and generate two new variables, one for the homicide rate (homicides per 100,000 population) and another for the natural log of the homicide rate. Convert the year column from a numeric to integer. Save the new dataset in "castle_modified.rdata". Use the `weighted.mean()` function to report the mean homicide rate and ln(homicide rate) weighted by mean state population (popwt). Only report the weighted mean for these two variables, do not show long and clunky output with summary statistics for every variable in the data frame). {#qmod}
+
+```{r prep}
+# read in data from rdata file
+  load("castle_expanded2.rdata")
+
+# generate new columns for the hom rate and ln(hom rate), convert year to integer
+  data <- data %>% 
+    mutate(hom_rate = homicide_c / (population / 100000),
+           l_hom_rate = log(hom_rate),
+           year = as.integer(year))
+
+# save as new data frame for future reference  
+  save(data, file="castle_modified.rdata")
+```
+
+```{r desc2-1}
+weighted.mean(data$hom_rate, data$popwt, na.rm = FALSE)
+weighted.mean(data$l_hom_rate, data$popwt, na.rm = FALSE)
+```
+
+> <span style="color: #1565c0;"><font size="4">ANSWER: The mean homicide rate observed in this sample is 5.53 homicides per 100,000 population, while the mean of the log of the homicide rate is 1.64.</font> </span>
+
+
+## How many states (the panel "entity" or "unit") and how many years are observed in the data (the panel time period)? How many observations are there in the data set? Show the code and output you used to obtain these numbers. 
+
+```{r desc2-2}
+table(data$year)
+n_distinct(data$year)
+```
+
+> <span style="color: #1565c0;"><font size="4">ANSWER: The above output indicates that all 50 states are observed for 11 years, with 550 observations in total.</font> </span>
+
+
+## How many states adopted Stand Your Ground laws between 2000 and 2010? {#qcollapse}
+
+#### [R Hint: there are surely numerous approaches to this. I got the answer by obtaining the number of distinct states that were ever treated.] {-}
+
+```{r desc2-3}
+data %>% 
+  group_by(evertreated) %>% 
+  summarise(n_distinct(state)) %>% 
+  kbl() %>%
+  kable_styling(full_width = F)
+```
+
+> <span style="color: #1565c0;"><font size="4">ANSWER: 21 states adopted Stand Your Ground laws between 2000 and 2010.</font> </span>
+
+
+## What was the population-weighted average homicide rate of the adopting states (`evertreated == 1`) and non-adopting states (`evertreated == 0`) in 2000? 
+
+#### [R Hint: again, try grouping by `evertreated` and then using `summarise` to obtain the population-weighted mean.] {-}
+
+```{r desc2.4}
+data %>% 
+  filter(year == 2000) %>% 
+  group_by(evertreated) %>% 
+  summarise(weighted_mean = weighted.mean(hom_rate, popwt)) %>% 
+  kbl() %>%
+  kable_styling(full_width = F)
+
+```
+
+> <span style="color: #1565c0;"><font size="4">ANSWER: The population-weighted average homicide rate of adopting states was 6.40 homicides per 100,000 population, compared to 5.05 in non-adopting states. This tell us something about *selection into the treatment*: states that adopted Stand Your Ground laws had higher homicide rates to begin with.</font> </span>
+
+
+## Show two seperate histograms for 2000, one for the homicide rate another for ln(hom_rate), using bin widths of 1 and .25, respectively, by specifying the optional `binwidth` argument of the `geom_histogram()` layer. Based on visual inspection, which distribution has a shorter right hand tail?
+
+```{r desc2-5}
+# hom_rate histogram
+  data %>% 
+    ggplot(aes(x = hom_rate)) + 
+    geom_histogram(binwidth = 1)
+
+# ln(hom_rate) histogram
+  data %>% 
+    ggplot(aes(x = l_hom_rate)) + 
+    geom_histogram(binwidth = 0.25)
+```
+
+
+> <span style="color: #1565c0;"><font size="4">ANSWER: The log transformation reduces the right skew and results in a more symmetric and normal distribution. </font> </span>
+
+
+## Calculate the change in the homicide rate from 2000 to 2010 for each state. Visualize the distribution of this change, try to make your chart as informative as possible. Use the `fill` or `color` aesthetics to indicate states that were ever treated. Some other things to consider: axes labels, legend or no legend and legend positioning/title/labels, sorting values, and color and aesthetics. Qualitatively describe the distribution you observe.
+
+#### [R Hints:<br><br>1. Reshape from long to wide form panel data using `pivot_wider()`, then you can mutate a new column for $\Delta$hom_rate equal to the difference between the two columns containing endyear values. [Here](https://dcl-wrangle.stanford.edu/pivot-basic.html) is a good tutorial on `pivot_wider()`.<br><br> 2. For the plot you can use `geom_bar()` along with `coord_flip()`, as in the first example [here](https://r-graph-gallery.com/267-reorder-a-variable-in-ggplot2.html).] {-}
+
+```{r desc2-6}
+# reshape from long to wide to get change over time
+  data_wide <- data %>% 
+    select(year, sid, state, hom_rate, evertreated) %>% 
+    pivot_wider(names_from = year, 
+                values_from = hom_rate) %>% 
+    mutate(delta_hom_rate = `2010`-`2000`) %>% 
+    mutate(evertreated = as.factor(evertreated))
+
+# get factor level labels for ever treated
+  data_wide$evertreated <- fct_recode(data_wide$evertreated,
+                                      "treated" = "1",
+                                      "never treated" = "0")
+
+# barplot  
+  data_wide %>% 
+    mutate(state = fct_reorder(state, delta_hom_rate)) %>%
+    ggplot(aes(x = state, y = delta_hom_rate, fill = as.factor(evertreated))) + 
+    geom_bar(stat = "identity") +
+    scale_fill_manual(values=c('orange', 'red')) +
+    coord_flip() +
+    ylab("change in homicide rate (2000 to 2010)") +
+    guides(fill = guide_legend(title = "")) # remove legend title
+
+```
+
+> <span style="color: #1565c0;"><font size="4">ANSWER: Over the period under study, the distribution of homicide rate changes ranges from -3 to just over 2 homicides per 100,000 population, with more states experiencing declines in the homicide rate. Note that some of the states with the biggest declines in homicide rates adopted Stand Your Grand laws at some point during this period; the question is whether adopting the law slowed the decline in homicide rates, i.e. whether the counterfactual post-treatment decline for these states would have been larger.</font> </span>
+
+<br>
+
+# The difference-in-differences (DID) design
+
+Let's start by focusing on the case of Florida, and compare the change in the log of the homicide rate over time in Florida to all of the never-treated states.
+
+## Drop all treated states except Florida, so that the modified dataset only includes observations for Florida and the never-treated states. Show output and code that allows you to validate the previous code and confirm that the new dataset does not include any other states that passed Stand Your Ground laws. {#comp1drop}
+
+#### [R Hint: specifiy the appropriate conditional statement to filter on, and assign to a new data frame. For validation, think about what two variables to include in a cross-tab.{-}
+
+```{r, desc3-1}
+dataFLtoNever <- data %>% 
+  filter(state == "Florida" | evertreated == 0)
+
+table(dataFLtoNever$state, dataFLtoNever$evertreated) %>% 
+  kbl() %>%
+  kable_styling(full_width = F)
+```
+
+
+## Next let's collapse to year-group observations by grouping by year and evertreated. In other words, the new data frame should include the year by year mean for Florida and the year by year mean for all never treated states for the homicide rate and ln(homicide rate), weighted by mean population. Confirm you did this successfully by using the `head()` function to print the first few observations of the new collapsed data frame. {#comp1collapse}
+
+#### [R Hint: use `group_by()` along with `summarise()` and `weighted.mean()` as a helper function.] {-}
+
+```{r, FLtoNever1}
+dataFLtoNever.bytreat <- dataFLtoNever %>% 
+  group_by(year, evertreated) %>% 
+  summarise(hom_rate = round(weighted.mean(hom_rate, popwt), 2),
+            l_hom_rate = round(weighted.mean(l_hom_rate, popwt), 2)) 
+head(dataFLtoNever.bytreat)
+
+```
+
+
+## Using the data frame you just created, compare time trends in the log of the homicide rate for Florida vs. [the population-weighted] mean for never-treated states. Try to make the visualization as clear and informative as possible, including a vertical line at 2004 to indicate the year before the treatment took effect in Florida. Some other things to consider: axes labels, group labels for the legend, legend positioning, removing the legend title, and axis labels. {#comp1trends}
+
+#### [R Hint: comparing time trends by group using `geom_line()` is something you did in Assignment 5. Additionally, you can use `geom_vline()` to add a vertical line indicating the year before the treatment first took effect in Florida. You will also need to convert evertreated to a factor with appropriate labels for each 'treatment' group, Florida and never-treated states.] {-}
+
+```{r, FLtoNever-es}
+# convert ever treated into a factor
+  dataFLtoNever.bytreat <- dataFLtoNever.bytreat %>% 
+    mutate(evertreated = factor(evertreated))
+  
+# get factor level labels for ever treated
+  dataFLtoNever.bytreat$evertreated <- fct_recode(dataFLtoNever.bytreat$evertreated,
+                                                  "Florida" = "1",
+                                                  "never treated" = "0")
+# time series plot
+  dataFLtoNever.bytreat %>% 
+    ggplot(aes(x = year, y = l_hom_rate,
+               group = evertreated,
+               color = evertreated)) + 
+    geom_line() + 
+    geom_vline(xintercept = 2004, # adds vertical line for the year before law takes effect
+               linetype = 'dashed',
+               color = 'grey20',
+               size = .8) +
+    theme_minimal() +
+    scale_color_manual(values = c("#8795E8", "#FF6AD5"))  +
+    ylab("ln(homicides per 100,000 population)") +
+    guides(color = guide_legend(title = "")) + # remove legend title
+    theme(legend.position = "bottom") +
+    scale_x_continuous(breaks = c(2001, 2003, 2005, 2007, 2009, 2011)) # x-axis labels
+```
+
+The plot you just created is the basis for an event study approach (period by period) to a familiar difference-in-difference setup with a treatment and control group that are fixed over time. Recall the Card and Krueger (1994) setup with two groups (a treatment, Pennsylvania, and a control, New Jersey), and two time periods (before and after the minimum wage increase in Pennsylvania). We can think of the Card and Kruger setup as a simple *2x2* DID, with 2 groups and 2 periods. Data permitting, an *event study* approach extends the analysis to look period-by-period both further ahead and behind the treatment event, as you have shown here.
+
+Remember the plot above only looks at the treatment for Florida and excludes all states that were treated in different years (i.e. restricts the comparison to a single treatment, not the staggered treatment across states). We can also calculate the average log homicide rate for Florida and never treated states *over the entire pre-treatment period*. Same for the treatment period. That gets us a familiar *2x2* DID which compares the pre-post change for Florida to the same change for all never treated states: 
+
+\begin{equation}
+  \hat{\delta}^{DID(FL)} = (\bar{y}^{post, FL} -  \bar{y}^{pre, FL}) -
+(\bar{y}^{post, never} -  \bar{y}^{pre, never})
+\end{equation}
+
+\noindent where *FL* refers to Florida and *never* refers to all never-treated states.
+
+Recall the **parallel trends** assumption required for the DID estimator to yield an unbiased estimate of the causal effect of the treatment: in the absence of the treatment, average outcomes for the treatment and comparison groups would have changed in parallel over time. Recall why this assumption is necessary: we are using the difference in outcomes over time for the control group ($\bar{y}^{post, never} -  \bar{y}^{pre, never}$) as an estimate of the counterfactual change in outcomes over time for treatment group, Florida. Treatment and control groups can have different characteristics that lead to different outcome levels, but parallel trends requires the *change* in outcomes to evolve in a parallel fashion.
+
+Parallel trends during the treatment period can never be observed. It's a statement about the counterfactual that would have occurred in the absence of the treatment: the change in the log homicide rate for Florida had it not passed a 'Stand Your Ground' law. We never know this with certainty, but the event study picture is an ideal place to begin to assess whether or not parallel trends holds over the *pre-treatment* period (provided that you observe outcomes in multiple pre-treatment periods). If trends for the two groups are parallel prior to the treatment, that is a good sign that the assumption is plausible. Researchers still need to think hard about whether there are any unobserved factors that may have changed over time along with the treatment, such as other confounding policy changes.
+
+
+## Based on what you observe in the event study plot you just created for the Florida vs never treated states DID design, would you argue that the evidence is consistent with parallel trends?
+
+> <span style="color: #1565c0;"><font size="4">ANSWER: We observe parallel trends in the log of the homicide rate from 2001 through 2004, just before the treatment takes effect in 2005. Outcomes diverge from 2000 to 2001, but the recent trend is a parallel one.</font> </span>
+
+
+## Florida was just 1 of the treated states. Which states passed Stand Your Ground laws in 2006? Show your code and output.
+
+```{r, 2006}
+data %>% 
+  filter(treatment_date == 2006) %>% 
+  group_by(state) %>% 
+  summarise(first(treatment_date)) %>% 
+  kbl() %>%
+  kable_styling(full_width = F)
+```
+
+
+## Next plot the yearly mean log homicide rate for *all 2006 adopters* compared to all never treated states. This is the same plot you showed in Question \@ref(comp1trends) but for a different treatment group than before: all 2006 adopters compared to never treated states, rather than just Florida compared to never treated states.
+
+#### [R Hint: you will have to drop all states that adopted Stand Your Ground laws in years other than 2006, similar to what you did in Question \@ref(comp1drop) but with a different conditional statement. Before proceeding, make sure you validate your filtered data as you did in \@ref(comp1drop). Then collapse the data as in Question \@ref(comp1collapse) using `group_by()` along with `summarise()` and `weighted.mean()` as a helper function. For the plot you can use `geom_vline()` to drop the event line at 2005 to indicate the year before the law took effect.] {-}
+
+```{r, 2006toNever}
+# filter data from
+  data2006toNever <- data %>% 
+    filter(treatment_date == 2006 | evertreated == 0)
+  table(data2006toNever$state, data2006toNever$evertreated)
+  
+  
+# collapse data to obtain weighted means for T and C groups
+  data2006toNever.bytreat <- data2006toNever %>% 
+    group_by(year, evertreated) %>% 
+    summarise(hom_rate = weighted.mean(hom_rate, popwt),
+              l_hom_rate = weighted.mean(l_hom_rate, popwt))
+  
+# convert ever treated into a factor 
+  data2006toNever.bytreat <- data2006toNever.bytreat %>% 
+    mutate(evertreated = factor(evertreated))
+  
+# get factor level labels for ever treated
+  data2006toNever.bytreat$evertreated <- fct_recode(data2006toNever.bytreat$evertreated,
+                                                  "never treated" = "0",
+                                                  "2006 adopters" = "1")
+# plot
+  data2006toNever.bytreat %>% 
+    ggplot(aes(x = year, y = l_hom_rate,
+               group = evertreated, 
+               color = evertreated)) + 
+    geom_line() + 
+    geom_vline(xintercept = 2005, 
+               linetype = 'dashed', 
+               color = 'grey20', 
+               size = .8) +
+    theme_minimal() +
+    scale_color_manual(values = c("#8795E8", "#FF6AD5")) +
+    ylab("ln(homicides per 100,000 population)") +
+    guides(color = guide_legend(title = "")) +
+    theme(legend.position = "bottom") +
+    scale_x_continuous(breaks = c(2001, 2003, 2005, 2007, 2009, 2011))
+```
+
+
+
+## Based on what you observe in the event study plot you just created for the 2006 adopters vs never treated states DID design, would you argue that evidence is consistent with parallel trends?
+
+> <span style="color: #1565c0;"><font size="4">ANSWER: We observe a narrowing of the gap in the average log of the homicide rate prior to the treatment, which is inconsistent with the parallel trends assumption.</font> </span>
+
+
+## Your plot should show that the gap in log homicide rate between 2006 adopters and never-treated states widens in 2006, the first year the treatment was in effect, after which the gap fluctuates a bit but is more or less stable. In other words, there is a positive and immediate effect of the law on the log homicide rate. Discuss any internal validity concerns that you have. Do you have any reason to believe that the positive effect we observe from 2005 to 2006 could overstate or understate the true effect?
+
+> <span style="color: #1565c0;"><font size="4">ANSWER: The fact that that the log of the homicide rate is converging prior to the treatment in 2006 suggests that there are omitted time varying factors that are affecting outcomes in the treatment and comparison groups differently. A violation of parallel trends is a form of omitted variable bias which threatens the internal validity of the estimated treatment effect.<br><br>If this narrowing gap would have persisted into the treatment period in the absence of the treatment, it implies that the counterfactual gap between 2006 adopters and never treated states would have been even smaller. If this were the case, estimated effects would be understated relative to the true effect.</font> </span>
+
+
+## Discuss any external validity concerns that you have.
+
+> <span style="color: #1565c0;"><font size="4">ANSWER: External validity concerns for this comparison rest on the fact that we are only considering a subset of treated states. It is unlikely that the effects for 2006 adopters would generalize to states that adopted later, or earlier (Florida).</font> </span>
+
+
+
+In Part II of this assignment we will review two-way fixed effects (TWFE) estimation, what it means in a staggered rollout design, and examine fundamental problems with this approach. 
+
+
+
+___
+<br>
+
+
+# **Part II: Two Way Fixed Effects & Staggered Treatment Design Estimators** {.unnumbered}
+
+
+# The Two-Way Fixed Effects (TWFE) model
+
+In Part I, we saw how the staggered rollout of 'Stand Your Ground' laws provides a series of natural experiments that lend themselves to the DID design. For example, how did the log of the homicide rate evolve in Florida before and after the law was passed compared to never-treated states over that time period? We could also think of another DID design for Michigan and the other 10 states who passed similar laws in 2006.
+
+How should we go about estimated an average treatment effect for all 21 treated states? For years, econometricians relied on models that include both entity (e.g. state) fixed effects and time (e.g. year) fixed effects. These models are often referred to as two-way fixed effects (TWFE) models. Cheng and Hoekstra estimate TWFE models similar to the following:
+
+
+$$
+  Y_{it} = {\delta}D_{it} + \sigma_{i} + \tau_{t} + \epsilon_{it}
+  \qquad \qquad \qquad \qquad \qquad \qquad\hbox{(1)}
+$$
+
+\noindent where subscripts *i* and *t* indicate state *i* and year *t*, respectively; $D_{it}$ is the treatment variable, equal to the proportion of year *t* in which state *i* has a Stand Your Ground law in effect; ${\delta}$ is the OLS DID estimator; $\sigma_{i}$ controls for state fixed effects; $\tau_{t}$ controls for year fixed effects; and $\epsilon_{it}$ is the idiosyncratic error term. Also note that for states where the law took effect in the middle of the year, Cheng and Hoekstra (2013) set the treatment variable equal to the proportion of the year during which the law was in effect, but below we will use a binary variable for simplicity. We will also estimate unweighted models for simplicity, but results are similar when weighting observations by mean state population.
+
+Note that unlike in the simple 2x2 DID design we learned in Quant II, the treatment variable is not denoted by the form $post*treated$, but rather by $D_{it}$. This notation is a result of having more than two periods, and a treatment period that differs for each state according to the year they adopted the law.
+
+Before we estimate the above model, let's first recall the guidance on clustered standard errors. With panel data where treatment status varies across entities and time, it is generally advised to estimate standard errors that are clustered at the entity level (here, state)—provided there are a sufficiently large number of clusters (ideally 50 or more). Recall that clustering at the state level means adjusting standard error calculations to take into account the fact that observations *within* the same cluster (state) may have correlated errors. Clustered SEs account for correlation in the error term *between* observations in the same cluster, but preclude correlation in errors across clusters. For this course, all you need to know is that it's best practice to estimate clustered SEs when estimating a TWFE model, provided that you observe enough clusters in the sample.
+
+
+## Estimate equation 1 using `feols()` in the `fixest` package, with standards error clustered by state. Report the coefficient of interest and the standard error. {#twfedid}
+
+```{r}
+twfe_did <- feols(l_hom_rate ~ D | factor(state) + factor(year), 
+              data = data,
+              vcov = ~sid)
+summary(twfe_did) 
+```
+
+
+> <span style="color: #1565c0;"><font size="4">ANSWER: The coefficient of interest, $\hat{\delta}$, is .0694 with a standard error of 0.0559. </font> </span>
+
+
+## Interpret the estimated coefficient on $D_{it}$. Assess statistical significance.
+
+> <span style="color: #1565c0;"><font size="4">ANSWER: Adopting a Stand Your Ground law is associated with a 0.0694*100 = 6.94% increase in the homicide rate, controlling for time invariant factors that vary between states, and time varying factors shared by all states. The p-value is 0.220, so the estimated effect is not statistically significant with standard errors clustered at the state level. Interestingly, heteroskedasticity-robust standard errors do permit rejection of the null hypothesis of no effect at the 5% significance level (p-value = 0.437); in other words, clustering by state is indeed a more conservative approach to hypothesis testing.</font> </span>
+
+
+Cheng and Hoekstra (2013) note that their estimated effect amounts to around 600 additional homicides per year in the 21 adopting states. That is a lot of additional lives lost.
+
+## Consider a hypothetical national law that made it harder to purchase weapons in, say, 2005. Would this law affect the internal validity of the previous TWFE estimates.
+
+> <span style="color: #1565c0;"><font size="4">ANSWER: Because this law is a time varying factor that affects all states, it is already accounted for by year fixed effects. Thus it would not introduce bias in the TWFE DID estimate that limits internal validity.</font> </span>
+
+<br>
+
+The strongest DID designs show parallel pre-trends and argue they are consistent with parallel trends in outcomes for the treatment group in the absence of the treatment and the comparison group. But they don't stop there. They also consider various robustness checks, including falsification or placebo tests. To address concerns that adopting Stand Your Ground laws may have been spuriously correlated with unobserved factors driving general crime trends, Cheng and Hoekstra (2013) also show that adopting the laws is not associated with meaningful and significant changes in other types of crime. This approach is one of several that the authors take to rule out the possibility of omitted variables driving their results and make the case that their estimates are internally valid. 
+
+The economist Scott Cunningham contextualized their findings:
+
+> Thinking back to to the killing of Trayvon Martin by George Zimmerman, one is left to wonder whether Trayvon might still be alive had Florida not passed Stand Your Ground. This kind of counterfactual reasoning can drive you crazy, because it is unanswerable—we simply don’t know, cannot know, and never will know the answer to counterfactual questions. The fundamental problem of causal inference states that we need to know what would have happened that fateful night without Stand Your Ground and compare that with what happened with Stand Your Ground to know what can and cannot be placed at the feet of that law. What we do know is that under certain assumptions related to the DD design, homicides were on net around 8%–10% higher than they would’ve been when compared against explicit counterfactuals. And while that doesn’t answer every question, it suggests that a nontrivial number of deaths can be blamed on laws similar to Stand Your Ground.
+
+
+
+# The TWFE event study 
+
+We have since learned that using TWFE to implement a DID design with a staggered treatment is not quite so simple. To illustrate these issues, let's begin by estimating the *event study* TWFE model, which separates out the estimated average treatment effect into year-by-year effects, rather than estimating a single average treatment effect. 
+
+## First, create a new variable that measures time relative to the event (adopting a Stand Your Ground law). Construct a variable measuring relative time equal to the difference between the year and treatment year. In this case, however, there are 29 never-treated states; how should we handle them? For now let's set relative time  = to -1 for all observations for never-treated states.
+
+```{r, reltime}
+data_es <- data %>% 
+  #create new column measuring time relative to the treatment
+  mutate(rel_year = if_else(is.na(treatment_date) == T,
+                            -1,
+                            year - treatment_date)) %>%
+  #bin observations 9, 8, 7 and 6 years ahead of the treatment
+  mutate(rel_year = if_else((rel_year == -9 | rel_year == -8 | rel_year ==  -7),
+                            -6, rel_year))
+
+# inspect relative time variable
+  table(data_es$rel_year)
+  data_es %>% 
+    select(sid, state, year, treatment_date, rel_year, homicide_c, l_hom_rate)
+```
+
+Next let's estimate the following event study specification:
+
+$$ln(homrate)_{st} =  {}evertreated_s \left [ \sum_{j=-6}^{-2} \beta_j^{pre} 1\{t - t_s^* = j\} + \sum_{j=0}^{5} \beta_j^{post} 1\{t - t_s^* = j\}\right ]  + \mu_s + \tau_t + \varepsilon_{st}$$
+Here, $evertreated_s$ is a binary variable indicating states that adopted a Stand Your Ground law at any point during this time frame, and $t_s^*$ is the year of adoption in state $s$. The $1\{t - t_s^* = y\}$ terms are dummy variables corresponding to an *event year*, i.e., the year relative to adoption at time $t_s^*$. The coefficients of interest are now $\beta^{pre}_j$ and $\beta^{post}_j$, which measure the relationship between our outcomes of interest and eligibility status in each of the 5 years leading up to adoption and 6 years after. Note that the dummy variable for the year before adoption is omitted ($j = -1$), so that the estimates of $\beta^{pre}_j$ and $\beta^{post}_j$ capture effects relative to just before adoption. 
+
+Recall that in Part 1 of the Data Assignment it wasn't so obvious what the appropriate comparison group for treated states should be. In this case, there is no time relative to adoption for states that never adopted a Stand Your Ground law at all! Recall that we previously encoded relative time for these states to be $j = -1$. That's a bit odd, but effectively allows us to make comparisons with never-treated states. We'll come back to this point.
+
+Why are we interested in the $\beta^{pre}_j$ parameters? These coefficients are falsification tests that show us how the log of the homicide rate was trending prior to adoption. Their pattern and statistical significance are a test of the key identifying assumption of parallel trends; statistically significant estimates during the pre-treatment period would be inconsistent with the parallel trends assumption. The $\beta^{post}_j$ parameters represent the causal effect of adopting a Stand Your Ground law for each relative period $j$. 
+
+## Estimate the event study model. `fixest` includes an interaction helper function `i()`, which we'll use to generate the event study interaction terms. As described above, omit the event year immediately before adoption, which allows us to estimate results relative to that year. Fit the model and produce a standard event study plot, which shows $\hat \beta^{pre}_j$ and $\hat \beta^{post}_j$ in relation to relative time $j$.
+
+```{r, twfe-es}
+# estimate model and show output
+  twfe_es <- feols(l_hom_rate ~ i(rel_year, evertreated, ref = -1) | sid + year, 
+                 data = data_es,
+                 cluster = ~sid,
+                 weights = data$population)
+  summary(twfe_es)
+  
+# plot estimates
+  ggiplot(twfe_es,   # from the ggfixest package
+          geom = 'errorbar',
+          xlab = "Time to treatment",
+          main = "Effect on ln(homicide rate)",
+          theme = theme_minimal() )
+```
+
+Let's walk through what this plot is showing us. First, recall the estimated average treatment effect, $\hat{\delta}$ from equation 1. Instead of estimating a single average treatment effect over the entire treatment window relative to the entire pre-treatment window, the event study specification estimates a separate treatment effect for every period relative to a reference period one year before the law takes effect. Florida was treated in 2005, so the reference period for Florida is 2004, relative time period $j = -1$. For Florida, 2005 is the initial treatment year, $j = 0$; one year after the treatment, 2006, is denoted by $j = 1$, and so forth. So the treatment window for Florida, $j = \{0, 1, 2, 3, 4, 5\}$, corresponds to 2005 through 2010. And Florida's pre-treatment window extends from 2000 through 2004, corresponding to $j = \{-4, -3, -2, -1\}$. The state of Georgia didn't adopt their Stand Your Ground law until 2006, so 2005 is the reference period for Georgia, or $j = -1$, and so forth. Now imagine doing that for every treated state and stacking every states natural experiment around the relative event reference period $j = -1$. This is how a TWFE event study with staggered timing relies on time relative to the treatment.
+
+The above event study plot helps us to assess the plausibility of parallel trends. We can never confirm with absolute certainty that the parallel trends assumption holds, as they are inherently unobservable: the assumption says the counterfactual path of treated states during the treatment period is captured by comparison states, and we never observe these counterfactual trends! What the above event study plot lets us do is test whether *prior trends* are parallel; to examine whether treated and untreated states were trending similarly before they were treated. Indeed, we observe that all of the estimate coefficients prior to the treatment, prior to $j = -1$, are not statistically significant — we know this because none of the plotted 95% confidence intervals (using SEs clustered at the state level) intersect with zero. Recall how we interpret each $\beta^{pre}_j$ estimate: as the difference in the log of the homicide rate between each pre-treatment period and the reference period for treated states, compared to the same difference for the comparison group of states. It turns out that there are additional limitations to relying on the familiar hypothesis test for statistically significant differences. They are beyond the scope of this course, but if you're interested you can read Section 4.4 of [Roth et al 2023](https://www.jonathandroth.com/assets/files/DiD_Review_Paper.pdf#page=16.46).
+
+The fact that plot seems to be consistent with parallel *pre-trends* is a good sign for the parallel trends assumption, the remaining question is whether anything else coinciding with the treatment period may have affected adopting states differently from non-adopting states.
+
+The event study plot also allows us to examine the dynamics of the treatment effect, which fluctuates between .07 and .13 throughout the treatment window, or an average increase in each treatment period of approximately 7 to 13 percent in the homicide rate.
+
+
+## Based on the above event study plot, are any of the estimated treatment effects for specific relative time periods statistically significant? Be specific about which relative time periods $j = \{0, 1, 2, 3, 4, 5\}$ have estimated effects that are/aren't significant, and explain how you can determine this from the above plot.
+
+> <span style="color: #1565c0;"><font size="4">ANSWER: The estimates for periods $j = 1$, $j = 2$, $j = 3$, and $j = 5$ are all statistically significant. We know this because the confidence intervals for these estimates do not intersect the horizontal axis.</font> </span>
+
+
+
+## The problem with TWFE estimation with a staggered treatment {.unnumbered}
+
+It turns out that TWFE estimation generally works quite well when there is a single treatment year shared by all states. But TWFE estimation breaks down when the treatment is staggered over time in different states. In recent years, econometricians have come to understand problems that can arise from staggered treatments and bias estimated treatment effects—so much so that the sign of the estimated effect can flip in some cases!
+
+It turns out that in a staggered treatment setting, TWFE estimation can't handle heterogeneous treatment effects within groups over time. It also relies on a comparison group that probably doesn't make much sense. Let's try to understand what the problems are.
+
+Let's start by thinking more deeply about fixed effects and what they do. A regression model with fixed effects is often called the "within-estimator". We learned that entity (or unit) fixed effects control for time invariant factors that differ between entities. Let's focus on the example of state FEs in a state-time panel data set, such as with Cheng and Hoekstra (2013). A state FE term removes (and thus effectively controls for) the mean difference between that state and a reference state, so that the only variation being used to estimate the effect of the treatment comes from *within* each state. In other words, state FEs identify the effect of a particular state going from untreated to treated over time, rather than a comparison between treated and untreated states within the same time period.
+
+The math is a bit tricky, but with a TWFE model like in equation 1 and staggered treatment timing, states that have *previously been treated* get used as a part of the comparison group along with states that have *yet to be treated*. In other words, the comparison group is composed of *already treated*, *yet to be treated*, and *never treated* states.
+
+So why is that a problem? If the actual treatment effect is dynamic (i.e. it changes over time rather a one-time shift), or if the treatment effect differs between groups, then we no longer have parallel trends with the TWFE setup. Let's think about the example of a linear treatment effect, increasing over time, that is the same for all treated states that are treated in different periods. In this case the “treated comparison group” would be trending upwards over time in a way that the “just-now treated group” isn't. This is a violation of parallel trends! It biases the TWFE DID estimator, ${\hat{\delta}}$ from equation 1—in some cases the bias is large enough that you can get a negative DID estimate when the true effect is actually positive. Sign-flipping bias is very bad for informing public policy!
+
+Ok so what can we do about this? A number of econometricians have derived estimators that address this problem. For now let's make sure we understand that the estimated treatment effect from a TWFE model with staggered treatment timing can be decomposed into a series of *2x2* DIDs. Note that there are 5 different treatment groups in the sense that there were 5 different treatment years, 2005 through 2009. How many distinct 2x2 pre-post comparisons are there?
+
+- 5 group treatment years vs never-treated states: 5 2x2 DIDs
+    1. 2005 adopters vs never-treated states
+    1. 2006 adopters vs never-treated states
+    1. 2007 adopters vs never-treated states
+    1. 2008 adopters vs never-treated states
+    1. 2009 adopters vs never-treated states
+    
+<br>
+
+- 5 group treatment years vs 5 group treatment years: 5*4 2x2 DIDs
+  - Earlier group treatment vs. later group comparison
+    1. 2005 adopters vs 2006 adopters
+    1. 2005 adopters vs 2007 adopters
+    1. 2005 adopters vs 2008 adopters
+    1. 2005 adopters vs 2009 adopters
+    1. 2006 adopters vs 2007 adopters
+    1. 2006 adopters vs 2008 adopters
+    1. 2006 adopters vs 2009 adopters
+    1. 2007 adopters vs 2008 adopters
+    1. 2007 adopters vs 2009 adopters
+    1. 2008 adopters vs 2009 adopters
+  - Later group treatment vs. earlier group comparison
+    1. 2006 adopters vs 2005 adopters
+    1. 2007 adopters vs 2005 adopters
+    1. 2007 adopters vs 2006 adopters
+    1. 2008 adopters vs 2005 adopters
+    1. 2008 adopters vs 2006 adopters
+    1. 2008 adopters vs 2007 adopters
+    1. 2009 adopters vs 2005 adopters
+    1. 2009 adopters vs 2006 adopters
+    1. 2009 adopters vs 2007 adopters
+    1. 2009 adopters vs 2008 adopters
+
+
+
+# The Goodman-Bacon Decomposition
+
+It turns out that the average treatment effect from the TWFE model of equation 1 can be written as a weighted average of all of the 25 2x2 comparisons listed above, as [Goodman-Bacon (2021)](https://www.sciencedirect.com/science/article/pii/S0304407621001445) shows.
+
+
+## Implement the Goodman-Bacon decomposition using the `bacondecomp` package. The `bacon()` function is quite straightforward, [here](https://cran.r-project.org/web/packages/bacondecomp/vignettes/bacon.html) is a vignette with sample syntax. Follow the steps in this vignette to generate and report the decomposition. Assign the results of the decomposition to an object that you will refer back to. Explain what the output shows.
+
+```{r bacondecomp1}
+df_bacon <- bacon(l_hom_rate ~ D,
+                  data = data,
+                  id_var = "state",
+                  time_var = "year")
+```
+
+> <span style="color: #1565c0;"><font size="4">ANSWER: The output reports the total weight and coefficient for the three different groups of 2x2 DID comparisons: (1) 5 group treatment years vs never-treated states; (2) 10 earlier group treatment vs. later group comparisons; and (3) 10 later group treatment vs. earlier group comparison.</font> </span>
+
+
+## Confirm that the weighted average of the decomposition equals the two-way fixed effects estimate from question \@ref(twfedid).
+
+```{r bacondecomp2}
+coef_bacon <- sum(df_bacon$estimate * df_bacon$weight)
+coef_bacon
+```
+
+> <span style="color: #1565c0;"><font size="4">ANSWER: The weighted average of the coefficients for these groups equals the estimated effect from Question 4, 0.0694.</font> </span>
+
+
+## Plot the results of the decomposition by showing a scatterplot of the weight (X- axis) vs estimate (Y-axis), with different aesthetics for each of the three different groups of 2x2 DID comparisons: earlier vs. later treated, later vs. earlier treated, and treated vs. untreated. Overlay the weighted mean of the decomposition as a horizontal line using `geom_hline()`.
+
+```{r bacondecomp3}
+ggplot(df_bacon) +
+    aes(x = weight, y = estimate, color = factor(type), shape = factor(type)) +
+    geom_point() + 
+    geom_hline(yintercept = coef_bacon, lty  = 2) +
+    labs(x = "Weight", y = "Estimate", shape = "Type") +
+    labs(color    = "Type", 
+         shape    = "Type") +
+    theme_minimal() +
+    scale_colour_manual(values = get_pal("Gloomy_Nudi"))
+```
+
+
+# So what should we do?
+
+Now that we understand what TWFE models do tell us, how should we approach estimation in a staggered rollout design? 
+
+It turns out that with a staggered rollout, TWFE models can yield biased treatment effect estimates under certain conditions. The Goodman-Bacon decomposition demonstrates how the TWFE estimate is the weighted average of the effect from the different types of comparisons. Some of these comparisons may be 'good' for the purposes of causal inference: (1) treated units to never treated units (good!); and (2) earlier treated units to not-yet treated units (good provided there are no anticipation effects). When the time profile of treatment effects is heterogeneous, the third comparison, later treated units with earlier treated units, is 'bad'!
+
+The problem is that the earlier treated group is not a good control group for the later treated group. This is because earlier treated units are on a different trajectory from later treated units because they have been exposed to the treatment for longer. The takeaway is that we don't want to obtain estimates that are driven in part by this third type of comparison. Relatedly, some of the weights obtained from the Goodman-Bacon decompostion can in fact be negative! The consequences of this can be drastic, in some cases yielding negative treatment effects when the true effect is actually positive for all units. 
+
+There are a number of papers that have explored this problem and advanced solutions... along with their own R packages! We'll stop here, but you can implement alternative estimators from packages such as `did` (Callaway and Sant’Anna 2021), `did_multiplegt` (Chaisemartin and D’Haultfœuille 2020, 2021), and `fixest::sunab` (Sun and Abraham 2020), among others. [Here](https://asjadnaqvi.github.io/DiD/) is a good resource on DID solutions using R, as well as Python and Stata.
