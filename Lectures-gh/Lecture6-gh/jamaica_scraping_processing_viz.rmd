@@ -1,0 +1,665 @@
+---
+title: "Tracking Police Killings in Jamaica"
+subtitle: 'Web Scraping, Processing, and Dynamic Visualizations'
+author: "Created by Harold Stolper, Nicolás Rojas Souyet, Rachele Moscardo"
+date: "2025-04-09"
+urlcolor: blue
+output: 
+  bookdown::html_document2:
+    toc: true
+    toc_float: TRUE
+    toc_depth: 3
+    number_sections: true
+    code_folding: show
+    df_print: paged
+header-includes:
+- \usepackage{amsmath}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
+```
+
+```{r}
+library(rvest)
+library(tidyverse)
+library(sf)
+library(rnaturalearth)
+library(gganimate)
+```
+
+# Introduction
+
+This lesson will cover the following:
+
+1. scraping data tables from a series of webpages
+2. processing information from these data tables into a tidy data frame
+3. collapsing to a panel data set and doing a descriptive analysis
+4. preparing an animated map to show variation over time
+
+We will be investigating police killings across Jamaica over time. A 2001 Amnesty International [report](https://www.amnesty.org/es/wp-content/uploads/2021/06/amr380122001en.pdf) explained that "the loss of life at the hands of the Jamaican Constabulary Force (JCD) borders on a human rights emergency. The rate of lethal police shootings in Jamaica is one of the highest per capita in the world." A 2016 subsequent [report](https://www.amnesty.org/en/documents/amr38/5092/2016/en/) found that INDECOM established new systems for police accountability since it was established in 2010, with substantial reductions in police killings. However, "although the number of killings by police has fallen in the past two years, the way the police operate and unlawfully kill remains largely unchanged. The vast majority of victims are young men and teenagers."
+
+In this lesson, we will examine how police killings have evolved over time in each of Jamaica's 14 parishes, beginning in 2017 when the information is first available online. We will be scraping data from Jamaica's Independent Commission of Investigations (INDECOM), a "civilian staffed state agency tasked to undertake investigations concerning actions by members of the Security Forces and other Agents of the State that result in death or injury to persons." 
+
+
+# Web Scraping
+
+For a more complete introduction to web scraping with R using the `rvest` package, I recommend [Chapter 24](https://r4ds.hadley.nz/webscraping.html) of Hadley Wickham's R for Data Science. Here we will focus on getting `rvest` to work for the task at hand. 
+
+
+## Scraping basics
+
+Let's take a look at one of the URLs we will be scraping: https://www.indecom.gov.jm/report/2017-security-force-related-fatalities. Here's a snipped of the table we are interested in scraping:
+
+![](screenshot2017table.png)
+
+You might ask: why can't we just select the table text, copy and paste into Excel, and use `read_excel()` to read the data into R? Well, that approach is tempting and will often work, and may be preferred if you only have a few tables to read in. The first and obvious downside to this approach is efficiency: if you have a lot of tables to read in, at some point it becomes more efficient to rely on R rather than copy and pasting one by one. The second downside is that there is no code trail of your steps, so you are susceptible to copy and paste errors and can't easily modify the code and redo the process. To adjust and redo the process, of course it would be a lot easier to simply re-run scraping code than to repeat the process of selecting, copying, pasting, and importing.
+
+Back to scraping... First, we need to understand a bit about HTML, the language that describes web pages. In your browser, you can right click (or equivalent) near the top of the data table and select Inspect to view the source HTML code for the table:
+
+![](screenshot2017table2.png)
+
+This will show you a list of HTML elements. Before we proceed with the scraping, let's review a little bit about HTML. HTML stands for HyperText Markup Language and looks something like this:
+
+```
+<html>
+<head>
+  <title>Page title</title>
+</head>
+<body>
+  <h1 id='first'>A heading</h1>
+  <p>Some text &amp; <b>some bold text.</b></p>
+  <img src='myimg.png' width='100' height='100'>
+</body>
+```
+
+As Hadley Wickham explains, HTML has a hierarchical structure formed by elements which consist of a start tag (e.g., `<tag>`), optional attributes (`id='first'`), an end tag (like `</tag>`), and contents (everything in between the start and end tag). 
+
+First, we need the URL of the page to scrape. Next we'll need to read the HTML for that page into R using `read_html()`. This returns an xml_document object that we can manipulate using rvest functions.
+
+```{r}
+url <- "https://www.indecom.gov.jm/report/2017-security-force-related-fatalities"
+webpage <- read_html(url)
+webpage
+```
+The xml object includes *all* of the HTML, our task is to find the HTML element that includes the information we're looking for. In this case we're lucky, the data table we see on the webpage is already stored in an HTML table! When you inspect the source code for the table, you should be able to see that the information we're looking for is nested within a `<table>` element. Note the `<table>` tag from the below screenshot:
+
+![](screenshot2017tableinspect.png)
+
+## Reading an HTML table
+
+`rvest` includes a function that knows how to read data from a `<table>` element: `html_table()`. This function returns a list containing one data frame for each table found on the page. 
+
+We've already read the HTML into R as an object called `webpage`. Next we'll use `html_table()` to extract the contents of the data table we're interested in.
+
+```{r}
+tables <- webpage %>% html_table() # extract HTML tables from the full HTML
+length(tables)  # check how many tables were extracted
+str(tables)     # shows that tables is a list of data frames
+tables[[1]]     # view the first (and only) table in the list
+```
+
+This seems to work, we have the basic syntax to read the HTML from webpages! But we have some data cleaning to do. Before we do our data cleaning, let's build the complete list of URLs to scrape and extract data tables for all 8 years.
+
+
+## Building a data frame with the list of URLs to scrape
+
+Note that the URLs for found on the INDECOM website for each year of data follow different structures:
+
+- Type of URLS (#### is year): 
+  - 2021 - 2024
+    - https://www.indecom.gov.jm/report/202(####)-security-forces-fatal-shootings
+  - 2018 - 2020
+    - https://www.indecom.gov.jm/report/202(####)-security-forces-related-fatalities
+  - 2017
+    - https://www.indecom.gov.jm/report/2017-security-force-related-fatalities
+
+Let's start by keeping the URL for 2017 and using it to populate a data frame, `urldf`,  with one column by the name of urllist. We can then loop through each year to create the correct URL text for each year, noting that the URLs for 2021-2024 follow a different structure than for 2018-2020.
+
+```{r}
+# create data frame with one column, urlllist, use 2017 URL to fill first row
+urldf <- data.frame(ulist = url)
+
+# loop through remining years to create URL text  
+for (year in 2018:2024){
+  if (year >= 2018 & year < 2021){
+    temp_url <- paste0("https://www.indecom.gov.jm/report/",year,"-security-forces-related-fatalities") 
+    }
+  if (year >= 2021){
+    temp_url <- paste0("https://www.indecom.gov.jm/report/",year,"-security-forces-fatal-shootings") 
+    }
+  urldf <- urldf %>% bind_rows(data.frame(ulist = temp_url))
+}
+
+# inspect 
+urldf
+```
+
+
+## Preparing the HTML table as a data frame
+
+We've already seen how to extract a single HTML table using `read_html()`.  Next let's convert it into a data frame and inspect.
+
+```{r}
+webpage1 <- read_html(urldf[1,1]) %>% # test by reading in first url from urldf
+  html_table() %>% 
+  as.data.frame()
+head(webpage1)
+```
+
+When we convert the HTML table to a data frame, we can see that the original column names appear in the first row. We can use the first row to set the correct column names for this data frame, and then remove the first row.
+
+```{r}
+new_names <- as.character(webpage1[1, ]) # assign values in 1st row to a char vector
+colnames(webpage1) <- new_names # use this char vector to set column names
+webpage1 <- webpage1[-1, ]  # remove the 1st row
+```
+
+
+
+## Creating a function to extract data from an HTML table
+
+Next, let's build a function that can does all of this for every URL in `urllist`, and stores each table as a data frame. 
+
+The tricky part is identifying and handling the idiosyncrasies of the tables from year to year. In other words, the tables on the webpages for each year can look a bit different. Specifically, we can see that the 2023 table has an extra column at the beginning of the table.
+
+![](screenshot2023table.png)
+
+In all other years, the first column is a counter for the number of deaths at the hands of police, i.e. 'Total Fatals'. But in 2023, it's the second column that counts the number of deaths. It turns out that this extra column is unnamed in the original table, which means when we use the first row to set column names, the extra column is once again unnamed. This causes problems for working with the data frame, as every column must have an appropriate name. So let's address it now, along with the other steps we need to prepare a data frame for each yearly table of police killings. To address it, we'll use an `if` statement to identify the 2023 table, rename the 'Total Fatals' column as 'input_id', and rename the unnamed column as 'empty_name'. For other years, we'll simply rename the 'Total Fatals' column as 'input_id.'
+
+To summarize, we'll create a function that does the following for each of the eight yearly URLs included in the urllist data frame:
+
+1. reads the HTML
+2. extracts the HTML table
+3. specify column names and remove the first row
+4. using an if statement, rename the death counter column as 'input_id'
+5. create a new column for the corresponding table year
+
+```{r}
+# Generates a function to obtain the data: 
+extract_fun <- function(num){
+    
+  # read HTML
+  webpage <- read_html(urldf$ulist[num])
+  
+  # extract table and convert to data frame
+  extract_df <- webpage %>% 
+    html_table() %>% 
+    as.data.frame()
+  
+  # note that the var names in each df appear in the first row
+  # extract var names, use to set column names, and then remove 1st row
+  new_names <- as.character(extract_df[1, ])
+  colnames(extract_df) <- new_names
+  extract_df <- extract_df[-1, ]  # remove the first row
+
+  # using an if statement, rename the death counter column as 'input_id'    
+  if (num != 7){
+    names(extract_df)[1] <- "input_id"
+  }
+  if (num == 7){
+    names(extract_df)[1] <- "empty_name" # first column in 2023 is empty
+    names(extract_df)[2] <- "input_id"
+  }
+  
+  # create a column indicating the year
+  extract_df <- extract_df %>% mutate(year = num + 2016) 
+    # The first table is 2017=1+2016, the second is 2018=2+2016, etc.
+  
+  return(extract_df) # output df
+}
+```
+
+This function will extract data from an HTML table and store it as an data frame called extract_df. Next, let's create a list with 8 empty elements to store the data frame for each scraped table, call it `dflist`. We'll then loop through 1 through 8, calling `extract_fun()` at each step and then assign the output into each element of `dflist`. This way, we'll end up with a list of 8 data frames, one including each yearly table. We'll also rename each element (data frame) by the corresponding year.
+
+```{r}
+# create an empty list to store the results
+df_list <- vector("list", 8)
+
+# loop through 1 to 8 and apply extract_fun
+for (i in 1:8) {
+  df_list[[i]] <- extract_fun(i)
+}
+
+# define the vector of years to use for df names
+year_names <- as.character(2017:2024)
+# assign table names
+names(df_list) <- year_names
+```
+
+
+# Data cleaning
+
+We now have a list (`df_list`) with a separate data frame for each year. We eventually want to append these data frames so that all of the information is in a single data frame. In order to do that, we need a consistent set of column names in each data frame—we can't assume the underlying tables used the same set of column names, we need to check!
+
+```{r}
+for (num in 1:8) {
+  print(df_list[[num]]$year[1])
+  print(names(df_list[[num]]))
+}
+```
+
+If we look closely, we can see a number of inconsistencies. Let's do some manual recoding using base R syntax. Alternatively, you could use tidyverse syntax and the `case_when()` function, for example.
+
+```{r}
+names(df_list[["2023"]])[4] <- "Name of Deceased"    # was Deceased
+names(df_list[["2023"]])[5] <- "Location of Incident"# was Location
+names(df_list[["2017"]])[2] <- "Date of Incident"    # was Date of Indicent not Date of Incident
+names(df_list[["2023"]])[3] <- "Date of Incident"    # was Date
+names(df_list[["2024"]])[2] <- "Date of Incident"    # was Date
+names(df_list[["2017"]])[5] <- "Related State Agent" # was Related State Agency
+names(df_list[["2021"]])[5] <- "Related State Agent" # was Related State Agency
+names(df_list[["2022"]])[5] <- "Related State Agent" # was Related State Agency
+names(df_list[["2023"]])[6] <- "Related State Agent" # was Security Force Unit
+names(df_list[["2024"]])[5] <- "Related State Agent" # was Related State Agency
+```
+
+Now that we have a consistent set of column names, let's bind (or append) all of the data frames into a single data frame using the `bind_rows()` function. We'll also rename the columns.
+
+```{r}
+# append data frames together
+killings <- bind_rows(df_list)
+  
+# Renaming columns
+killings <- killings %>%
+  rename(name_deceased = `Name of Deceased`,
+         date_of_incident = `Date of Incident`,
+         location    = `Location of Incident`,
+         state_agent = `Related State Agent`)
+```
+
+We've cleaned up the column names, now let's check if there are any unnecessary rows. There are some blank rows, as well as some rows with sub-headers for each month:
+
+![](screenshot2023table2.png)
+
+One way to remove the sub-header rows is to search for the ':' character in the state_agent column, and remove the rows where there is a match. There also many blank entries for that column, corresponding to subtotals or spacer rows in the original tables. Lastly, let's select only the columns we need to count the number of police killings.
+
+```{r}
+# Eliminate colons to eliminate rows that are Sub-headers.  
+killings <- killings %>% filter(grepl(":",state_agent) == 0)
+killings <- killings %>% filter(grepl("Deceased", name_deceased) == 0)
+
+# Filter out remaining empty rows by searching for empty name_deceased 
+# Note: some rows lack a value for the input_id column but still record a killing, so we don't want to discard these
+killings <- killings %>% filter(name_deceased != "")
+
+# Let's keep only the columns of interest
+killings <- killings %>% 
+  dplyr::select(input_id, date_of_incident, name_deceased, location, state_agent, year)
+
+```
+
+
+## Variable generation: number of deceased, date & parish
+
+We now have a tidy data frame with day-parish as the unit of analysis. In other words, each rows lists all killings that occurred in each parish. But we need to count the number of police killings for every day, identify the parish, and construct a parish-year panel data set. We'll need to prepare some intermediate variables before shaping the dataset into a long-form panel data set.
+
+### Number of deceased
+
+Let's generate a variable with the number of deceased for every record. Many of the rows have a single integer input_id and represent one killing, but we need to carefully check for different situations. First, let's look at the rows with a blank input_id. We can see that they all represent one death:
+
+```{r}
+filtered_killings <- killings %>%
+  filter(is.na(input_id) == TRUE | input_id == "") %>%
+  select(input_id, name_deceased)
+filtered_killings
+```
+
+Next, let's investigate rows that include multiple victims:
+
+![](screenshotkillings.png)
+We can see that some rows include multiple killings separated by commas. For other years, the multiple killings are separated by dashes rather than commas. We want to calculate the total number of killings for each row. What logic should we implement with our code? Well, we could search for the first non-numeric character, e.g. a comma or dash or space, and take the digits to the left. For row 5 in the above screenshot, that would leave us with the number 6. Then we could search for the last non-numeric character and take the digits to the right, which would leave us with the number 11. Then we take the difference and add 1, 11-6 + 1 = 6 killings. To implement this logic, we can use the `str_extract()` function along with the appropriate [regular expression](https://r4ds.hadley.nz/regexps.html). Lastly, for rows where input_id is blank, we'll set the number of killings equal to 1.
+
+```{r}
+killings <- killings %>%
+  mutate(
+    # Extract the first number (before the first comma, space, or dash)
+    first_num = as.numeric(str_extract(input_id, "^\\d+")),
+    
+    # Extract the last number (after the last comma, space, or dash)
+    last_num = as.numeric(str_extract(input_id, "\\d+$")),
+    
+      # Regex tokens: 
+        # ^  Match the start of a string
+        # \  Escape a special character
+        # \d Matches any digit
+        # +  Match the preceding item 1 or more times
+        # $  Match the end of a string
+      # regex cheatsheet: https://www.keycdn.com/support/regex-cheat-sheet
+    
+    # Compute deceased count
+    deceased = case_when(
+      # if input_id is empty, assign deceased = 1
+      is.na(input_id) == TRUE | input_id == "" ~ 1,  
+      # otherwise construct the difference as per our recoding logic
+      !is.na(first_num) & !is.na(last_num) ~ last_num - first_num + 1,  
+    )
+  ) %>%
+  select(-first_num, -last_num)
+```
+
+
+### Date
+
+We also want to construct a date column, this will allow us to analyze trends at, say, the monthly or quarterly level, rather than annually. What logic should we implement? The `lubridate` package includes functions for converting character strings into date, but first we need to generate a column with a recognizable character string that includes the day, month, and year. The date_of_incident column includes the day and month, but not the year. So let's use the `str_c()` function to combine the date_of_incident and year columns.
+
+```{r}
+killings <- killings %>%
+  mutate(date = str_c(date_of_incident, "-", as.character(year))) %>% 
+  mutate(date = dmy(date)) %>%  # use dmy() from lubridate to recognize day-month-year format
+  select(-date_of_incident) # drop date_of_incident as redundant
+```
+
+
+### Parish
+
+There are 14 parishes in Jamaica, which are the main local government jurisdictions. The police force is national, known the Jamaica Constabulary Force (JCF). The killings included here are coded by the agency responsible, either JCF, JDF (Jamaica Defense Force), or DCS (the Department of Correctional Services).
+
+What logic should we use to identify the parish where each killing occurred? Let's look in the location column for a string match with one of the parish names. To do this, we need to eliminate any spelling mistakes and capitalization inconsistencies. Let's convert everything to lower case to avoid capitalization inconsistencies. We'll also need to manually correct some spelling mistakes.
+
+```{r}
+# Standardize format of location of incident by turning everything to lower case
+killings <- killings %>% mutate(location = tolower(location)) 
+
+# Fix wrong addresses: 
+killings$location <- gsub("cathrine", "catherine", killings$location)
+killings$location <- gsub("catheirne", "catherine", killings$location)
+killings$location <- gsub("clerendon", "clarendon", killings$location)
+killings$location <- gsub("claredndon", "clarendon", killings$location)
+killings$location <- gsub("westmotreland", "westmoreland", killings$location)
+killings$location <- gsub("knigston", "kingston", killings$location)
+killings$location <- gsub("kingaston", "kingston", killings$location)
+killings$location <- gsub(".", " ", killings$location, fixed = TRUE) #replace . with space, e.g. 'st. ' to 'st "
+killings$location <- gsub("\\s+"," ", killings$location) #remove duplicate spaces
+```
+
+Next let's create a character string that includes all of the parish names in lower case. Then we can use the `str_extract()` function to extract matched text in the location column, i.e. the matched parish name.
+
+```{r}
+# paste(..., collapse = "|") creates a pattern that matches any of the parish names (i.e., "kingston|andrew|thomas|...")
+parishes <- paste(c("kingston", "st andrew", "st thomas", "portland", 
+                    "st mary", "st ann", "trelawny", "st james", "hanover",
+                    "westmoreland", "st elizabeth", "manchester", 
+                    "clarendon", "st catherine"), collapse = "|")
+
+# extract the parish from the location column and assign to parish column
+killings <- killings %>%
+  mutate(parish = str_extract(location, parishes))
+killings %>% select(location, parish) %>% head() # glimpse results
+summary(as.factor(killings$parish)) # show distribution by parish (pooled over all years)
+```
+
+Success! We have created a new column that identifies
+
+## Convert to panel data set
+
+Now we are ready to create a tidy, long-form panel data set with parish-year as the unit of analysis. Let's start by looking at a cross-tab between parish and year.
+
+```{r}
+table(killings$parish, killings$year, useNA = "always")
+```
+
+This looks like what we want! We can just convert the above output to a data frame, and make sure the new columns have the right names and storage type. This will give us a long-form panel data set. We may also want to exclude the NAs, depending on the analysis we want to do. The killings with parish as NA are still killings which should be included in countrywide totals. But here we will focus on parish-level trends, so we will exclude observations with recorded locations that don't match with any of the parish names. 
+
+```{r}
+panel <- data.frame(table(killings$parish, killings$year, useNA = "no")) %>% 
+  rename(parish = Var1,
+        year = Var2,
+        killings = Freq) %>% 
+  mutate(year = as.integer(as.character(year))) %>% 
+  arrange(parish, year)
+panel
+```
+
+Let's check that our long-form data frame is balanced, i.e. one observation per parish per year:
+
+```{r}
+table(panel$parish, panel$year)
+```
+
+Indeed it is!
+
+Next let's load and join in information on the population for each parish, obtained from the [Statistical Institute of Jamaica](https://statinja.gov.jm/Demo_SocialStats/PopulationStats.aspx). We will use information for the most recent year available, 2019. Then we can calculate the number of killings per 10,000 population.
+
+```{r}
+# load and prepare data with population by parish 
+pop_raw <- read.csv("DZ-2025-04-08-17-50-38.csv") 
+pop <- pop_raw %>% filter(Series.title != "Total") %>% 
+  mutate(Series.title = tolower(Series.title)) %>% 
+  dplyr::select(Series.title, X1.1.2019) %>% 
+  rename("pop" = "X1.1.2019",
+         "parish" = "Series.title")
+
+# generate killings per 10,000 pop  
+panel_pop <- panel %>% 
+  inner_join(pop, by = c("parish")) %>% 
+  mutate(killings_pc = round(killings / (pop/10000), 2)) %>% 
+  select(-pop)
+```
+
+
+# Descriptive panel analysis
+
+Let's plot the trend in killings per 10,000 population for each parish.
+
+```{r}
+panel_pop %>% 
+  ggplot(aes(x = year, y = killings_pc, color = parish)) +
+  geom_line()  +
+  labs(title = '',
+       x = '', 
+       y = 'killings per 10,000 population')
+```
+
+If we squint we can make out some parishes that experienced bigger increases, but the scaling makes it hard to interpret: the capital, Kingston, has a much higher killing rate than the other 13 parishes, which are compressed into the bottom of the plot space. How can we use the plot space more efficiently? One approach is to index each value to a base year, 2017: we will rescale each value as a percentage of the value in the base year multiplied by 100, so an index value of 100 means killings per capita are the same in that year and 2017.
+
+First, let's reshape the data frame from long form to wide form using `pivot_wider()`, as this can make it easier to create variables based on changes over time:
+
+```{r}
+panel_wide <- panel_pop %>% 
+  select(-killings) %>% 
+  pivot_wider(names_from = year,    # obtain new col names from year col
+              names_prefix = "kpc", # add the prefix kpc to each new col name 
+              values_from = killings_pc) # obtain values for new columns
+panel_wide
+```
+
+Now it's easy to compute the percentage change using this wide form data frame. Let's do that, then convert back to long form data, join the new data into the `panel_pop`, and finally plot the new time series.
+
+```{r}
+panel_index <- panel_wide %>% 
+  mutate(killings_pc_index_2017 = 100,
+         killings_pc_index_2018 = round(100*kpc2018/kpc2017, 2),
+         killings_pc_index_2019 = round(100*kpc2019/kpc2017, 2),
+         killings_pc_index_2020 = round(100*kpc2020/kpc2017, 2),
+         killings_pc_index_2021 = round(100*kpc2021/kpc2017, 2),
+         killings_pc_index_2022 = round(100*kpc2022/kpc2017, 2),
+         killings_pc_index_2023 = round(100*kpc2023/kpc2017, 2),
+         killings_pc_index_2024 = round(100*kpc2024/kpc2017, 2)) %>% 
+  select(-(kpc2017:kpc2024)) %>% # drop original cols with killings per 10k
+  pivot_longer(cols = c(killings_pc_index_2017:killings_pc_index_2024), # reshape back to long form
+               names_to = "year",
+               values_to = "kpci") %>% 
+  mutate(year = as.integer(str_sub(year, 19, 22))) # obtain year from last 4 chars of each string
+
+# join panel_index to panel_pop so all vars are in one data frame
+panel_full <- panel_pop %>% 
+  inner_join(panel_index, by = c("year", "parish"))
+
+# plot new time series
+panel_full %>% 
+  ggplot(aes(x = year, y = kpci, color = parish)) +
+  geom_line() +
+  labs(title = '',
+       x = '', 
+       y = 'killings as a percent of 2017 levels')
+```
+
+This plot is still a bit too cluttered, though we can now make out that the parish of Manchester experienced the largest proportional increase over the period under study.
+
+In this case, a better approach might just be to show a separate plot for each parish by faceting.
+
+```{r}
+panel_full %>% 
+  ggplot(aes(x = year, y = killings_pc, color = parish)) +
+  geom_line(show.legend = FALSE) +
+  facet_grid(~parish) +
+  labs(title = 'Killings per 10,000 population by parish',
+       x = '', 
+       y = 'killings per 10,000 population') +
+  scale_x_continuous(breaks = seq(2018,2024,4),
+                     labels = seq(2018,2024,4),
+                     minor_breaks = seq(2017,2024,1) ) +
+  theme(axis.text.x = element_text(angle = 45, 
+                                   hjust = 1, 
+                                   vjust = 1,
+                                   size = 8))
+```
+
+This plot shows quite clearly how the distribution of police killings relative to population for Kingston is shifted well above the other parishes. This empirical observation makes it difficult to visualize time variation in police killings in the other parishes without adjusting for the large, positive 'fixed effect' for Kingston.
+
+
+
+# Mapping
+
+Finally, we can map the results by parish. But how can we incorporate time variation into a map? One approach is to make an animated map that cycles through the years, using the `gganimate` package. This package "extends the grammar of graphics as implemented by `ggplot2` to include the description of animation."
+
+First, let's create a static map. We need a shapefile that includes the geometry with parish boundaries. To obtain the shapefile we can try googling, or consider using an R package that has built in shapefiles. One such package is `rnaturalearth`.
+
+```{r}
+jm_parish <- rnaturalearth::ne_states("Jamaica", returnclass = "sf")
+class(jm_parish)
+```
+
+Note the classes of the `jm_parish` object: it's a data frame with the additional class `sf`. In other words, it's a simple features object that allows for a single column to store all of the geometry: an sfc_MULTIPOLYGON. Let's do a bit of cleaning to make the parish names identical to the scraped data, and then inspect the resulting data frame.
+
+```{r}
+jm_parish <- jm_parish %>% 
+  mutate(parish = tolower(name))  %>% 
+  mutate(parish = gsub("saint", "st", parish)) %>% 
+  dplyr::select(geometry, parish) 
+head(jm_parish)
+str(jm_parish)
+```
+
+Now that we have a data frame with the geometry for parish boundaries, we can make a base map of Jamaica's parishes using the `geom_sf()` layer. Note how simple it is to use `geom_sf()`: because the data frame we are working with is a `sf` object, `geom_sf()` knows which column to use and we don't even need to specify any aesthetic mappings!
+
+```{r}
+jm_parish %>% ggplot() + geom_sf()
+```
+
+Now that we have a base map, let's join `jm_parish` to the scraped data so that we can map information on police killings by parish. This is why it was critical to ensure that both data frames include a column that identifies the parish with the exact same spelling and capitalization.
+
+```{r}
+panel_long_map <- jm_parish %>% 
+  right_join(panel_full, by = "parish")
+panel_long_map
+```
+
+Now we can plot killings per capita in, say, 2024, by specifying the fill aesthetic as the column we want to map, killings_pc. We'll also expand our `ggplot()` call to make the visualization look nicer with a clear legend and labelling.
+
+```{r}
+panel_long_map %>% 
+  filter(year == 2024) %>% 
+  ggplot() + 
+  geom_sf(aes(fill = killings_pc)) +
+  theme(plot.title=element_text(size = 12),
+        axis.title = element_blank(),
+        axis.text  = element_blank(),
+        axis.ticks = element_blank(),
+        panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank()) +
+  scale_fill_gradient(limits = c(0, 6), 
+                      breaks = c(0, 2, 4, 6),
+                      low = "white", high = "purple", na.value="grey80") +
+  labs(title = 'Police killings per 10,000 population',
+       fill='') +
+  geom_sf_text(aes(label = parish), size = 2.5, family = "sans")
+```
+
+This looks pretty good, but note how Kingston is an extreme value with a very high number of killings relative to population. This makes it so the other 13 parishes are clustered near the bottom of the fill range, i.e. lightly shaded. Instead, we can try plotting killings per 10,000 indexed to 2017 levels.
+
+```{r}
+panel_long_map %>% 
+  filter(year == 2024) %>% 
+  ggplot() + 
+  geom_sf(aes(fill = kpci)) +
+  theme(plot.title=element_text(size = 12),
+        axis.title = element_blank(),
+        axis.text  = element_blank(),
+        axis.ticks = element_blank(),
+        panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank()) +
+  scale_fill_gradient(limits = c(0, 1100), 
+                      breaks = c(0, 250, 500, 750, 1000),
+                      low = "white", high = "purple", na.value="grey80") +
+  labs(title = 'Police killings indexed to 2017 levels',
+       fill='') +
+  geom_sf_text(aes(label = parish), size = 2.5, family = "sans")
+```
+
+Now it's the parish of Manchester that stands out as the number of police killings increased from 1 to 10, so 2024 is 1000% of the value in 2017! In this plot Kingston is shaded white as the parish went from 53 to 32 killings, which is only 60% of the 2017 level.
+
+
+## Animated mapping
+
+Finally, we can animate a map of indexed police killings per capita over time using `gganimate`. First let's create a base map similar to the 2024 map but without filtering for a specific year. We'll just filter out observations for the year 2017, as the index value for the base year is 100 in all parishes.
+
+```{r}
+basemap <- panel_long_map %>% 
+  filter(year > 2017) %>% 
+  ggplot() + 
+    geom_sf(aes(fill = kpci)) +
+  theme(plot.title=element_text(size = 12),
+        axis.title = element_blank(),
+        axis.text  = element_blank(),
+        axis.ticks = element_blank(),
+        panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank()) +
+  scale_fill_gradient(limits = c(0, 1100), 
+                      breaks = c(0, 250, 500, 750, 1000),
+                      low = "white", high = "purple", na.value="grey80") +
+  labs(title = 'Police killings indexed to 2017 levels',
+       fill='') 
+basemap
+```
+
+`gganimate` allows for transitions to animate changes in the data over time or between different states. We would like an animation that transitions between different years. The `transition_states()` function creates smooth transitions between discrete states, i.e. between years. Additionally, we can use `geom_text()` to display the corresponding year on the plot space.
+
+```{r}
+basemap +
+  transition_states(states = year) +
+  geom_text(aes(y = 17.8, x = -78.2, label = as.character(year)), 
+            check_overlap = TRUE, 
+            size = 6) 
+```
+
+Note how this map doesn't show where killings relative to population are high; rather, it shows where killings have increased more relative to 2017. Alternatively, we can stick with a map of killings per capita to see where and when killings relative to population are high relative to other parishes. The downside is that the variation *between* Kingston and the other parished is so large, it makes it difficult to visualize variation over time *within* any of the parishes. 
+
+```{r}
+basemap <- panel_long_map %>% 
+  ggplot() + 
+  geom_sf(aes(fill = killings_pc)) +
+  theme(plot.title=element_text(size = 12),
+        axis.title = element_blank(),
+        axis.text  = element_blank(),
+        axis.ticks = element_blank(),
+        panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank()) +
+  scale_fill_gradient(low = "white", high = "purple", na.value="grey80") +
+  labs(title = 'Police killings per 10,000 population',
+       fill='')
+
+basemap +
+  transition_states(states = year) +
+  geom_text(aes(y = 17.8, x = -78.2, label = as.character(year)), 
+            check_overlap = TRUE, 
+            size = 6) 
+```
+
+To summarize, we've tried to map the distribution of killings relative to population using two approaches: (1) killings per 10,000 population indexed to 2017 levels, which highlights *within* parish variation over time; and (2) killings per 10,000 population, which highlights the large variation *between* Kingston and other parishes. Both approaches are imperfect, in this case the most effective visualization may be the faceted plots for each parish.
+
+For more information on `gganimate`, here's a short [tutorial](https://www.datanovia.com/en/blog/gganimate-how-to-create-plots-with-beautiful-animation-in-r/).
+
+
+
