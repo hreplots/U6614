@@ -68,7 +68,7 @@ library(gganimate)
     # extract var names, use to set column names, and then remove 1st row
     new_names <- as.character(extract_df[1, ])
     colnames(extract_df) <- new_names
-    extr_table <- extract_df[-1, ]  # remove the first row
+    extract_df <- extract_df[-1, ]  # remove the first row
     
     # we observe that the 2023 table (element 7) has an extra column to start
     # in all other years, the first column is a counter for the num of deaths
@@ -86,19 +86,18 @@ library(gganimate)
     extract_df <- extract_df %>% mutate(year = num + 2016) 
       # The first table is 2017=1+2016, the second is 2018=2+2016, etc.
     
-    # we can also remove empty rows by filtering on the year column
-    #extr_table <- extr_table %>% filter(year != "") 
-    
     return(extract_df) # Output
   }
   
   # create an empty list to store the results
   df_list <- vector("list", 8)
-
+  str(df_list)
+  
   # loop through 1 to 8 and apply extract_fun
   for (i in 1:8) {
     df_list[[i]] <- extract_fun(i)
   }
+  str(df_list)
   
   # assign a name to each table (each element of the tables list) for each year
     # define the vector of years to use for table names
@@ -170,7 +169,6 @@ library(gganimate)
   # Set cases where there is no input_id equal to 1. 
   killings <- killings %>%
     mutate(
-      
       # Extract the first number (before the first comma, space, or dash)
       first_num = as.numeric(str_extract(input_id, "^\\d+")),
         # Regex overview:
@@ -343,44 +341,101 @@ save(killings,  file = "jamaica_clean.RData")
 ## -----------------------------------------------------------------------------
 
 # Load the shape file as an simple features (sf) data frame.
-  jm_parish <- FILL IN CODE
+  jm_parish <- rnaturalearth::ne_states("Jamaica", returnclass = "sf")
   class(jm_parish)
-
+  str(jm_parish$geometry)
+  
 # clean up parish names to join to panel_full
 # convert to lower case and recode 'saint' to 'st'
 # select only columns we need
-
   jm_parish <- jm_parish %>% 
-    FILL IN CODE
-
-# plot simple base map
-
+    mutate(parish = tolower(name))  %>% 
+    mutate(parish = gsub("saint", "st", parish)) %>% 
+    dplyr::select(geometry, parish) 
   
-# join geospatial data (jm_parish) to panel_full by parish
+  head(jm_parish)
+  str(jm_parish)
+  
+# plot simple base map
+  jm_parish %>% ggplot() + geom_sf()
+  
+# join geospatial data to panel_full by parish
   panel_long_map <- jm_parish %>% 
-    FILL IN CODE
-
+    right_join(panel_full, by = "parish") %>% 
+    mutate(parish = str_to_title(parish))
+  
 # static map of killings per capita in 2024
-
-
+  
+# first create theme to use in all maps
+  maptheme <- theme(
+    plot.title=element_text(size = 12),
+    axis.title = element_blank(),
+    axis.text  = element_blank(),
+    axis.ticks = element_blank(),
+    panel.grid.major = element_blank(), 
+    panel.grid.minor = element_blank()
+  )
+  
+  panel_long_map %>% 
+    filter(year == 2024) %>% 
+    ggplot() + 
+    geom_sf(aes(fill = killings_pc)) +
+    maptheme +
+    scale_fill_gradient(limits = c(0, 6), 
+                        breaks = c(0, 2, 4, 6),
+                        low = "white", high = "purple", na.value="grey80") +
+    labs(title = 'Killings per 10,000 population',
+         fill = '') +
+    geom_sf_text(aes(label = parish), size = 2.5, family = "sans")
+  
 # static map of indexed killings per capita in 2024
-
-
+  panel_long_map %>% 
+    filter(year == 2024) %>% 
+    ggplot() + 
+    geom_sf(aes(fill = kpci)) +
+    maptheme +
+    scale_fill_gradient(limits = c(0, 1100), 
+                        breaks = c(0, 250, 500, 750, 1000),
+                        low = "white", high = "purple", na.value="grey80") +
+    labs(title = 'Police killings indexed to 2017 levels',
+         fill = '') +
+    geom_sf_text(aes(label = parish), size = 2.5, family = "sans")
+  
 ### 5.1 Adding Animation
-
+  
 # animated plot of killings indexed to 2017 levels
-basemap <- FILL IN CODE
-
-basemap
-
-basemap +
-  FILL IN CODE
-
-
+  basemap <- panel_long_map %>% 
+    filter(year > 2017) %>% # omit 2017 as the indexed base year
+    ggplot() + 
+    geom_sf(aes(fill = kpci)) +
+    maptheme +
+    scale_fill_gradient(limits = c(0, 1100), 
+                        breaks = c(0, 250, 500, 750, 1000),
+                        low = "white", high = "purple", na.value="grey80") +
+    labs(title = 'Police killings indexed to 2017 levels',
+         fill = '') 
+  
+  basemap
+  
+  basemap +
+    transition_states(states = year) +
+    labs(subtitle = 'Year: {closest_state}')
+  
+  
 # animated plot of killings per capita
-basemap <- FILL IN CODE
-
-basemap
-
-basemap +
-  FILL IN CODE
+  basemap <- panel_long_map %>% 
+    ggplot() + 
+    geom_sf(aes(fill = killings_pc)) +
+    maptheme +
+    scale_fill_gradient(low = "white", high = "purple", na.value="grey80") +
+    labs(title = 'Police killings per 10,000 population',
+         fill = '') 
+  
+  basemap +
+    transition_states(states = year) +
+    geom_text(aes(y = 17.8, x = -78.2, label = as.character(year)), 
+              check_overlap = TRUE, 
+              size = 6) 
+  
+# here is a short gganimate tutorial
+  https://www.datanovia.com/en/blog/gganimate-how-to-create-plots-with-beautiful-animation-in-r/
