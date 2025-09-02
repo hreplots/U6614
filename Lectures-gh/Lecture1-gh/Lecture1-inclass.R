@@ -3,7 +3,7 @@
 ## [ PROJ ] Lecture1-inclass: Getting familiar with RStudio
 ## [ FILE ] Lecture1-inclass.r
 ## [ AUTH ] INSTRUCTOR FILE 
-## [ INIT ] Jan 21, 2025
+## [ INIT ] Sep 2, 2025
 ##
 ################################################################################
 
@@ -11,32 +11,37 @@
 ## 0. create an R project that is includes this R script (Lecture1-inclass.r)
 ## -----------------------------------------------------------------------------
 
+# this is an R script!
+# an R script is just a bunch of text saved in a file with the .R extension
+#   that RStudio knows to be R code (along with code comments like this)
+
+# first create a project by selecting File -> New Project
+# - when you create or open a project, RStudio will reload the workspace
+# - revisit your R script by opening the .rproj file in the same directory
+
+
+# let's check the working directory by executing the getwd() function
+
+
 
 ## -----------------------------------------------------------------------------
-## 1. look around and get our bearings.
+## 1. install and load the gapminder package 
 ## -----------------------------------------------------------------------------
 
-# get working directory
-  getwd()
-
-
-## -----------------------------------------------------------------------------
-## 2. install and load the gapminder package 
-## -----------------------------------------------------------------------------
-
-# first we have to install the package
+# first we have to install the package (once and only once!)
   #install.packages("gapminder")
 
-# we can see the list of packages under in the bottom right panel of RStudio
+  # we can see the list of packages under in the bottom right panel of RStudio
+
 
 # load this package
   library(gapminder)
-    # can also load by going to pane in bottom right, under Packages tab, and
-    # clicking the checkbox beside package name under "Packages"
+    # can check it's loaded in the bottom right pane under Packages tab
+    # when loaded, the box beside package name under "Packages" will be checked
 
 
 ## -----------------------------------------------------------------------------
-## 3. Inspect gapminder data frame (in the gapminder package) w base R functions
+## 2. Inspect gapminder data frame (in the gapminder package) w base R functions
 ##    (this exercise is based on STAT545 by Jenny Bryan)
 ## -----------------------------------------------------------------------------
 
@@ -50,23 +55,21 @@
 # access built-in help files/documentation (also use Google)
   ?str
 
-# the function class() tells us what class(es) an object is assigned to... more next week
+# here are some other inspection functions
   class(gap)
-
-# head is another function that shows us the first parts of an object
   head(gap)
-  ?head
+    ?head
     # note the optional argument n, which is the # of rows you want to display
 
-# let's try to see the first 10 rows
+  # let's try to see the first 10 rows
   head(gap, n = 10)
 
-# to view full data frame use View(), or click on object in Environment pane
+  # to view full data frame use View(), or click on object in Environment pane
   View(gap)
   
 
 ## -----------------------------------------------------------------------------
-## 4. Use some base R functions to perform some very basic exploratory analysis
+## 3. Use some base R functions to perform some very basic exploratory analysis
 ## -----------------------------------------------------------------------------
 
 # let's use some more base R functions to understand the data structure
