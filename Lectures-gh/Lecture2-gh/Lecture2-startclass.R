@@ -24,8 +24,8 @@ getwd()
 ## -----------------------------------------------------------------------------
 ## 1. load and inspect access2018 data: 
 ##    
-##    a. inspect the data frame and state the data types for the following columns
-##        - age, gender, caste, income source, state & educ columns
+##    a. inspect the data frame and data types for each column
+##        - make sure to inspect the age, gender, caste, income source, state & educ columns
 ##
 ##    b. use the mutate function to create new column for gender:
 ##        - gender.fac = as.factor(gender),
