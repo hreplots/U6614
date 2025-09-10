@@ -37,7 +37,7 @@ knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
 
 # Load and inspect ACCESS 2018 data: 
 
-### 1a) Inspect the data frame and data types for each column. {-}
+### 1a) Inspect the data frame and state the data types for each column. {-}
 - make sure to inspect the age, gender, caste, income source, state & educ columns
 
 ### 1b) Use the mutate function to create new column for gender: {-}
@@ -109,9 +109,7 @@ using the levels() function. What package is the levels() function located in? {
 
 ### 4b) Repeat part a, but this time, use the filter function to subset observations belonging to 'Reserved" castes, and assign them to a new data frame called 'access_UPres'. {-}
 
-### 4c) Use summarise to find mean, min & max monthly expenditure for the General category and Reserved category of castes, separately. {-}
-- name each statistic appropriately (i.e. name each column in the 1-row table of stats)
-- what is the gap in mean monthly expenditure between the two groups? 
+### 4c) Use summarise to find mean, min & max monthly expenditure for the General category and Reserved category of castes, separately. Name each statistic appropriately (i.e. name each column in the 1-row table of stats). What is the gap in mean monthly expenditure between the two groups? {-}
 
 ### 4d) Research suggests that people belonging to the 'General' caste category own 65% of agricultural land in India (India Human Development Survey, 2020). They are also more likely to own land in a proportion that is much higher than their share of the population. We will now use this data to compare 'General' versus 'Reserved' households using the 'reserved' dummy variable to understand whether this is true. {-}
 - use the 'table' and 'prop.table' functions to explore the total number of landowners by their caste. 
@@ -125,7 +123,3 @@ using the levels() function. What package is the levels() function located in? {
 ### 4g) Does educational attainment explain part of the expenditure gap between General and Reserved caste landowners? What is gap between landowning General vs. Reserved household with a HS degree or more?  {-}
 
 \medspace
-
-
-
-
