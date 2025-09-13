@@ -1,7 +1,7 @@
 ################################################################################
 ##
 ## [ PROJ ] < Caste-based expenditure gaps and the ACCESS 2018 Survey >
-## [ FILE ] < Lecture2-inclass.R >
+## [ FILE ] < Lecture2-recitation.R >
 ## [ INIT ] < Sept 05, 2024 >
 ##
 ################################################################################
@@ -10,9 +10,17 @@
 ## LIBRARIES
 ## ---------------------------
 
+# install packages once and only once!
+# install.packages('tidyverse')
+# install.packages('lmtest')
+# install.packages('sandwich')
+# install.packages('DescTools)
+
+# load packages every time you start a new RStudio session
 library(tidyverse)
 library(lmtest)
 library(sandwich)
+library(DescTools)
 
 
 ## ---------------------------
@@ -57,27 +65,35 @@ getwd()
   load("access2018.RData")
   str(access2018)
   
-  #View(access2018)
-  #we can also inspect the data frame by double-clicking in the Environment tab
-  #NOTE: DON'T INCLUDE View() IN YOUR R MARKDOWN SUBMISSION!
+  # View(access2018)
+  # we can also inspect the data frame by double-clicking in the Environment tab
+  # NOTE: DON'T INCLUDE View() IN YOUR R MARKDOWN SUBMISSION!
 
   summary(access2018$age)
-  summary(access2018$gender) #summary is not very useful with character variables
-  summary(access2018$caste) #summary is not very useful with character variables
-  summary(access2018$education) #summary is not very useful with character variables
-  summary(access2018$state) #summary is not very useful with character variables
+  
+  # note how summary is not very useful with character variables
+  summary(access2018$gender) 
+  summary(access2018$caste) 
+  summary(access2018$education) 
+  summary(access2018$state)
+  
+  # we need to coerce these characters into factors to see their distribution!
 
   
 # 1b.
   mutate(access2018, gender.fac = as.factor(gender)) 
   
-  #note: the output is an object, we're just not assigning it to the environment
-  #but we can put the entire operation within str() to inspect the output
+  # note: the output is an object, we're just not assigning it to the environment
+  # but we can put the entire operation within str() to inspect the output
   str(mutate(access2018, gender.fac = as.factor(gender))) 
   summary(mutate(access2018, gender.fac = as.factor(gender))$gender.fac) 
   
+  # but mutate() is a tidyverse function, so better to initialize with a pipe!
+  access2018 %>% mutate(gender.fac = as.factor(gender)) 
   
-# 1c. best way (using a pipe)
+  
+# 1c. going forward, when working with tidyverse functions
+#     let's start by passing an object (usually data frames) into a pipe 
   access.temp1 <- access2018 %>% 
     mutate(gender.fac = as.factor(gender),
           caste.fac = as.factor(caste),
@@ -86,22 +102,13 @@ getwd()
           incsource.fac = as.factor(incsource)) %>% 
     select(-HHID, -date) 
 
-  #alternatively, you can initialize without a pipe
-  access.temp1 <- mutate(access2018,
-                    gender.fac = as.factor(gender), 
-                    caste.fac = as.factor(caste),
-                    education.fac = as.factor(education), 
-                    state.fac = as.factor(state),
-                    incsource.fac = as.factor(incsource)) %>%
-    select(-HHID, -date)
-  
   head(access.temp1, n = 5) 
 
-  #some helpful syntax for later: 
-  #subset the first row of access.temp1
+  # some helpful syntax for later: 
+  # subset the first row of access.temp1
   access.temp1[1,]
   
-  #subset the cell in the first row, 4th column (i.e. first obs for age)
+  # subset the cell in the first row, 4th column (i.e. first obs for age)
   access.temp1[1,5]
 
 
@@ -113,19 +120,20 @@ getwd()
   levels(access.temp1$incsource.fac)
 
   ?levels   
-  #note that levels is a base R function
-  #so levels can't be used with columns using tidyverse syntax (i.e. not within a pipe)
-  #make sure you understand why this won't work: cps.temp1 %>% levels(sex.fac)
+  # note that levels is a base R function
+  # so levels can't be used with columns using tidyverse syntax (i.e. not within a pipe)
+  # make sure you understand why this won't work: 
+    cps.temp1 %>% levels(sex.fac)
 
 
 # 1e.
   access_UP <- access.temp1 %>% 
     filter(state == "UTTAR PRADESH")
   
-  head(access_UP, n = 5)
+  access_UP %>% head(n = 5)
   
-  #validate
-    summary(access_UP$state.fac)
+  # validate
+  summary(access_UP$state.fac)
 
   
 # 1f.
@@ -133,7 +141,38 @@ getwd()
   #Share of female respondents in UP
   summary(access_UP$gender.fac)
   prop.table(table(access_UP$gender.fac))
-  t1_UP <- prop.table(table(access_UP$gender.fac))
+  
+  # let's round to 3 decimals
+  # the output from prop.table() is just a vector, we can pass it into a pipe to round
+  prop.table(table(access_UP$gender.fac)) %>% round(3)
+  
+  # however...
+  # in the write-up of your RMD file you'll enter code to return the female share
+  # don't hardcode numbers in your RMD write-up
+  # in your RMD file, you can't use pipes with in-line code references
+  # so here is code that works to round as an in-line code reference
+  round(prop.table(table(access_UP$gender.fac)), 3)
+  
+  # can also the Desc() function in the DescTools package
+  Desc(access_UP$gender)
+  
+  # OPTIONAL advanced exercise (something to try on your own if you have time): 
+  
+    # what type of object is the output of Desc()
+    str(Desc(access_UP$gender)) # a list! 
+  
+    # actually...
+    # it's a list with another list as the 1st and only element of the list (weird!)
+    str(Desc(access_UP$gender)[[1]])
+    Desc(access_UP$gender)[[1]]
+  
+    # how can you refer directly to the female share?
+    
+    # first find which element of the list is the frequency table
+    Desc(access_UP$gender)[[1]]$freq
+    
+    # this object is a matrix, now just point to the right element of the matrix!
+    round(Desc(access_UP$gender)[[1]]$freq[2,3], 3)
   
 
   #Share of female respondents in Bihar
@@ -141,7 +180,6 @@ getwd()
     filter(state == "BIHAR")
   summary(access_bihar$gender.fac)
   prop.table(table(access_bihar$gender.fac))
-  t1_bihar <- prop.table(table(access_bihar$gender.fac))
   
 
 # 1g.
@@ -190,8 +228,8 @@ getwd()
   #Proportion of 'Reserved' and 'General' individuals
     prop.table(table(access_UP$reserved))
     #Ans: 23.5% (G), 76.4% (R)
+    
 
-  
 # 2d. 
   summary(access_UP$age)
   #Avg age: 43.41 years, youngest: 18, oldest: 98.  
@@ -224,10 +262,10 @@ getwd()
 
   
 # 3b. 
-   access_UP %>%
+  access_UP %>%
     arrange(desc(month_exp)) %>%
     select(month_exp) %>%
-    head(n=1)
+    head(n = 1)
 
   
 # 3c. 
@@ -262,13 +300,12 @@ getwd()
     filter(month_exp > mean(month_exp)) %>% 
     nrow()
 
-  
 ## -----------------------------------------------------------------------------
 ## 4. Now, let's look at caste-based monthly expenditure gaps in Uttar Pradesh. 
 ##    [Note: Since this data has no earnings data, we are using monthly expenditure 
 ##    (month_exp) as a proxy for earnings.]
 ##
-##    a. use the filter function and 'reserved' dummy variable to subset observations belonging to the 'General' caste, 
+##   a. use the filter function and 'reserved' dummy variable to subset observations belonging to the 'General' caste, 
 ##       assign to new data frame, access_UPgen,
 ##       sort in descending order of monthly expenditure
 ##       check if it worked
@@ -276,6 +313,7 @@ getwd()
 ##    b. repeat part a, but this time, use the filter function to subset observations 
 ##       belonging to 'Reserved" castes.
 ##       assign them to a new data frame called 'access_UPres'. 
+##
 ##
 ##    c. use summarise to find mean, min & max monthly expenditure for the General 
 ##       category and Reserved category of castes, separately.
@@ -310,33 +348,37 @@ getwd()
 ## -----------------------------------------------------------------------------
 
 # 4a. 
-  access_UPgen <- access_UP %>% 
-    filter(reserved == "General") %>%
-    arrange(desc(month_exp))
 
-  #validate
-    summary(access_UPgen$reserved)
-  
+
 
 # 4b. 
-  
-  #validate
+
 
 
 # 4c.
 
 
+
 # 4d.
+
+
+
+# 4e. 
+
 
 
 # 4f. 
 
-  
+
+
 # 4g. 
 #Note: First run the following code to create a dummy variable 'degree' with two levels: 
 #"HS degree or above" and "Less than HS".
 
-  
-  #General v Reserved landowners who have degrees
+access_UP <- access_UP %>% 
+  mutate(degree = factor(if_else(education.fac %in% c("Grade 12", 
+                                                      "Graduate or above"),
+                                 "HS degree or above",
+                                 "Less than HS")))
 
-  
+#General v Reserved landowners who have degrees
