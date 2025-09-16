@@ -1,4 +1,3 @@
-
 ---
 title: 'U6614: Assignment 2'
 author: 'your name (your uni) '
@@ -20,7 +19,7 @@ output:
 urlcolor: blue
 ---
 ```{r setup, include = FALSE}
-knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE) 
 ```
 
 ##### *Please submit your knitted .pdf file along with the corresponding R markdown (.rmd) via Courseworks by 11:59pm on the due date.* {-}
@@ -39,7 +38,7 @@ library(tidyverse)
 ```
 # Load and inspect ACCESS 2018 data: 
 
-### 1a) Inspect the data frame and data types for each column. {-}
+### 1a) Inspect the data frame and state the data types for each column. {-}
 - make sure to inspect the age, gender, caste, income source, state & educ columns
 
 ```{r}
@@ -54,6 +53,8 @@ summary(access2018$caste) #summary is not very useful with character variables
 summary(access2018$education) #summary is not very useful with character variables
 summary(access2018$state) #summary is not very useful with character variables
 ```
+
+Age is a numeric variable, whereas gender, caste, income source, state and education are all stored as character strings.
 
 
 ### 1b) Use the mutate function to create new column for gender: {-}
