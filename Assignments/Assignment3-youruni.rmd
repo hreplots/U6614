@@ -1,6 +1,6 @@
 
 ---
-title: 'U6614: Assignment 3: Subway Fare Evasion Microdata'
+title: 'DSPC 7514 Assignment 3: Subway Fare Evasion Microdata Analysis'
 author: "Your Name (your-uni)"
 date: "`r Sys.Date()`"
 output:
@@ -28,25 +28,32 @@ knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
 
 \medspace
 
+**Do note hardcode any statistics in your write-up, make sure to use inline code references. Round any decimals for readability when appropriate.**
+
+\medspace
+
 # Load libraries.
 
 
 \medspace
 
-# Load and inspect the two public defender client datasets (BDS & LAS). 
+# Load, inspect and describe the two public defender client datasets (BDS & LAS). 
+
+### 2a) Load datasets using `read_csv()` and inspect. {-}
 
 - Get a good look at the data, but don't print long, clunky output here; one approach is to call the str() function for each dataset but to suppress the included list of attributes by including the option give.attr = FALSE.
 
-### 2a) Give a brief overview of the data. The aim is not be exhaustive, but to paint a picture of they key features of the data with respect to the policy questions you'll be exploring. {-}
+
+### 2b) Give a brief overview of the data. The aim is not be exhaustive, but to paint a picture of they key features of the data with respect to the policy questions you'll be exploring. {-}
 
 
-### 2b) For each dataset, what is the unit of observation and population represented by this "sample"? Do you think this sample does a good job representing the population of interest? Why or why not? {-}
+### 2c) For each dataset, what is the unit of observation and population represented by this "sample"? Do you think this sample does a good job representing the population of interest? Why or why not? {-}
 
 
-### 2c) Inspect and describe the coding of race and ethnicity in each dataset. {-}
+### 2d) Inspect and describe the coding of race and ethnicity in each dataset. {-}
 
 
-### 2d) From the outset, are there any data limitations you think are important to note? {-}
+### 2e) From the outset, are there any data limitations you think are important to note? {-}
 
 
 \medspace
@@ -67,9 +74,12 @@ knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
 
 # Clean LAS race and ethnicity data
 
-### 4a) Follow your own steps to end up at a comparably coded `race_eth` variable for the LAS data. {-}
+### 4) Follow your own steps to end up at a comparably coded `race_eth` variable for the LAS data. {-}
 
-*NOTE: you may be able to do everything in a single pipe, depending on your approach (but you certainly don't have to).*
+- create race_eth in arrests_las with the same coding as for BDS
+- note that Hispanic identity is included in two columns, not one: las_race_key and hispanic_flag
+- Make sure you end up with a data frame with the following variable names and identical coding as in arrests_bds_clean:
+  - race_eth, age, male, dismissal (not in the BDS data), st_id, loc2
 
 
 \medspace
@@ -93,7 +103,7 @@ knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
 
 ### 6b) Print the proportion of total arrests for each race/ethnicity category. How does excluding NAs change the results? {-}
 
-### 6c) Show the average age, share male, and dimissal rate for each race/ethnicity category. Include the total sample size (all observations), and if you can, include the sample size for the dismissal variabe as well (number of non-NA observations). {-}
+### 6c) Report the average age, share male, and dimissal rate for each race/ethnicity category. Include the total sample size (all observations). Include the sample size for the dismissal variabe as well (just the number of non-NA observations). {-}
 
 ### 6d) Describe any noteworthy findings from the table you presented in 6c. {-}
 
