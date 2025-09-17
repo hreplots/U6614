@@ -19,9 +19,9 @@
 ## https://hreplots.github.io/U6614/Lectures-gh/Lecture3-gh/lecture_3-6_data_primer.pdf
 
 
-## ----------------------------------------------
+## -----------------------------------------------------------------------------
 ## 1. load libraries and check working directory
-## ----------------------------------------------
+## -----------------------------------------------------------------------------
 
 #install.packages("fastDummies")
 library(fastDummies)
@@ -84,9 +84,6 @@ getwd()
     arrests_las <- arrests_las %>% 
       mutate(race = as.factor(las_race_key), 
              ethnicity = as.factor(hispanic_flag))
-  
-  
-# 2a.
 
 
 # 2b.
