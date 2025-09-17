@@ -1,9 +1,9 @@
 ################################################################################
 ##
-## [ PROJ ] Lecture 3: Subway Fare Evasion Arrests in Brooklyn
+## [ PROJ ] Lecture 3: Subway Fare Evasion Arrests in Brooklyn Microdata Analysis
 ## [ FILE ] Lecture3-inclass.r
 ## [ AUTH ] < YOUR NAME >
-## [ INIT ] < Sept 17, 2024 >
+## [ INIT ] < Sept 16, 2025 >
 ##
 ################################################################################
 
@@ -19,15 +19,13 @@
 ## https://hreplots.github.io/U6614/Lectures-gh/Lecture3-gh/lecture_3-6_data_primer.pdf
 
 
-## ----------------------------------------------
+## -----------------------------------------------------------------------------
 ## 1. load libraries and check working directory
-## ----------------------------------------------
+## -----------------------------------------------------------------------------
 
 #install.packages("fastDummies")
-
-library(tidyverse)
 library(fastDummies)
-#library(ggplot2) #included with Tidyverse
+library(tidyverse)
 #library(forcats) #included with Tidyverse
 
 
@@ -36,7 +34,9 @@ getwd()
 
 
 ## -----------------------------------------------------------------------------
-## 2. load datasets using read_csv() and inspect
+## 2. Load, inspect and describe the two public defender client datasets 
+##
+##  a. load datasets using read_csv() and inspect
 ##
 ##    two datasets of administrative records from public defenders in Brooklyn
 ##      1. microdata_BDS_inclass.csv: Brooklyn Defender Services
@@ -46,54 +46,55 @@ getwd()
 ##
 ##    note these files were provided by the respective orgs with no documentation
 ##
-##  a. give a brief overview of the data 
+##  b. give a brief overview of the data 
 ##     (start to think about this now, but revisit after you know what
 ##      information proved most relevant for your analysis)
 ##
-##  b. what is the unit of observation? what population does this `sample` represent?
+##  c. what is the unit of observation? what population does this `sample` represent?
 ##     do you think this sample does a good job representing the population of interest?
 ##
-##  c. inspect and describe the coding of race/ethnicity information in each dataset
+##  d. inspect and describe the coding of race/ethnicity information in each dataset
 ##
-##  d. are there any data limitations you think are important to note from the outset? 
+##  e. are there any data limitations you think are important to note from the outset? 
 ##     - note that messy data isn't a limitation, it just means we have work to do.
 ##     - limitations might include information that is missing in this data/sample
-
+##
 ## -----------------------------------------------------------------------------
 
+# 2a. 
 
-#reading in blanks as NA
-  arrests_bds <- read_csv("microdata_BDS_inclass.csv", na = "")
-  arrests_las <- read_csv("microdata_LAS_inclass.csv", na = "")
+  # reading in blanks as NA
+    arrests_bds <- read_csv("microdata_BDS_inclass.csv", na = "")
+    arrests_las <- read_csv("microdata_LAS_inclass.csv", na = "")
+    
+    str(arrests_bds, give.attr = FALSE) 
+    str(arrests_las, give.attr = FALSE)
+    # note the give.attr argument to make long str() output more readable
   
-  str(arrests_bds, give.attr = FALSE) 
-  str(arrests_las, give.attr = FALSE)
+  # recall string variables are imported as characters by default (not factors)
+  # this isn't useful for summary statistics
+    summary(arrests_bds)
+    summary(arrests_las)
+  
+  # let's convert race and ethnicity to factors to inspect before cleaning
+    arrests_bds <- arrests_bds %>% 
+      mutate(race = as.factor(race), 
+             ethnicity = as.factor(ethnicity))
+    
+    arrests_las <- arrests_las %>% 
+      mutate(race = as.factor(las_race_key), 
+             ethnicity = as.factor(hispanic_flag))
 
-
-#note that string variables are imported as characters by default (not factors)
-#let's convert race and ethnicity to factors to inspect before cleaning
-  arrests_bds <- arrests_bds %>% 
-    mutate(race = as.factor(race), 
-           ethnicity = as.factor(ethnicity) )
-  
-  arrests_las <- arrests_las %>% 
-    mutate(race = as.factor(las_race_key), 
-           ethnicity = as.factor(hispanic_flag) )
-  
-  
-#2a.
-
-
-#2b.
+# 2b.
   
 
-#2c.
+# 2c.
   
-  #compare race coding
+  # compare race coding
     summary(arrests_bds$race)
     summary(arrests_las$race)
     
-  #compare Hispanic/ethnicity coding
+  # compare Hispanic/ethnicity coding
     summary(arrests_bds$ethnicity)
     summary(arrests_las$ethnicity)
 
@@ -110,7 +111,7 @@ getwd()
 ##    a. race_clean
 ##    b. ethnicity_clean
 ##    c. create a single factor variable w/mutually exclusive groups (race_eth)
-##       - Non-Hispanic Black, Non-Hispanic White, Hispanic, Asian/Pacific Islander, Other, NA
+##       - Black, Non-Hispanic White, Hispanic, Asian/Pacific Islander, Other, NA
 ##    
 ##  before we do this...
 ##    
@@ -119,114 +120,167 @@ getwd()
 ##  - what is missing by using mutually exclusive, single identity categories?
 ## -----------------------------------------------------------------------------
 
-#3a. BDS race
+# 3a. BDS race
 
-  #inspect
-  #NOTE: don't show all of this in your R Markdown submission, only what is needed
+  # inspect
+  # NOTE: don't show all of this in your R Markdown submission, it's just for yoU!
     levels(arrests_bds$race)
     typeof(arrests_bds$race) #remember factors are stored as integers corresponding to levels
     summary(arrests_bds$race)
     arrests_bds %>% count(race, sort = TRUE)
     arrests_bds %>% count(race, ethnicity, sort = FALSE)
     
-    #a quick and easy way to show crosstabs using base R (just show this!)
-      table(arrests_bds$race, arrests_bds$ethnicity, useNA = "always")
-      #NOTE: why set useNA = "always" here?
+    # a quick and easy way to show a crosstab using base R (just show this!)
+      table(arrests_bds$race, 
+            arrests_bds$ethnicity, 
+            useNA = "always")
+      # NOTE: why set useNA = "always" here?
       
       
-  #ok now let's recode in an internally consistent manner
-    #recode 0 and Unknown into NA
-    #recode Am Indian as Other because only 1 observation
-    #assign to race_clean as a factor w/correct race groups
-    arrests_bds.clean <- arrests_bds %>% 
-      mutate(race_clean = recode(race, "0" = "NA", 
-                                       "Unknown" = "NA", 
-                                       "Am Indian" = "Other" ) )  %>% 
-      mutate(race_clean = factor(race_clean, 
-                                 levels = c("Black", "White", "Asian/Pacific Islander", "Other")))
-  
-      #validation: confirm the recode worked as intended
-        arrests_bds.clean %>% count(race_clean, sort = TRUE)
-        table(arrests_bds.clean$race_clean, arrests_bds.clean$race, useNA = "always")
-      
-    #NOTE: recode doesn't always work well with pipes like other dplyr functions,
-    #      instead we use the function as a part of the argument to mutate()
-
-
-#3b. BDS ethnicity
-      
-  #inspect
-    levels(arrests_bds.clean$ethnicity)
-    table(arrests_bds.clean$race_clean, arrests_bds.clean$ethnicity, useNA = "always")
-  
-  #now let's recode by creating a hispanic column where:
-  #1. hispanic takes the values Hispanic, Non-Hispanic, or NA
-  #2. then use factor() to set levels based on the above values
+  # ok now let's recode in an internally consistent manner...
     
+  # Approach #1: use recode() in the dplyr package
+    
+    # recode 0 and Unknown into NA (use use NA_character)
+    # recode Am Indian as Other because only 1 observation
+    # assign to race_clean as a factor w/correct race groups
+    
+    # note the original ordering of the levels
+    # let's assign Other to be last in the ordering of levels
+    
+    arrests_bds.clean <- arrests_bds %>% 
+      mutate(race_clean = recode(race,
+                                 "0" = NA_character_, # use NA_character 
+                                 "Unknown" = NA_character_, 
+                                 "Am Indian" = "Other")) %>% 
+      mutate(race_clean = fct_relevel(race_clean,
+                                      "Asian/Pacific Islander",
+                                      "Black",
+                                      "White",
+                                      "Other"))
+      
+  # Approach #2: use case_when() in the dplyr package
+    
+    arrests_bds.clean <- arrests_bds %>% 
+      mutate(race_clean = case_when(race == "0" ~ NA_character_,
+                                    race == "Unknown" ~ NA_character_,
+                                    race == "Am Indian" ~ "Other",
+                                    TRUE ~ race))  %>% 
+      mutate(race_clean = fct_relevel(race_clean,
+                                      "Asian/Pacific Islander",
+                                      "Black",
+                                      "White",
+                                      "Other"))
+    
+  # also note how we could easily go back and forth between character and factor 
+  # (no need to do this, just showing you what is possible)
+    arrests_bds.clean <- arrests_bds.clean %>% 
+      mutate(race_clean = as.character(race_clean)) %>%  
+      mutate(race_clean = as.factor(race_clean))
+
+  # validation: confirm the recode worked as intended
+    arrests_bds.clean %>% 
+      count(race_clean, sort = TRUE)
+    table(arrests_bds.clean$race, 
+          arrests_bds.clean$race_clean, 
+          useNA = "always")
+    
+    
+# 3b. BDS ethnicity (Hispanic identity)
+      
+  # inspect
+  # NOTE: don't show all of this in your R Markdown submission, it's just for yoU!
+    levels(arrests_bds.clean$ethnicity)
+    table(arrests_bds.clean$race_clean, 
+          arrests_bds.clean$ethnicity, 
+          useNA = "always")
+  
+  # now let's recode by creating a Hispanic column where:
+  # hispanic takes the values Hispanic, Non-Hispanic, or NA
     arrests_bds.clean <- arrests_bds.clean %>% 
       mutate(hispanic = recode(ethnicity, 
-                               "0" = "NA",
-                               "Other" = "Non-Hispanic")) %>% 
-      mutate(hispanic = factor(hispanic, 
-                               levels = c("Hispanic", "Non-Hispanic"))) 
-      #note: the character string "NA" is not the same as a system NA
-      #      by explicitly setting factor levels, 
-      #        the omitted category ("NA") is forced into system NA values
+                               "0" = NA_character_,
+                               "Other" = "Non-Hispanic")) 
     
-    #validation: confirm the recode worked as intended
-    table(arrests_bds.clean$hispanic, arrests_bds.clean$ethnicity, useNA = "always")
+  # validation: confirm the recode worked as intended
+    table(arrests_bds.clean$hispanic, 
+          arrests_bds.clean$ethnicity, 
+          useNA = "always")
     summary(arrests_bds.clean$hispanic) #less useful for validation!
       
-  #NOTE: we used separate pipes to clean ethnicity & race, could do in a single pipe
-      
 
-#3c. race_eth
+
+# 3c. race_eth
       
-  #let's investigate a bit
-    table(arrests_bds.clean$race_clean, arrests_bds.clean$hispanic, useNA = "always")
-    prop.table(table(arrests_bds.clean$race_clean, arrests_bds.clean$hispanic),
-               margin = 2) %>% 
-      round(2)
+  # let's investigate a bit...
+  # examine every possible combination of hispanic identity and race
+  table(arrests_bds.clean$race_clean, 
+        arrests_bds.clean$hispanic, 
+        useNA = "always")
+  
+  prop.table(table(arrests_bds.clean$race_clean, 
+                   arrests_bds.clean$hispanic),
+             margin = 2) %>% 
+    round(2)
     
-  #recoding with different data types and/or NA values can be tricky 
-  #let's start by converting factors to characters using the as.character()
+  # when recoding vars, 1st determine the recoding logic you want to implement:
+  # let's generate a new variable race_eth by...
+    # first, assigning Hispanic identity if indicated
+    # second, filling in the new variable with race if they are not Hispanic
+    # third, rename White and Black levels as Non-Hispanic White & Non-Hispanic Black
+ 
+  arrests_bds.clean <- arrests_bds.clean %>% 
+    mutate(race_eth = if_else(hispanic %in% "Hispanic",
+                              hispanic,
+                              race_clean)) %>% 
+    mutate(race_eth = recode(race_eth,
+                             "White" = "Non-Hispanic White",
+                             "Black" = "Non-Hispanic Black"))
+  
+  # validate results
+    
+    # joint distribution of race_eth and hispanic
+      table(arrests_bds.clean$race_eth, 
+            arrests_bds.clean$hispanic,
+            useNA = "always")
+      
+    # wait a minute... Non-Hispanic, White, and Black still appear as levels!
+    # even though they are longer categories we want to use and has no observations
+    # so let's remove them from the vector of levels by specifying levels to keep
     arrests_bds.clean <- arrests_bds.clean %>% 
-        mutate(race_clean_char = as.character(race_clean)) %>% #work with characters
-        mutate(hispanic_char = as.character(hispanic))     %>% #work with characters
-        mutate(race_eth = ifelse(hispanic_char %in% "Hispanic", #use %in% so that NAs are evaluated
-                                 hispanic_char, 
-                                 race_clean_char) ) %>%  
-        mutate(race_eth = as.factor(recode(race_eth, 
-                                           "White" = "Non-Hispanic White",
-                                           "Black" = "Non-Hispanic Black"))) %>%
-        select(-race_clean_char, -hispanic_char)      
+      mutate(race_eth = factor(race_eth,
+                               levels = c("Asian/Pacific Islander",
+                                          "Hispanic",
+                                          "Non-Hispanic Black",
+                                          "Non-Hispanic White",
+                                          "Other")))
     
-  #validate results
     
-    #joint distribution of race_eth and hispanic
-      table(arrests_bds.clean$race_eth, arrests_bds.clean$hispanic, useNA = "always")
+    # let's validate again
+    table(arrests_bds.clean$race_eth, 
+          arrests_bds.clean$hispanic,
+          useNA = "always")
     
-    #distribution of race_eth
-      arrests_bds.clean %>% count(race_eth, sort = TRUE)
+    # what's a tidyverse way of showing the distribution of race_eth
+      arrests_bds.clean %>% 
+        count(race_eth, sort = TRUE)
     
   
 ## -----------------------------------------------------------------------------
-## 4a. Repeat step 2 for LAS:
-##        - create race_eth in arrests_las with the same coding as for BDS
-##      NOTE: Hispanic identity is included in both las_race_key & hispanic_flag
-##    
-##  b. Make sure you end up with a data frame with the following variable names,
-##      and identical coding as in arrests_bds_clean:
-##     - race_eth, age, male, dismissal (not in the BDS data), st_id, loc2
+## 4a. Repeat steps from q3 for Legal Aid Society (LAS) data:
+##      - create race_eth in arrests_las with the same coding as for BDS
+##      - note that Hispanic identity is included in two columns, not one:
+##          - las_race_key and hispanic_flag
+##      - Make sure you end up with a data frame with the following var names
+##        and identical coding as in arrests_bds_clean:
+##        - race_eth, age, male, dismissal (not in the BDS data), st_id, loc2
 ## -----------------------------------------------------------------------------
 
-#4a.
+# 4.
   FILL IN CODE
 
-     
-#4b. 
-  #validate with relevant cross-tabs
-  
+
+  # validate with relevant cross-tabs
   FILL IN CODE
  
 
@@ -234,13 +288,14 @@ getwd()
 ## -----------------------------------------------------------------------------
 ## 5. Append BDS and LAS microdata -- stack rows with bind_rows()
 ##
-##    a. create a column (pd) to identify PD data source (= "las" or "bds")
+##    a. create a column (pd) to identify PD data source ("las" or "bds")
 ##
 ##    b. Append arrests_bds.clean and arrests_las.clean
 ##        - use bind_rows from the dplyr package
 ##        - store combined data as new data frame called arrests.clean
 ##        - only keep columns for pd, race_eth, age, male, dismissal, st_id, loc2,
 ##          converting to factors for columns w/categorical data as needed
+##        - note that dismissal column is in LAS data but not BDS
 ##        - inspect race_eth for accuracy/consistency
 ##        - store as new data frame arrests.clean
 ##
@@ -250,12 +305,13 @@ getwd()
 ##
 ## -----------------------------------------------------------------------------
 
-#5a.
+# 5a.
   arrests_bds.clean <- arrests_bds.clean %>% mutate(pd = "bds")
   arrests_las.clean <- arrests_las.clean %>% mutate(pd = "las")
   
-#5b. since we don't have arrests_las.clean yet, for now let's append arrests_bds.clean to itself
-  arrests.clean <- bind_rows(arrests_bds.clean, arrests_bds.clean) %>%
+# 5b. since we don't have arrests_las.clean yet, for now let's append arrests_bds.clean to itself
+  arrests.clean <- bind_rows(arrests_bds.clean, 
+                             arrests_bds.clean) %>%
     mutate(pd = as.factor(pd),
            st_id = as.factor(st_id), #station/location info is not continuous
            loc2 = as.factor(loc2)) %>% 
@@ -265,15 +321,15 @@ getwd()
   MAKE SURE TO UPDATE ABOVE CODE TO APPEND arrests_las.clean TO arrests_bds.clean
   
   
-#5c. 
+# 5c. 
   
   
-#5d.
+# 5d.
   save(LIST DATA OBJECTS TO SAVE HERE SEPARATED BY COMMAS,
        file = "arrests.clean.RData")  
 
-  #for future reference, can also write to a csv file:
-  #write_csv(arrests_all, "arrests_all.csv") 
+  # for future reference, can also write to a csv file:
+  # write_csv(arrests_all, "arrests_all.csv") 
 
   
   
@@ -286,14 +342,15 @@ getwd()
 ##        but sometimes it's useful to store this information to work with
 ##
 ##    b. show a table with the proportion of total arrests in each race_eth category
+##        - how does excluding NAs change the results? 
 ##
 ##    c. compute avg age, share male, and dismissal rate for each race_eth group, 
 ##       along with the total sample size. 
-##       also try to include the sample size for the dismissal variabe as well
+##       also compute the sample size for the dismissal variabe as well
 ##        (just the number of non-NA observations for dimissal)
-##        - store as race_eth_stats)
+##        - assign results to a new object, race_eth_stats
 ##        - HINT: similar to (a) above, but specify different stats in summarise()
-##        - HINT: for most of the requested stats, you'll need to tell R to ignore NA values
+##        - HINT: for most of these stats you need to tell R to ignore NA values
 ##
 ##    d. what, if anything, do you think is interesting to note about the
 ##       distribution of:
@@ -302,34 +359,21 @@ getwd()
 ##        - dismissal by race
 ## -----------------------------------------------------------------------------
 
-#6a. here are a few different approaches
-  
-  #tidyverse approach with summarise()
-    
-  #tidyverse with count()
- 
-  #base R with table()
-
-  #another way, if we wanted to exclude NAs (which we don't right now!)
+# 6a. 
 
 
     
-#6b.
+# 6b.
 
 
-  #a nicer looking version
 
-
-  #if we want to exclude NAs
-
-
-#6c. 
+# 6c. 
     
-  #let's store results as a new data frame in case you want to refer to them in your write-up
+  # assign results to new data frame so you can refer to them in write-up
     race_eth_stats <- FILL IN CODE
     
     
-#6d. 
+# 6d. 
 
 
   
@@ -365,28 +409,28 @@ getwd()
 ##      - hint: are there any high arrest stations w/a high share of NHW arrests?
 ## -----------------------------------------------------------------------------
 
-#7a.
-  arrests.clean <- dummy_cols(arrests.clean, select_columns = "race_eth")
+# 7a.
+  arrests.clean <- dummy_cols(arrests.clean, 
+                              select_columns = "race_eth")
   str(arrests.clean)
   summary(arrests.clean[,8:13]) #too clunky, don't show this in your submission!
   
-  #what's a better way to show just the means using summarise()?
-  arrests.clean %>% FILL IN CODE
-
-#7b. use group_by to get counts by station
-  arrests.clean %>% FILL IN CODE
+  # what's a better way to show just the means using summarise()?
+round(mean(race_eth_NA, na.rm = TRUE), 2)  )
   
-  #let's generate station-level counts for each race_eth group
-  #general approach: sum dummy variables
-  arrests_stations <- arrests.clean %>%  
-    FILL IN CODE
 
+# 7b.
+  
+  # let's generate station-level counts for each race_eth group
+  # general approach: sum dummy variables
+  arrests_stations <- arrests.clean %>%  FILL IN CODE
+  
 
-#7c. 
+# 7c. 
   arrests_stations_top <-  FILL IN CODE
   
   
-#7d.
+#  7d.
   
 
 ## -----------------------------------------------------------------------------
@@ -399,33 +443,53 @@ getwd()
 ##    c. stacked barplot showing race_eth breakdown for top 10 stations by total arrest count
 ## -----------------------------------------------------------------------------
 
-#8a. 
-  ggplot(data = arrests.clean, aes(x = race_eth)) + geom_bar()
-  ggplot(data = arrests.clean, aes(x = fct_infreq(race_eth), y = ..prop.., group = 1)) + geom_bar() + 
+# 8a. 
+  arrests.clean %>% 
+    ggplot(aes(x = race_eth)) + 
+    geom_bar()
+  
+  arrests.clean %>% 
+    ggplot(aes(x = fct_infreq(race_eth),
+               y = ..prop.., group = 1)) + 
+    geom_bar() + 
     scale_y_continuous(labels = scales::percent_format()) 
 
   
-#8b.
-  arrests.clean.nomiss <- arrests.clean %>% filter(is.na(race_eth) == FALSE)
+# 8b.
+  arrests.clean.nomiss <- arrests.clean %>% 
+    filter(is.na(race_eth) == FALSE)
   summary(arrests.clean.nomiss$race_eth)
   
-  ggplot(data = arrests.clean.nomiss, aes(x = race_eth)) + geom_bar()
-  ggplot(data = arrests.clean.nomiss, aes(x = fct_infreq(race_eth), y = ..prop.., group = 1)) + geom_bar() + 
+  arrests.clean.nomiss %>% 
+    ggplot(aes(x = race_eth)) + 
+    geom_bar()
+  
+  arrests.clean.nomiss %>% 
+    ggplot(aes(x = fct_infreq(race_eth),
+               y = ..prop.., group = 1)) + 
+    geom_bar() + 
     scale_y_continuous(labels = scales::percent_format())
 
 
-#8c.
+# 8c.
   arrests_stations_race_top <- arrests.clean %>%  
     group_by(loc2) %>% 
     mutate(st_arrests = n()) %>% 
     ungroup() %>% 
     group_by(loc2, race_eth)  %>%
-    summarise(arrests = n(), st_arrests = first(st_arrests)) %>% 
+    summarise(arrests = n(), 
+              st_arrests = first(st_arrests)) %>% 
     arrange(desc(st_arrests)) %>% 
     filter(st_arrests > 100)
-  arrests_stations_race_top
-  save(list = "arrests_stations_race_top", file = "../Lecture3/arrests_stations_race_top.RData")
   
-  ggplot(arrests_stations_race_top, aes(x = reorder(loc2, -st_arrests), y = arrests, fill = race_eth)) + 
+  arrests_stations_race_top
+  
+  
+  arrests_stations_race_top %>% 
+    ggplot(aes(x = reorder(loc2, -st_arrests),
+               y = arrests,
+               fill = race_eth)) + 
     geom_bar(stat = "identity") + 
-    theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) 
+    theme(axis.text.x = element_text(angle = 90, 
+                                     vjust = 0.5, 
+                                     hjust=1)) 
