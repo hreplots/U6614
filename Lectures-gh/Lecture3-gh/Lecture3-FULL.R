@@ -355,10 +355,10 @@ getwd()
 
 # 5c. 
   # use nrow to get number of observations as an in-line code reference
-  nrow(arrests.clean)
+    nrow(arrests.clean)
   
 # 5d.
-  save(list = "arrests.clean",
+  save(LIST DATA OBJECTS TO SAVE HERE SEPARATED BY COMMAS,
        file = "arrests.clean.RData")  
 
   # for future reference, can also write to a csv file:
@@ -428,6 +428,7 @@ getwd()
 # 6d. 
 
 
+  
 ## -----------------------------------------------------------------------------
 ## 7. grouping by subway station, with subway-station level statistics.
 ##      our data includes the following columns
@@ -467,18 +468,44 @@ getwd()
   summary(arrests.clean[,8:13]) #too clunky, don't show this in your submission!
   
   # what's a better way to show just the means using summarise()?
-round(mean(race_eth_NA, na.rm = TRUE), 2)  )
+  arrests.clean %>% 
+    summarise(mean_black = round(mean(`race_eth_Non-Hispanic Black`, na.rm = TRUE), 2),
+              mean_hisp = round(mean(race_eth_Hispanic, na.rm = TRUE), 2),
+              mean_nhw  = round(mean(`race_eth_Non-Hispanic White`, na.rm = TRUE), 2),
+              mean_api  = round(mean(`race_eth_Asian/Pacific Islander`, na.rm = TRUE), 2),
+              mean_oth  = round(mean(race_eth_Other, na.rm = TRUE), 2),
+              mean_NA   = round(mean(race_eth_NA, na.rm = TRUE), 2)  )
   
 
 # 7b.
   
   # let's generate station-level counts for each race_eth group
   # general approach: sum dummy variables
-  arrests_stations <- arrests.clean %>%  FILL IN CODE
-  
+  arrests_stations <- arrests.clean %>%  
+    group_by(loc2) %>%
+    summarise(st_id = first(st_id), 
+              n = n(),
+              n_black = sum(`race_eth_Non-Hispanic Black`, na.rm = TRUE), 
+              n_hisp  = sum(race_eth_Hispanic, na.rm = TRUE),
+              n_api   = sum(`race_eth_Asian/Pacific Islander`, na.rm = TRUE),
+              n_nhw   = sum(`race_eth_Non-Hispanic White`, na.rm = TRUE), 
+              n_oth   = sum(race_eth_Other, na.rm = TRUE) )   %>%
+    arrange(desc(n))
+
 
 # 7c. 
-  arrests_stations_top <-  FILL IN CODE
+  arrests_stations_top <- arrests.clean %>%  
+    group_by(loc2)    %>%
+    summarise(st_id = first(st_id), 
+              n = n(),
+              n_black = sum(`race_eth_Non-Hispanic Black`, na.rm = TRUE), 
+              n_hisp  = sum(race_eth_Hispanic, na.rm = TRUE),
+              n_bh    = sum(`race_eth_Non-Hispanic Black`, race_eth_Hispanic, na.rm = TRUE),
+              n_na    = sum(race_eth_NA),
+              sh_bh   = round(n_bh / (n - n_na), 2)) %>% 
+    select(loc2, n, n_bh, n_na, sh_bh) %>% 
+    filter(n >= 50) %>% 
+    arrange(sh_bh)
   
   
 #  7d.
@@ -535,6 +562,9 @@ round(mean(race_eth_NA, na.rm = TRUE), 2)  )
   
   arrests_stations_race_top
   
+  save(arrests_stations_race_top, 
+       file = "arrests_stations_race_top.RData")
+  
   
   arrests_stations_race_top %>% 
     ggplot(aes(x = reorder(loc2, -st_arrests),
@@ -544,5 +574,3 @@ round(mean(race_eth_NA, na.rm = TRUE), 2)  )
     theme(axis.text.x = element_text(angle = 90, 
                                      vjust = 0.5, 
                                      hjust=1)) 
-
-  
