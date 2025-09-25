@@ -26,12 +26,14 @@
 #install.packages("estimatr")
 #install.packages("knitr")
 #install.packages("ggpmisc")
+#install.packages('modelsummary')
 
 library(tidyverse)
 library(knitr)
 library(estimatr)
 library(weights)
 library(ggpmisc)
+library(modelsummary)
 
 getwd()
 
