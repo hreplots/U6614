@@ -1,7 +1,7 @@
 ---
 title: 'Lecture 5.1: Exploratory Data Analysis and Weighting'
 #subtitle: ""
-author: "SIPA U6614 | Instructor: Harold Stolper"
+author: "SIPA U7514 | Instructor: Harold Stolper"
 date: 
 urlcolor: blue
 output: 
@@ -28,12 +28,10 @@ knitr::opts_chunk$set(echo = TRUE)
 Load packages:
 ```{r, message = FALSE, warning = FALSE}
 library(tidyverse)
-library(forcats)
-library(fastDummies)
+library(estimatr)
+library(modelsummary)
 library(SciViews)
 library(weights)
-library(lmtest)
-library(sandwich)
 library(Weighted.Desc.Stat)
 library(kableExtra)
 ```
@@ -132,15 +130,17 @@ We can visualize the distribution of a continuous variable with a histogram usin
 Here are some examples of R code used to analyze arrests per 100k swipes (a continuous variable) in our grouped subway-station level data from week 4.
 
 ```{r, message = FALSE, warning = FALSE}
-#load grouped station data from Lecture4-inclass
+# load grouped station data from Lecture4-inclass
 stations <- readRDS("stations.rds")
 
-#get summary stats to describe distribution of arrests/swipe across stations
-#note that NAs recognized by R will prevent calcs unless na.rm = TRUE
+# get summary stats to describe distribution of arrests/swipe across stations
+# note that NAs recognized by R will prevent calcs unless na.rm = TRUE
 summary(stations$arrperswipe) #no NAs for this columns
 
-#visualize distribution with histogram
-ggplot(data = stations, aes(x = arrperswipe)) + geom_histogram()
+# visualize distribution with histogram
+stations %>% 
+  ggplot(aes(x = arrperswipe)) + 
+  geom_histogram()
 
 ```
 
@@ -155,16 +155,16 @@ We can visualize the distribution of a categorical variable in a similar way to 
 
 Keep in mind that you always have the option to transform a continuous variable into a categorical variable. Doing so necessarily entails a loss of information, but reducing continuous variation to broad categories can *sometimes* be useful for splitting your sample into groups or exploring interaction effects. Here is an example using the `cut()` function; you can also call `cut()` when using `mutate()` in order to create a new column that condenses an existing column into fewer categories:
 ```{r, message = FALSE, warning = FALSE}
-#create vector of values with one NA value
+# create vector of values with one NA value
 x_cont <- c(seq(1:10), NA)
 x_cont
 
-#use cut function to split into low (0-5), high(6-9) w/other values as NA
+# use cut function to split into low (0-5), high(6-9) w/other values as NA
 x_cat <- cut(x_cont, 
              breaks = c(0,5,9),
              labels = c("low", "high") )
 
-#take a look to validate the results!
+# take a look to validate the results!
 table(x_cont, x_cat)
 summary(x_cat)
 ```
@@ -193,18 +193,11 @@ ggplot(data = arrests_bds.clean, aes(x = forcats::fct_infreq(race_eth))) +
 
 #### Creating dummy variables
 
-Whenever you want to account for a variable with categorical information in a regression, you need to include dummy variables for each category (omitting one base category). You *cannot* include a categorical variable as a control variable if it hasn't been coded as a (binary) dummy variable, because the units of the categories have no inherent meaning and would result in misleading comparisons (see [this](https://www.moresteam.com/whitepapers/download/dummy-variables.pdf) link for a very short refresher about using variables in regression analysis). Sometime R may know to treat factor variables as dummies... but don't assume it does!
+Whenever you want to account for a variable with categorical information in a regression, you need to include dummy variables for each category (omitting one base category). Many R functions, such as `lm_robust()` and `lm()` are quite intuitive in that if they see any regressors stored as a factor or a logical, they will automatically create dummy variables for each category and exclude the first level. While this is useful, there are two things to keep in mind.
 
-So as convenient as it is to use categorical information stored as factors in R, once you have a regression in your sights you'll need to take the next step of creating dummy variables for each category. As we've seen in recent weeks, the `dummy_cols()` function in the `fastDummies` package is a handy tool for doing this without too much hassle.
-```{r, message = FALSE, warning = FALSE}
-#create new data frame w/dummy vars for each category of race_clean and hispanic
-arrests_bds_clean_d <- 
-  fastDummies::dummy_cols(arrests_bds.clean, 
-                          select_columns = c("race_clean", "hispanic"),
-                          ignore_na = TRUE) 
-#inspect
-summary(arrests_bds_clean_d[,12:17])
-```
+First, you *cannot* include a categorical variable that is stored as a continuous data type (numeric or integer) as a control variable, because the units of the categories have no inherent meaning and would result in misleading comparisons (see [this](https://www.moresteam.com/whitepapers/download/dummy-variables.pdf) link for a very short refresher about using variables in regression analysis). 
+
+Second, you need to be intentional about which category (level) of a categorical (factor) variable to omit as the base category against which comparisons are made. One way to do this is reorder the levels so that the first level is the category you want to omit as the base category. For sample code to reorder levels, please consult Lecture3.1, Section 6.3.
 
 
 ### Missing values and data validation
@@ -223,7 +216,7 @@ Remember from Lecture 3 that one tool for recoding missing values so R recognize
 Below is alternative approach for recoding 0 values for the messy race input variable as `NA`. This approach relies on the base R `ifelse`, tells it to look for a vector of uninformative values to recode (using the `%in%` operator), recodes instances of these uninformative values as `NA`, otherwise uses the original levels for the race variable. 
 
 ```{r, message = FALSE, warning = FALSE}
-#load clean BDS microdata from Lecture3-inclass
+# load clean BDS microdata from Lecture3-inclass
 arrests_bds.clean  %>% 
   mutate(race_temp = ifelse(race %in% c("0", "-"), #tells R to look for "0" and "-" values
                             NA,                       #tells R to replace with NA
@@ -240,7 +233,7 @@ In practice we may want to call functions to describe the distribution of a vari
 ```{r, message = FALSE, warning = FALSE}
 income <- c(19000, 76000, 42000, 132000, 0, 37000, -100)
 ln_income <- ln(income) 
-#note: ln() is in the SciViews package and is equivalent to log() in base R
+  # note: ln() is in the SciViews package and is equivalent to log() in base R
 ```
 
 If we take a look at the transformed data we can see that according to R, `log(0)` = `-Inf` and `log(-100)` = `NaN`. You might guess that the former refers to negative infinity, while the `NaN` means "it's "not a number". In this case there is a mathematical distinction, but in both cases the values are effectively undefined for the purposes of statistical analysis. A simple reminder that we may need to adjust our approach to transforming the data.
@@ -267,44 +260,72 @@ We'll often refer to this sort of bivariate EDA as **descriptive analysis**. Thi
 
 * **Cross-tabs**: `table()` for counts and `prop.table()` for proportions
   + **Visualizations**: stacked bar charts; below is a two-way plot using `geom_count()`
-* **Inference on difference in proportions between groups**: `t.test()`
+* **Inference on difference in proportions between groups**: 
+  + `t.test()` allows for robust SEs (unequal variance between groups) but no weights
+  + `lm_robust()` allows for weights and robust SEs
+  + `datasummary_balance()` is great for automated difference-in-means tables, but only reports the mean difference and SE, not an associated p-value.
 
 ```{r, message = FALSE, warning = FALSE}
-#load clean BDS microdata from Lecture3-inclass
+# load clean BDS microdata from Lecture3-inclass
 arrests_bds.clean <- readRDS("arrests_bds.clean.rds")
 
-#cross-tab of race_clean vs hispanic
-table(arrests_bds.clean$race_clean, arrests_bds.clean$hispanic, 
+# cross-tab of race_clean vs hispanic
+table(arrests_bds.clean$race_clean, 
+      arrests_bds.clean$hispanic, 
       useNA = "always")
 
-#visualize cross-tab to assess common combinations
-ggplot(data = arrests_bds.clean, aes(x = race_clean, y = hispanic)) +
+# visualize cross-tab to assess common combinations
+arrests_bds.clean %>% 
+  ggplot(aes(x = race_clean, y = hispanic)) +
   geom_count(na.rm = FALSE)
 
-#test difference in Hispanic share between Blacks and whites
-    
-  #first create dummies for all categories of Hispanic & Black
-  arrests_bds_clean_d <- fastDummies::dummy_cols(arrests_bds.clean, 
-                                                select_columns = c("race_clean", 
-                                                                  "hispanic"),
-                                                ignore_na = TRUE) %>% 
-  #keep obs where race is Black or white
-  filter(race_clean == "White" | race_clean == "Black") 
+# test difference in Hispanic share between Blacks and whites
   
-  #diff in mean Hispanic share by Black vs White arrestees (using dummies) 
-  t.test(hispanic_Hispanic ~ race_clean_Black, 
-         data = arrests_bds_clean_d, 
-         var.equal = FALSE)
+  # NOTE: to use t.test() to run a diff-in-means test:
+  #   - make sure the grouping var is a logical (not a factor)
+  
+  # first create logical variables for being Hispanic and being Black
+  # and filter out race groups that are not Black or White
+  arrests_bds_clean_d <- arrests_bds.clean %>% 
+    mutate(hisp_log = as.logical(hispanic == "Hispanic")) %>% 
+    mutate(race_black_log = as.logical(race_clean == "Black")) %>% 
+    filter(race_clean == "White" | race_clean == "Black")
+  
+  str(arrests_bds_clean_d$hisp_log)
+  str(arrests_bds_clean_d$race_black_log)
+  
+  # diff in mean Hispanic share by Black vs White arrestees (using dummies) 
+  
+    # t.test()
+    t.test(hisp_log ~ race_black_log, 
+           data = arrests_bds_clean_d, 
+           var.equal = FALSE)
+    
+    # lm_robust()
+    lm_robust(hisp_log ~ race_black_log, 
+           data = arrests_bds_clean_d)
+    
+    # datasummary_balance()
+    # NOTE: if there's a column called weights, weighted stats will be calculated
+    datasummary_balance(~ race_black_log, 
+                        fmt = 2, 
+                        data = subset(arrests_bds_clean_d, 
+                                      select = c("hisp_log", 
+                                                 "race_black_log")))
+    
 ```
 
 ```{r}
-#load station-level data for stations with >100 arrests
-  arrests_stations_race_top <- readRDS("arrests_stations_race_top.rds")
+# load station-level data for stations with >100 arrests
+arrests_stations_race_top <- readRDS("arrests_stations_race_top.rds")
 
-#stacked barplot of arrests by race_eth at each top arrest station
-  ggplot(arrests_stations_race_top, aes(x = reorder(loc2, -st_arrests), y = arrests, fill = race_eth)) + 
+# stacked barplot of arrests by race_eth at each top arrest station
+arrests_stations_race_top %>% 
+  ggplot(aes(x = reorder(loc2, -st_arrests), 
+             y = arrests, fill = race_eth)) + 
     geom_bar(stat = "identity") + 
-    theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) 
+    theme(axis.text.x = element_text(angle = 90, 
+                                     vjust = 0.5, hjust=1)) 
 ```
 
 
@@ -319,10 +340,10 @@ ggplot(data = arrests_bds.clean, aes(x = race_clean, y = hispanic)) +
 
 
 ```{r, message = FALSE, warning = FALSE}
-#load grouped station data from Lecture4-inclass
+# load grouped station data from Lecture4-inclass
 stations <- readRDS("stations.rds")
 
-#difference in means table between high & low pov stations
+# difference in means table between high & low pov stations
 stations %>% 
     ungroup() %>% 
     group_by(highpov) %>% 
@@ -330,11 +351,14 @@ stations %>%
               mean_pov = mean(povrt_all_2016),
               mean_arrper = mean(arrperswipe))
 
-#test significance of difference in mean arrests per swipe 
-t.test(arrperswipe ~ highpov, data = stations, var.equal = FALSE)
+# test significance of difference in mean arrests per swipe 
+t.test(arrperswipe ~ highpov, 
+       data = stations, 
+       var.equal = FALSE)
   
-#visualize distribution of arrperswipes by high/low pov categories
-ggplot(stations, aes(x = arrperswipe, colour = as.factor(highpov))) + 
+# visualize distribution of arrperswipes by high/low pov categories
+stations %>% 
+  ggplot(aes(x = arrperswipe, colour = as.factor(highpov))) + 
   geom_freqpoly(binwidth = 1)
 ```
 
@@ -346,13 +370,13 @@ ggplot(stations, aes(x = arrperswipe, colour = as.factor(highpov))) +
 * **Correlation coefficients**: `cor()`
 * **Fit linear/quadratic models**: 
   + add `geom_smooth()` geometry to `ggplot()`
-  + or estimate separately using `lm()`, `summary()` and `coeftest()`
+  + or estimate separately using `lm_robust()`
   + of course you can also fit regression models when the data isn't continuous
 
 ```{r, message = FALSE, warning = FALSE}
 # plot pov rate vs arrest per swipes over stations, add linear fit
-ggplot(stations,
-         aes(x = povrt_all_2016, y = arrperswipe)) + 
+stations %>% 
+  ggplot(aes(x = povrt_all_2016, y = arrperswipe)) + 
   geom_point() + 
   ggtitle('Linear regression fit') + 
   labs(x = 'poverty rate', y = 'arrest rate') + 
@@ -361,14 +385,13 @@ ggplot(stations,
 # compute correlation coefficient between pov rate and arrests per swipes
 cor(stations$povrt_all_2016, stations$arrperswipe)
 
-#estimate linear model (outside of ggplot)
-ols1l <- lm(arrperswipe ~ povrt_all_2016, data = stations)
+# estimate linear model (outside of ggplot)
+ols1l <- lm_robust(arrperswipe ~ povrt_all_2016, 
+                   se_type="HC1", 
+                   data = stations)
 
-#get summary of the model
+# get summary of the model
 summary(ols1l) 
-
-#get robust SEs
-coeftest(ols1l, vcov = vcovHC(ols1l, type="HC1")) 
 ```
 
 ### Application: Difference-in-means tables
@@ -389,19 +412,20 @@ For now, here is a fairly crude way of getting the structure of a difference-in-
   t1 <- stations %>% 
     group_by(nblack) %>% 
     summarise_at(.vars = vars(arrperswipe, swipes2016, arrests_all, povrt_all_2016, shareblack),
-                  .funs = funs(mean, .args = list(na.rm = TRUE)) )
+                  .funs = funs(mean, 
+                               .args = list(na.rm = TRUE)) )
   t1
 
 #2. transpose table using t() and format as necessary
-  #transpose
+  # transpose
   t2 <- t(t1)
   t2
 
-  #extract group names for column headings
+  # extract group names for column headings
   colnames1 <- t2[1,]
   colnames1
   
-  #convert to data frame with numeric values and col labels
+  # convert to data frame with numeric values and col labels
   t2 <- t2[-1, ]
   t2
 
@@ -416,21 +440,21 @@ For now, here is a fairly crude way of getting the structure of a difference-in-
   t3
 
 #4. compute P-value column
-  #specify linear models for each var in the table on grouping dummy (nblack)
-  ols1_a <- lm(arrperswipe ~ nblack, data = stations)
-  ols1_b <- lm(swipes2016 ~ nblack, data = stations)
-  ols1_c <- lm(arrests_all ~ nblack, data = stations)
-  ols1_d <- lm(povrt_all_2016 ~ nblack, data = stations)
-  ols1_e <- lm(shareblack ~ nblack, data = stations)
+  # specify linear models for each var in the table on grouping dummy (nblack)
+  ols1_a <- lm_robust(arrperswipe ~ nblack, data = stations)
+  ols1_b <- lm_robust(swipes2016 ~ nblack, data = stations)
+  ols1_c <- lm_robust(arrests_all ~ nblack, data = stations)
+  ols1_d <- lm_robust(povrt_all_2016 ~ nblack, data = stations)
+  ols1_e <- lm_robust(shareblack ~ nblack, data = stations)
 
-  #get p-values for coefficient of interest in each model
-  p_a <- coeftest(ols1_a, vcov = vcovHC(ols1_a, type="HC1"))[2,4]
-  p_b <- coeftest(ols1_b, vcov = vcovHC(ols1_b, type="HC1"))[2,4]
-  p_c <- coeftest(ols1_c, vcov = vcovHC(ols1_c, type="HC1"))[2,4]
-  p_d <- coeftest(ols1_d, vcov = vcovHC(ols1_d, type="HC1"))[2,4]
-  p_e <- coeftest(ols1_e, vcov = vcovHC(ols1_e, type="HC1"))[2,4]
+  # get p-values for coefficient of interest in each model
+  p_a <- summary(ols1_a)$coefficients[2,4]
+  p_b <- summary(ols1_b)$coefficients[2,4]
+  p_c <- summary(ols1_c)$coefficients[2,4]
+  p_d <- summary(ols1_d)$coefficients[2,4]
+  p_e <- summary(ols1_e)$coefficients[2,4]
 
-  #assign p-values to new column and round to 4 decimals
+  # assign p-values to new column and round to 4 decimals
   t4 <- t3 %>% mutate(pvalue = round(c(p_a, p_b, p_c, p_d, p_e), 4) )
   t4
 
@@ -483,11 +507,11 @@ xyw.df <- as.data.frame(cbind(xy, w))
 xyw.df
 
 # weighted summary statistics w/Weighted.Desc.Stat
-w.mean(xyw.df$x, xyw.df$w)        #wtd mean
-w.var(xyw.df$x, xyw.df$w)         #wtd variance
-w.r(xyw.df$x, xyw.df$y, xyw.df$w) #wtd correlation coef.
+w.mean(xyw.df$x, xyw.df$w)        # wtd mean
+w.var(xyw.df$x, xyw.df$w)         # wtd variance
+w.r(xyw.df$x, xyw.df$y, xyw.df$w) # wtd correlation coef.
 
-#compare to unweighted stats
+# compare to unweighted stats
 mean(xyw.df$x) 
 var(xyw.df$x) 
 cor(xyw.df$x, xyw.df$y)
@@ -496,21 +520,25 @@ cor(xyw.df$x, xyw.df$y)
 The `ggplot` package accepts weights as an argument to the aesthetic mapping function `aes()`. Compare the histograms for the above sample data with and without weights.
 
 ```{r, message = FALSE, warning = FALSE}
-#unweighted histogram
+# unweighted histogram
 ggplot(xyw.df, aes(x)) + geom_histogram(bins = 4)
 
-#weighted histogram
+# weighted histogram
 ggplot(xyw.df, aes(x, weight = w)) + geom_histogram(bins = 4)
 ```
 
-For estimating regressions, the linear model function `lm()` also accepts weights as an argument:
+For estimating regressions, `lm()` and `lm_robust()` both accepts weights as an argument:
 ```{r, message = FALSE, warning = FALSE}
 # unweighted and weighted regressions of y on x
-ols1_uw <- lm(y ~ x, data = xyw.df)
-ols1_w <- lm(y ~ x, weights = w, data = xyw.df)
-
-summary(ols1_uw)
-summary(ols1_w)
+ols1_lmr_uw <- lm_robust(y ~ x, 
+                        se_type="HC1", #get robust SEs
+                        data = xyw.df)
+ols1_lmr_w <- lm_robust(y ~ x, 
+                        se_type="HC1", #get robust SEs
+                        weights = w, 
+                        data = xyw.df)
+summary(ols1_lmr_uw)
+summary(ols1_lmr_w)
 ```
 
 Notice how the estimated coefficient on X switches signs when weights are applied, consistent with the change in sign of the correlation between X and Y.
