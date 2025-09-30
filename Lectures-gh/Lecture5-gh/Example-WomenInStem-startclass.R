@@ -3,9 +3,13 @@
 ## [ PROJ ] Supplemental Example: Women in STEM
 ## [ FILE ] womeninstem.r
 ## [ AUTH ] < YOUR NAME >
-## [ INIT ] < Sept. 29, 2023 >
+## [ INIT ] < September 30, 2025 >
 ##
 ################################################################################
+
+## This exercise is intended to help with project brainstorming, exploratory
+## data analysis (EDA), and to demonstrate why a cross-country analysis is
+## generally *not* advised for studying the effects of public policy.
 
 ## Research question:
 ##  - Do countries with more mandated maternal leave have a greater share of 
@@ -21,8 +25,8 @@
 ## load libraries
 ##-------------------------
 
-#install.packages("ggrepel")
-#install.packages("ggpmisc")
+# install.packages("ggrepel")
+# install.packages("ggpmisc")
 
 library(tidyverse)
 library(ggrepel)
@@ -35,26 +39,26 @@ getwd()
 ## 1. load & prep input data
 ##---------------------------
 
-wbgender <- read_csv("worldbank-genderstats.csv") #ADD ARGUMENT TO ADDRESS NAs
+wbgender <- read_csv("worldbank-genderstats.csv") # ADD ARGUMENT TO ADDRESS NAs
 
 
-#wait this data isn't "tidy"! 
-#each row is not its own observation! there are diff rows for diff vars
+# wait this data isn't "tidy"! 
+# each row is not its own observation! there are diff rows for diff vars
   
-#here are the 3 variables we want to work with
-  #SE.TER.GRAD.FE.SI.ZS : 
-    #Y: Female share of graduates from STEM programmes, tertiary (%)
-  #SH.MMR.LEVE :
-    #X1: Length of paid maternity leave (calendar days)
+# here are the 3 variables we want to work with
+  # SE.TER.GRAD.FE.SI.ZS : 
+    # Y: Female share of graduates from STEM programmes, tertiary (%)
+  # SH.MMR.LEVE :
+    # X1: Length of paid maternity leave (calendar days)
   #SP.UWT.TFRT :
-    #X2: Unmet need for contraception (% of married women ages 15-49) 
+    # X2: Unmet need for contraception (% of married women ages 15-49) 
 
 
-#first, let's keep *rows* with information for 3 variables:
+# first, let's keep *rows* with information for 3 variables:
   keepvars <- c("SE.TER.GRAD.FE.SI.ZS", "SH.MMR.LEVE", "SP.UWT.TFRT")
   stem <- wbgender %>% filter(`Series Code` %in% keepvars)
-    #NOTE: use backticks to refer to `Series Code` bc of space in col name 
-    #NOTE: the %in% operator checks if two vectors contain overlapping values 
+    # NOTE: use backticks to refer to `Series Code` bc of space in col name 
+    # NOTE: the %in% operator checks if two vectors contain overlapping values 
 
   
 ##-------------------------------
@@ -84,14 +88,14 @@ wbgender <- read_csv("worldbank-genderstats.csv") #ADD ARGUMENT TO ADDRESS NAs
   
   stem.fmshstemgrads_long <- stem.fmshstemgrads %>% 
     pivot_longer(cols = `2011 [YR2011]`:`2020 [YR2020]`,
-                 names_to = "Years",   #ARGUMENT FOR TIME VARIABLE IN THIS EX
-                 values_to = "value" ) #ARGUMENT FOR NEW COL NAME W/VARIABLE VALUES
-  #here's a basic pivot_longer example: 
-  #https://statisticsglobe.com/pivot_longer-and-pivot_wider-functions-in-r
+                 names_to = "Years",   # ARGUMENT FOR TIME VARIABLE IN THIS EX
+                 values_to = "value" ) # ARGUMENT FOR NEW COL NAME W/VARIABLE VALUES
+  # here's a basic pivot_longer example: 
+  # https://statisticsglobe.com/pivot_longer-and-pivot_wider-functions-in-r
 
   
-  #once you get the reshape down above, 
-  #then extend the pipe w/group_by + summarize to obtain aggregate observations
+  # once you get the reshape down above, 
+  # then extend the pipe w/group_by + summarize to obtain aggregate observations
   stem.fmshstemgrads_cross <- stem.fmshstemgrads %>% 
     pivot_longer(cols = `2011 [YR2011]`:`2020 [YR2020]`,
                  names_to = "Years",
@@ -152,7 +156,7 @@ wbgender <- read_csv("worldbank-genderstats.csv") #ADD ARGUMENT TO ADDRESS NAs
 ## C. what can we do to improve internal validity?
     #i.e. we at least want to identify a more informative correlation 
     # (if not an arguably causal effect)
-    #don't answer with R code, think about research design!
+    # don't answer with R code, think about research design!
 
 
   
