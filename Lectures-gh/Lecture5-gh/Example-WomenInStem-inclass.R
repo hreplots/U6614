@@ -3,9 +3,13 @@
 ## [ PROJ ] Supplemental Example: Women in STEM
 ## [ FILE ] womeninstem.r
 ## [ AUTH ] < YOUR NAME >
-## [ INIT ] < Feb 13th, 2024 >
+## [ INIT ] < September 30, 2025 >
 ##
 ################################################################################
+
+## This exercise is intended to help with project brainstorming, exploratory
+## data analysis (EDA), and to demonstrate why a cross-country analysis is
+## generally *not* advised for studying the effects of public policy.
 
 ## Research question:
 ##  - Do countries with more mandated maternal leave have a greater share of 
@@ -22,8 +26,8 @@
 ##-------------------------
 
 
-#install.packages("ggrepel")
-#install.packages("ggpmisc")
+# install.packages("ggrepel")
+# install.packages("ggpmisc")
 
 library(tidyverse)
 library(ggrepel)
@@ -38,23 +42,23 @@ getwd()
 
 wbgender <- read_csv("worldbank-genderstats.csv", na = "..")
 
-#wait this data isn't "tidy"! 
-#each row is not its own observation! there are diff rows for diff vars
+# wait this data isn't "tidy"! 
+# each row is not its own observation! there are diff rows for diff vars
   
-#here are the 3 variables we want to work with
-  #SE.TER.GRAD.FE.SI.ZS : 
-    #Y: Female share of graduates from STEM programmes, tertiary (%)
-  #SH.MMR.LEVE :
-    #X1: Length of paid maternity leave (calendar days)
-  #SP.UWT.TFRT :
-    #X2: Unmet need for contraception (% of married women ages 15-49) 
+# here are the 3 variables we want to work with
+  # SE.TER.GRAD.FE.SI.ZS : 
+    # Y: Female share of graduates from STEM programmes, tertiary (%)
+  # SH.MMR.LEVE :
+    # X1: Length of paid maternity leave (calendar days)
+  # SP.UWT.TFRT :
+    # X2: Unmet need for contraception (% of married women ages 15-49) 
 
 
-#first, let's keep *rows* with information for 3 variables:
+# first, let's keep *rows* with information for 3 variables:
   keepvars <- c("SE.TER.GRAD.FE.SI.ZS", "SH.MMR.LEVE", "SP.UWT.TFRT")
   stem <- wbgender %>% filter(`Series Code` %in% keepvars)
-    #NOTE: use backticks to refer to `Series Code` bc of space in col name 
-    #NOTE: the %in% operator checks if two vectors contain overlapping values 
+    # NOTE: use backticks to refer to `Series Code` bc of space in col name 
+    # NOTE: the %in% operator checks if two vectors contain overlapping values 
 
   
 ##-------------------------------
@@ -73,10 +77,10 @@ wbgender <- read_csv("worldbank-genderstats.csv", na = "..")
   summary(stem.fmshstemgrads)
   summary(stem.dayspaidmatleave)
   summary(stem.unmetcontr)
-    #uh oh, way too many missing values in any given year!
-    #obs come from diff surveys in diff years. values of vars may change slowly.
-    #for now let's try using the mean over all years to reduce NAs
-      #i.e. get mean fem share of STEM grads for every year (2011-2020)
+    # uh oh, way too many missing values in any given year!
+    # obs come from diff surveys in diff years. values of vars may change slowly.
+    # for now let's try using the mean over all years to reduce NAs
+      # i.e. get mean fem share of STEM grads for every year (2011-2020)
   
 
 ## B. for each variable, create 'analysis variable' = mean value across all years for each country
@@ -88,8 +92,8 @@ wbgender <- read_csv("worldbank-genderstats.csv", na = "..")
 ##    - repeat for each input variable to end up with 3 data frames
 ##    - round to 2 decimal points if you need to
 
-  #here's a basic pivot_longer example: 
-    #https://statisticsglobe.com/pivot_longer-and-pivot_wider-functions-in-r
+  # here's a basic pivot_longer example: 
+    # https://statisticsglobe.com/pivot_longer-and-pivot_wider-functions-in-r
    
   stem.fmshstemgrads_cross <- stem.fmshstemgrads %>% 
     pivot_longer(cols = `2011 [YR2011]`:`2020 [YR2020]`,
@@ -119,12 +123,13 @@ wbgender <- read_csv("worldbank-genderstats.csv", na = "..")
 ##    - include 3 analysis variables and `Country Name` and `Country Code`
 ##    - how many countries have non-missing values for all 3 vars?
 
-  stem.cross <- inner_join(stem.fmshstemgrads_cross, stem.unmetcontr_cross) %>% 
+  stem.cross <- stem.fmshstemgrads_cross %>% 
+    inner_join(stem.unmetcontr_cross) %>% 
     inner_join(stem.dayspaidmatleave_cross) %>% 
     na.omit()
 
-  #think about sample selection issues! 
-  #are missing observations for original variables randomly distributed?
+  # think about sample selection issues! 
+  # are missing observations for original variables randomly distributed?
 
     
   
@@ -144,19 +149,19 @@ wbgender <- read_csv("worldbank-genderstats.csv", na = "..")
                label = `Country Code`, 
                color = unmetcontr)) + 
       geom_point() + 
-      # stat_dens2d_filter(geom = "text_repel", keep.fraction = 0.2) +
+      stat_dens2d_filter(geom = "text_repel", keep.fraction = 0.2) +
       scale_colour_gradient(low = "blue", high = "red") +
       ylab("Female share of graduates from STEM programs") + xlab("Days of paid maternity leave") +
       labs(color = "Unmet need \nfor contraception \n(% of married women \nages 15-49)") + 
       theme(legend.position = "right")
   
     
-  #how would you describe this relationship?
-    #how would you describe the variation that we're using? 
+  # how would you describe this relationship?
+    # how would you describe the variation that we're using? 
     
     cor(stem.cross$dayspaidmatleave, stem.cross$fmshstemgrads)
-      #it's is positive (though doesn't appear to be linear)
-      #we're using cross-sectional variation across countries
+      # it's is positive (though doesn't appear to be linear)
+      # we're using cross-sectional variation across countries
 
     
 ## B. could other country-level differences in part explain this relationship?
@@ -164,18 +169,18 @@ wbgender <- read_csv("worldbank-genderstats.csv", na = "..")
     
     cor(stem.cross$dayspaidmatleave, stem.cross$unmetcontr)
     
-    #surely there are other confounding factors! this is the usual problem w/cross-sectional variation
-    #this cross-sectional variation in X (dayspaidmatleave) is endogenous!
-    #i.e. it isn't random w/respect to other determinants of Y, such as unmet contraception need (X2)
+    # surely there are other confounding factors! this is the usual problem w/cross-sectional variation
+    # this cross-sectional variation in X (dayspaidmatleave) is endogenous!
+    # i.e. it isn't random w/respect to other determinants of Y, such as unmet contraception need (X2)
     
 
 ## C. what can we do to improve internal validity?
-    #i.e. we at least want to identify a more informative correlation, if not an arguably causal effect
-    #trying to explicitly control for all of these other factors is usually an uphill battle
-    #a stronger research design might focus on...
-      #time variation "within-countries" (using panel data & fixed effects)
-      #even better: exploit sharper policy changes giving variation in X    
+    # i.e. we at least want to identify a more informative correlation, if not an arguably causal effect
+    # trying to explicitly control for all of these other factors is usually an uphill battle
+    # a stronger research design might focus on...
+      # time variation "within-countries" (using panel data & fixed effects)
+      # even better: exploit sharper policy changes giving variation in X    
 
   
 
-  
+   
