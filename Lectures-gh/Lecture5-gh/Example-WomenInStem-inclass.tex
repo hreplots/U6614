@@ -1,0 +1,475 @@
+\documentclass{article}\usepackage[]{graphicx}\usepackage[]{xcolor}
+% maxwidth is the original width if it is less than linewidth
+% otherwise use linewidth (to make sure the graphics do not exceed the margin)
+\makeatletter
+\def\maxwidth{ %
+  \ifdim\Gin@nat@width>\linewidth
+    \linewidth
+  \else
+    \Gin@nat@width
+  \fi
+}
+\makeatother
+
+\definecolor{fgcolor}{rgb}{0.345, 0.345, 0.345}
+\newcommand{\hlnum}[1]{\textcolor[rgb]{0.686,0.059,0.569}{#1}}%
+\newcommand{\hlsng}[1]{\textcolor[rgb]{0.192,0.494,0.8}{#1}}%
+\newcommand{\hlcom}[1]{\textcolor[rgb]{0.678,0.584,0.686}{\textit{#1}}}%
+\newcommand{\hlopt}[1]{\textcolor[rgb]{0,0,0}{#1}}%
+\newcommand{\hldef}[1]{\textcolor[rgb]{0.345,0.345,0.345}{#1}}%
+\newcommand{\hlkwa}[1]{\textcolor[rgb]{0.161,0.373,0.58}{\textbf{#1}}}%
+\newcommand{\hlkwb}[1]{\textcolor[rgb]{0.69,0.353,0.396}{#1}}%
+\newcommand{\hlkwc}[1]{\textcolor[rgb]{0.333,0.667,0.333}{#1}}%
+\newcommand{\hlkwd}[1]{\textcolor[rgb]{0.737,0.353,0.396}{\textbf{#1}}}%
+\let\hlipl\hlkwb
+
+\usepackage{framed}
+\makeatletter
+\newenvironment{kframe}{%
+ \def\at@end@of@kframe{}%
+ \ifinner\ifhmode%
+  \def\at@end@of@kframe{\end{minipage}}%
+  \begin{minipage}{\columnwidth}%
+ \fi\fi%
+ \def\FrameCommand##1{\hskip\@totalleftmargin \hskip-\fboxsep
+ \colorbox{shadecolor}{##1}\hskip-\fboxsep
+     % There is no \\@totalrightmargin, so:
+     \hskip-\linewidth \hskip-\@totalleftmargin \hskip\columnwidth}%
+ \MakeFramed {\advance\hsize-\width
+   \@totalleftmargin\z@ \linewidth\hsize
+   \@setminipage}}%
+ {\par\unskip\endMakeFramed%
+ \at@end@of@kframe}
+\makeatother
+
+\definecolor{shadecolor}{rgb}{.97, .97, .97}
+\definecolor{messagecolor}{rgb}{0, 0, 0}
+\definecolor{warningcolor}{rgb}{1, 0, 1}
+\definecolor{errorcolor}{rgb}{1, 0, 0}
+\newenvironment{knitrout}{}{} % an empty environment to be redefined in TeX
+
+\usepackage{alltt}
+\usepackage[sc]{mathpazo}
+\renewcommand{\sfdefault}{lmss}
+\renewcommand{\ttdefault}{lmtt}
+\usepackage[T1]{fontenc}
+\usepackage{geometry}
+\geometry{verbose,tmargin=2.5cm,bmargin=2.5cm,lmargin=2.5cm,rmargin=2.5cm}
+\setcounter{secnumdepth}{2}
+\setcounter{tocdepth}{2}
+\usepackage[unicode=true,pdfusetitle,
+ bookmarks=true,bookmarksnumbered=true,bookmarksopen=true,bookmarksopenlevel=2,
+ breaklinks=false,pdfborder={0 0 1},backref=false,colorlinks=false]
+ {hyperref}
+\hypersetup{
+ pdfstartview={XYZ null null 1}}
+
+\makeatletter
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% User specified LaTeX commands.
+\renewcommand{\textfraction}{0.05}
+\renewcommand{\topfraction}{0.8}
+\renewcommand{\bottomfraction}{0.8}
+\renewcommand{\floatpagefraction}{0.75}
+
+\makeatother
+\IfFileExists{upquote.sty}{\usepackage{upquote}}{}
+\begin{document}
+
+
+
+\title{}
+
+
+
+\maketitle
+The results below are generated from an R script.
+
+\begin{knitrout}
+\definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{kframe}
+\begin{alltt}
+\hlcom{################################################################################}
+\hlcom{##}
+\hlcom{## [ PROJ ] Supplemental Example: Women in STEM}
+\hlcom{## [ FILE ] womeninstem.r}
+\hlcom{## [ AUTH ] < YOUR NAME >}
+\hlcom{## [ INIT ] < September 30, 2025 >}
+\hlcom{##}
+\hlcom{################################################################################}
+
+\hlcom{## This exercise is intended to help with project brainstorming, exploratory}
+\hlcom{## data analysis (EDA), and to demonstrate why a cross-country analysis is}
+\hlcom{## generally *not* advised for studying the effects of public policy.}
+
+\hlcom{## Research question:}
+\hlcom{##  - Do countries with more mandated maternal leave have a greater share of }
+\hlcom{##    women graduating in STEM fields?}
+\hlcom{##  - A more informative causal framing of that question:}
+\hlcom{##     Does maternal leave increase women's representation in STEM fields?}
+
+\hlcom{## Data source: World Bank's DataBank Gender Statistics}
+\hlcom{##  (https://databank.worldbank.org/source/gender-statistics)}
+\end{alltt}
+\end{kframe}
+\end{knitrout}
+\begin{knitrout}
+\definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{kframe}
+\begin{alltt}
+\hlcom{## load libraries}
+\end{alltt}
+\end{kframe}
+\end{knitrout}
+\begin{knitrout}
+\definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{kframe}
+\begin{alltt}
+\hlcom{# install.packages("ggrepel")}
+\hlcom{# install.packages("ggpmisc")}
+
+\hlkwd{library}\hldef{(tidyverse)}
+\hlkwd{library}\hldef{(ggrepel)}
+\hlkwd{library}\hldef{(ggpmisc)}
+
+\hlkwd{getwd}\hldef{()}
+\end{alltt}
+\begin{verbatim}
+## [1] "C:/Users/hbs2103/My Drive/Teaching/U6614-drive/Lectures-drive/WomenInSTEM"
+\end{verbatim}
+\end{kframe}
+\end{knitrout}
+\begin{knitrout}
+\definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{kframe}
+\begin{alltt}
+\hlcom{## 1. load & prep input data}
+\end{alltt}
+\end{kframe}
+\end{knitrout}
+\begin{knitrout}
+\definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{kframe}
+\begin{alltt}
+\hldef{wbgender} \hlkwb{<-} \hlkwd{read_csv}\hldef{(}\hlsng{"worldbank-genderstats.csv"}\hldef{,} \hlkwc{na} \hldef{=} \hlsng{".."}\hldef{)}
+\end{alltt}
+
+
+{\ttfamily\noindent\color{warningcolor}{\#\# Warning: One or more parsing issues, call `problems()` on your data frame for details, e.g.:\\\#\# \ \ dat <- vroom(...)\\\#\# \ \ problems(dat)}}
+
+{\ttfamily\noindent\itshape\color{messagecolor}{\#\# Rows: 242491 Columns: 14\\\#\# -- Column specification ------------------------------------------------------------------\\\#\# Delimiter: "{},"{}\\\#\# chr \ (4): Series Name, Series Code, Country Name, Country Code\\\#\# dbl (10): 2011 [YR2011], 2012 [YR2012], 2013 [YR2013], 2014 [YR2014], 2015 [YR2015], 2...\\\#\# \\\#\# i Use `spec()` to retrieve the full column specification for this data.\\\#\# i Specify the column types or set `show\_col\_types = FALSE` to quiet this message.}}\begin{alltt}
+\hlcom{# wait this data isn't "tidy"! }
+\hlcom{# each row is not its own observation! there are diff rows for diff vars}
+
+\hlcom{# here are the 3 variables we want to work with}
+  \hlcom{# SE.TER.GRAD.FE.SI.ZS : }
+    \hlcom{# Y: Female share of graduates from STEM programmes, tertiary (%)}
+  \hlcom{# SH.MMR.LEVE :}
+    \hlcom{# X1: Length of paid maternity leave (calendar days)}
+  \hlcom{# SP.UWT.TFRT :}
+    \hlcom{# X2: Unmet need for contraception (% of married women ages 15-49) }
+
+
+\hlcom{# first, let's keep *rows* with information for 3 variables:}
+  \hldef{keepvars} \hlkwb{<-} \hlkwd{c}\hldef{(}\hlsng{"SE.TER.GRAD.FE.SI.ZS"}\hldef{,} \hlsng{"SH.MMR.LEVE"}\hldef{,} \hlsng{"SP.UWT.TFRT"}\hldef{)}
+  \hldef{stem} \hlkwb{<-} \hldef{wbgender} \hlopt{%>%} \hlkwd{filter}\hldef{(`Series Code`} \hlopt{%in%} \hldef{keepvars)}
+    \hlcom{# NOTE: use backticks to refer to `Series Code` bc of space in col name }
+    \hlcom{# NOTE: the %in% operator checks if two vectors contain overlapping values }
+\end{alltt}
+\end{kframe}
+\end{knitrout}
+\begin{knitrout}
+\definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{kframe}
+\begin{alltt}
+\hlcom{## 2. prepare analysis data frame}
+\end{alltt}
+\end{kframe}
+\end{knitrout}
+\begin{knitrout}
+\definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{kframe}
+\begin{alltt}
+\hlcom{## A. create 3 separate df's for each variable}
+\hlcom{##    - stem.fmshstemgrads, stem.dayspaidmatleave, stem.unmetcontr}
+\hlcom{##    - each df should be a subset of rows for each variable }
+\hlcom{##    - look at the distribution of each variable in each year - any concerns?}
+
+  \hldef{stem.fmshstemgrads} \hlkwb{<-} \hldef{wbgender} \hlopt{%>%} \hlkwd{filter}\hldef{(`Series Code`} \hlopt{==} \hlsng{"SE.TER.GRAD.FE.SI.ZS"}\hldef{)}
+  \hldef{stem.dayspaidmatleave} \hlkwb{<-} \hldef{wbgender} \hlopt{%>%} \hlkwd{filter}\hldef{(`Series Code`} \hlopt{==} \hlsng{"SH.MMR.LEVE"}\hldef{)}
+  \hldef{stem.unmetcontr} \hlkwb{<-} \hldef{wbgender} \hlopt{%>%} \hlkwd{filter}\hldef{(`Series Code`} \hlopt{==} \hlsng{"SP.UWT.TFRT"}\hldef{)}
+
+  \hlkwd{summary}\hldef{(stem.fmshstemgrads)}
+\end{alltt}
+\begin{verbatim}
+##  Series Name        Series Code        Country Name       Country Code      
+##  Length:263         Length:263         Length:263         Length:263        
+##  Class :character   Class :character   Class :character   Class :character  
+##  Mode  :character   Mode  :character   Mode  :character   Mode  :character  
+##                                                                             
+##                                                                             
+##                                                                             
+##                                                                             
+##  2011 [YR2011]   2012 [YR2012]   2013 [YR2013]   2014 [YR2014]   2015 [YR2015]  
+##  Min.   :14.89   Min.   : 0.00   Min.   :19.45   Min.   :18.58   Min.   : 0.00  
+##  1st Qu.:29.63   1st Qu.:28.70   1st Qu.:28.44   1st Qu.:28.24   1st Qu.:28.20  
+##  Median :34.09   Median :33.33   Median :31.86   Median :33.68   Median :33.41  
+##  Mean   :35.63   Mean   :32.86   Mean   :32.50   Mean   :33.22   Mean   :33.99  
+##  3rd Qu.:41.22   3rd Qu.:39.94   3rd Qu.:38.40   3rd Qu.:38.07   3rd Qu.:41.25  
+##  Max.   :75.00   Max.   :49.44   Max.   :42.08   Max.   :46.33   Max.   :75.00  
+##  NA's   :201     NA's   :198     NA's   :226     NA's   :212     NA's   :169    
+##  2016 [YR2016]   2017 [YR2017]   2018 [YR2018]   2019 [YR2019]   2020 [YR2020]
+##  Min.   :16.04   Min.   :10.56   Min.   : 0.00   Min.   :31.63   Min.   : NA  
+##  1st Qu.:28.58   1st Qu.:28.66   1st Qu.:28.10   1st Qu.:33.39   1st Qu.: NA  
+##  Median :34.41   Median :34.25   Median :34.17   Median :35.16   Median : NA  
+##  Mean   :34.71   Mean   :34.27   Mean   :34.52   Mean   :35.16   Mean   :NaN  
+##  3rd Qu.:39.97   3rd Qu.:40.08   3rd Qu.:42.46   3rd Qu.:36.92   3rd Qu.: NA  
+##  Max.   :55.47   Max.   :66.67   Max.   :60.76   Max.   :38.68   Max.   : NA  
+##  NA's   :169     NA's   :180     NA's   :216     NA's   :261     NA's   :263
+\end{verbatim}
+\begin{alltt}
+  \hlkwd{summary}\hldef{(stem.dayspaidmatleave)}
+\end{alltt}
+\begin{verbatim}
+##  Series Name        Series Code        Country Name       Country Code      
+##  Length:263         Length:263         Length:263         Length:263        
+##  Class :character   Class :character   Class :character   Class :character  
+##  Mode  :character   Mode  :character   Mode  :character   Mode  :character  
+##                                                                             
+##                                                                             
+##                                                                             
+##                                                                             
+##  2011 [YR2011]   2012 [YR2012]   2013 [YR2013]   2014 [YR2014]   2015 [YR2015]  
+##  Min.   :  0.0   Min.   :  0.0   Min.   :  0.0   Min.   :  0.0   Min.   :  0.0  
+##  1st Qu.: 84.0   1st Qu.: 84.0   1st Qu.: 84.0   1st Qu.: 84.0   1st Qu.: 84.0  
+##  Median : 91.0   Median : 91.0   Median : 91.0   Median : 91.0   Median : 91.0  
+##  Mean   :101.5   Mean   :100.6   Mean   :101.9   Mean   :102.4   Mean   :101.4  
+##  3rd Qu.:112.0   3rd Qu.:112.0   3rd Qu.:112.0   3rd Qu.:112.0   3rd Qu.:112.0  
+##  Max.   :635.0   Max.   :635.0   Max.   :635.0   Max.   :635.0   Max.   :635.0  
+##  NA's   :74      NA's   :74      NA's   :74      NA's   :74      NA's   :74     
+##  2016 [YR2016]   2017 [YR2017]   2018 [YR2018]   2019 [YR2019]   2020 [YR2020]  
+##  Min.   :  0.0   Min.   :  0.0   Min.   :  0.0   Min.   :  0.0   Min.   :  0.0  
+##  1st Qu.: 84.0   1st Qu.: 84.0   1st Qu.: 84.0   1st Qu.: 84.0   1st Qu.: 84.0  
+##  Median : 98.0   Median : 98.0   Median : 98.0   Median : 98.0   Median : 98.0  
+##  Mean   :101.4   Mean   :102.1   Mean   :102.9   Mean   :103.5   Mean   :104.6  
+##  3rd Qu.:112.0   3rd Qu.:112.0   3rd Qu.:119.0   3rd Qu.:119.0   3rd Qu.:120.0  
+##  Max.   :635.0   Max.   :635.0   Max.   :635.0   Max.   :635.0   Max.   :635.0  
+##  NA's   :74      NA's   :74      NA's   :74      NA's   :74      NA's   :74
+\end{verbatim}
+\begin{alltt}
+  \hlkwd{summary}\hldef{(stem.unmetcontr)}
+\end{alltt}
+\begin{verbatim}
+##  Series Name        Series Code        Country Name       Country Code      
+##  Length:263         Length:263         Length:263         Length:263        
+##  Class :character   Class :character   Class :character   Class :character  
+##  Mode  :character   Mode  :character   Mode  :character   Mode  :character  
+##                                                                             
+##                                                                             
+##                                                                             
+##                                                                             
+##  2011 [YR2011]   2012 [YR2012]    2013 [YR2013]   2014 [YR2014]   2015 [YR2015] 
+##  Min.   : 4.30   Min.   : 4.900   Min.   : 5.90   Min.   : 5.90   Min.   : 6.5  
+##  1st Qu.:10.60   1st Qu.: 9.375   1st Qu.:13.90   1st Qu.:11.40   1st Qu.:12.3  
+##  Median :19.35   Median :14.200   Median :17.50   Median :17.90   Median :18.9  
+##  Mean   :18.93   Mean   :16.389   Mean   :19.28   Mean   :19.42   Mean   :20.0  
+##  3rd Qu.:26.32   3rd Qu.:23.100   3rd Qu.:25.00   3rd Qu.:27.43   3rd Qu.:27.4  
+##  Max.   :34.30   Max.   :35.300   Max.   :37.20   Max.   :40.20   Max.   :34.7  
+##  NA's   :231     NA's   :235      NA's   :242     NA's   :225     NA's   :240   
+##  2016 [YR2016]  2017 [YR2017]   2018 [YR2018]   2019 [YR2019]   2020 [YR2020]  
+##  Min.   : 6.0   Min.   : 6.50   Min.   : 6.30   Min.   : 8.00   Min.   :12.90  
+##  1st Qu.:13.9   1st Qu.:14.55   1st Qu.:15.05   1st Qu.:10.30   1st Qu.:21.20  
+##  Median :22.3   Median :21.99   Median :19.90   Median :21.10   Median :24.20  
+##  Mean   :21.0   Mean   :20.61   Mean   :19.86   Mean   :19.92   Mean   :23.54  
+##  3rd Qu.:28.0   3rd Qu.:23.98   3rd Qu.:23.50   3rd Qu.:24.80   3rd Qu.:26.00  
+##  Max.   :38.0   Max.   :38.00   Max.   :33.60   Max.   :37.60   Max.   :33.40  
+##  NA's   :232    NA's   :223     NA's   :228     NA's   :246     NA's   :258
+\end{verbatim}
+\begin{alltt}
+    \hlcom{# uh oh, way too many missing values in any given year!}
+    \hlcom{# obs come from diff surveys in diff years. values of vars may change slowly.}
+    \hlcom{# for now let's try using the mean over all years to reduce NAs}
+      \hlcom{# i.e. get mean fem share of STEM grads for every year (2011-2020)}
+
+
+\hlcom{## B. for each variable, create 'analysis variable' = mean value across all years for each country}
+\hlcom{##  - 1. start by reshaping data from wide to long form in each df using pivot_longer}
+\hlcom{##    - new long form df should have 1 obs for every country-year combination}
+\hlcom{##    - i.e. reshape stem.fmshstemgrads into new df stem.fmshstemgrads_long, etc.}
+\hlcom{##  - 2. next use group_by + summarise to generate aggregated stats for each group}
+\hlcom{##    - new df should have 3 columns: `Country Name`, `Country Code`, fmshstemgrads}
+\hlcom{##    - repeat for each input variable to end up with 3 data frames}
+\hlcom{##    - round to 2 decimal points if you need to}
+
+  \hlcom{# here's a basic pivot_longer example: }
+    \hlcom{# https://statisticsglobe.com/pivot_longer-and-pivot_wider-functions-in-r}
+
+  \hldef{stem.fmshstemgrads_cross} \hlkwb{<-} \hldef{stem.fmshstemgrads} \hlopt{%>%}
+    \hlkwd{pivot_longer}\hldef{(}\hlkwc{cols} \hldef{= `2011 [YR2011]`}\hlopt{:}\hldef{`2020 [YR2020]`,}
+                 \hlkwc{names_to} \hldef{=} \hlsng{"Year"}\hldef{,}       \hlcom{#ARG FOR TIME VARIABLE IN THIS EXAMPLE}
+                 \hlkwc{values_to} \hldef{=} \hlsng{"value"}\hldef{)} \hlopt{%>%} \hlcom{#ARG FOR NEW COL NAME W/VARIABLE VALUES}
+    \hlkwd{group_by}\hldef{(`Country Name`,`Country Code`)} \hlopt{%>%}
+    \hlkwd{summarise}\hldef{(}\hlkwc{fmshstemgrads} \hldef{=} \hlkwd{round}\hldef{(}\hlkwd{mean}\hldef{(value,} \hlkwc{na.rm} \hldef{=} \hlnum{TRUE}\hldef{),}\hlnum{2}\hldef{) )}
+\end{alltt}
+
+
+{\ttfamily\noindent\itshape\color{messagecolor}{\#\# `summarise()` has grouped output by 'Country Name'. You can override using the `.groups`\\\#\# argument.}}\begin{alltt}
+  \hldef{stem.dayspaidmatleave_cross}  \hlkwb{<-} \hldef{stem.dayspaidmatleave}  \hlopt{%>%}
+    \hlkwd{pivot_longer}\hldef{(}\hlkwc{cols} \hldef{= `2011 [YR2011]`}\hlopt{:}\hldef{`2020 [YR2020]`,}
+                 \hlkwc{names_to} \hldef{=} \hlsng{"Year"}\hldef{,}
+                 \hlkwc{values_to} \hldef{=} \hlsng{"value"}\hldef{)} \hlopt{%>%}
+    \hlkwd{group_by}\hldef{(`Country Name`,`Country Code`)} \hlopt{%>%}
+    \hlkwd{summarise}\hldef{(}\hlkwc{dayspaidmatleave} \hldef{=} \hlkwd{round}\hldef{(}\hlkwd{mean}\hldef{(value,} \hlkwc{na.rm} \hldef{=} \hlnum{TRUE}\hldef{),} \hlnum{2}\hldef{) )}
+\end{alltt}
+
+
+{\ttfamily\noindent\itshape\color{messagecolor}{\#\# `summarise()` has grouped output by 'Country Name'. You can override using the `.groups`\\\#\# argument.}}\begin{alltt}
+  \hldef{stem.unmetcontr_cross} \hlkwb{<-} \hldef{stem.unmetcontr} \hlopt{%>%}
+    \hlkwd{pivot_longer}\hldef{(}\hlkwc{cols} \hldef{= `2011 [YR2011]`}\hlopt{:}\hldef{`2020 [YR2020]`,}
+                 \hlkwc{names_to} \hldef{=} \hlsng{"Year"}\hldef{,}
+                 \hlkwc{values_to} \hldef{=} \hlsng{"value"}\hldef{)} \hlopt{%>%}
+    \hlkwd{group_by}\hldef{(`Country Name`,`Country Code`)} \hlopt{%>%}
+    \hlkwd{summarise}\hldef{(}\hlkwc{unmetcontr} \hldef{=} \hlkwd{round}\hldef{(}\hlkwd{mean}\hldef{(value,} \hlkwc{na.rm} \hldef{=} \hlnum{TRUE}\hldef{),} \hlnum{2}\hldef{) )}
+\end{alltt}
+
+
+{\ttfamily\noindent\itshape\color{messagecolor}{\#\# `summarise()` has grouped output by 'Country Name'. You can override using the `.groups`\\\#\# argument.}}\begin{alltt}
+\hlcom{## C. join 3 new df's together to get a single "tidy" dataframe}
+\hlcom{##    - include 3 analysis variables and `Country Name` and `Country Code`}
+\hlcom{##    - how many countries have non-missing values for all 3 vars?}
+
+  \hldef{stem.cross} \hlkwb{<-} \hldef{stem.fmshstemgrads_cross} \hlopt{%>%}
+    \hlkwd{inner_join}\hldef{(stem.unmetcontr_cross)} \hlopt{%>%}
+    \hlkwd{inner_join}\hldef{(stem.dayspaidmatleave_cross)} \hlopt{%>%}
+    \hlkwd{na.omit}\hldef{()}
+\end{alltt}
+
+
+{\ttfamily\noindent\itshape\color{messagecolor}{\#\# Joining with `by = join\_by(`Country Name`, `Country Code`)`\\\#\# Joining with `by = join\_by(`Country Name`, `Country Code`)`}}\begin{alltt}
+  \hlcom{# think about sample selection issues! }
+  \hlcom{# are missing observations for original variables randomly distributed?}
+\end{alltt}
+\end{kframe}
+\end{knitrout}
+\begin{knitrout}
+\definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{kframe}
+\begin{alltt}
+\hlcom{## 3. exploratory analysis}
+\end{alltt}
+\end{kframe}
+\end{knitrout}
+\begin{knitrout}
+\definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{kframe}
+\begin{alltt}
+\hlcom{## stem.cross has issues w/measurement error and non-random sample selection}
+\hlcom{## these issues limit the usefulness of this data for credible project work}
+\hlcom{## but we'll proceed a bit further for this in-class exercise }
+
+
+\hlcom{## A. explore relationship between days paid maternity leave & fem share of STEM grads}
+    \hlkwd{ggplot}\hldef{(stem.cross,}
+           \hlkwd{aes}\hldef{(}\hlkwc{x} \hldef{= dayspaidmatleave,}
+               \hlkwc{y} \hldef{= fmshstemgrads,}
+               \hlkwc{label} \hldef{= `Country Code`,}
+               \hlkwc{color} \hldef{= unmetcontr))} \hlopt{+}
+      \hlkwd{geom_point}\hldef{()} \hlopt{+}
+      \hlkwd{stat_dens2d_filter}\hldef{(}\hlkwc{geom} \hldef{=} \hlsng{"text_repel"}\hldef{,} \hlkwc{keep.fraction} \hldef{=} \hlnum{0.2}\hldef{)} \hlopt{+}
+      \hlkwd{scale_colour_gradient}\hldef{(}\hlkwc{low} \hldef{=} \hlsng{"blue"}\hldef{,} \hlkwc{high} \hldef{=} \hlsng{"red"}\hldef{)} \hlopt{+}
+      \hlkwd{ylab}\hldef{(}\hlsng{"Female share of graduates from STEM programs"}\hldef{)} \hlopt{+} \hlkwd{xlab}\hldef{(}\hlsng{"Days of paid maternity leave"}\hldef{)} \hlopt{+}
+      \hlkwd{labs}\hldef{(}\hlkwc{color} \hldef{=} \hlsng{"Unmet need \textbackslash{}nfor contraception \textbackslash{}n(% of married women \textbackslash{}nages 15-49)"}\hldef{)} \hlopt{+}
+      \hlkwd{theme}\hldef{(}\hlkwc{legend.position} \hldef{=} \hlsng{"right"}\hldef{)}
+\end{alltt}
+\end{kframe}
+
+{\centering \includegraphics[width=.6\linewidth]{figure/Example-WomenInStem-inclass-Rnwunnamed-chunk-9-1} 
+
+}
+
+
+\begin{kframe}\begin{alltt}
+  \hlcom{# how would you describe this relationship?}
+    \hlcom{# how would you describe the variation that we're using? }
+
+    \hlkwd{cor}\hldef{(stem.cross}\hlopt{$}\hldef{dayspaidmatleave, stem.cross}\hlopt{$}\hldef{fmshstemgrads)}
+\end{alltt}
+\begin{verbatim}
+## [1] 0.244336
+\end{verbatim}
+\begin{alltt}
+      \hlcom{# it's is positive (though doesn't appear to be linear)}
+      \hlcom{# we're using cross-sectional variation across countries}
+
+
+\hlcom{## B. could other country-level differences in part explain this relationship?}
+\hlcom{##    - what can you check in the data? }
+
+    \hlkwd{cor}\hldef{(stem.cross}\hlopt{$}\hldef{dayspaidmatleave, stem.cross}\hlopt{$}\hldef{unmetcontr)}
+\end{alltt}
+\begin{verbatim}
+## [1] -0.1300048
+\end{verbatim}
+\begin{alltt}
+    \hlcom{# surely there are other confounding factors! this is the usual problem w/cross-sectional variation}
+    \hlcom{# this cross-sectional variation in X (dayspaidmatleave) is endogenous!}
+    \hlcom{# i.e. it isn't random w/respect to other determinants of Y, such as unmet contraception need (X2)}
+
+
+\hlcom{## C. what can we do to improve internal validity?}
+    \hlcom{# i.e. we at least want to identify a more informative correlation, if not an arguably causal effect}
+    \hlcom{# trying to explicitly control for all of these other factors is usually an uphill battle}
+    \hlcom{# a stronger research design might focus on...}
+      \hlcom{# time variation "within-countries" (using panel data & fixed effects)}
+      \hlcom{# even better: exploit sharper policy changes giving variation in X    }
+\end{alltt}
+\end{kframe}
+\end{knitrout}
+
+The R session information (including the OS info, R version and all
+packages used):
+
+\begin{knitrout}
+\definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{kframe}
+\begin{alltt}
+\hlkwd{sessionInfo}\hldef{()}
+\end{alltt}
+\begin{verbatim}
+## R version 4.4.2 (2024-10-31 ucrt)
+## Platform: x86_64-w64-mingw32/x64
+## Running under: Windows 11 x64 (build 22631)
+## 
+## Matrix products: default
+## 
+## 
+## locale:
+## [1] LC_COLLATE=English_United States.utf8  LC_CTYPE=English_United States.utf8   
+## [3] LC_MONETARY=English_United States.utf8 LC_NUMERIC=C                          
+## [5] LC_TIME=English_United States.utf8    
+## 
+## time zone: America/New_York
+## tzcode source: internal
+## 
+## attached base packages:
+## [1] stats     graphics  grDevices utils     datasets  methods   base     
+## 
+## other attached packages:
+##  [1] ggpmisc_0.6.1   ggpp_0.5.8-1    ggrepel_0.9.6   lubridate_1.9.4 forcats_1.0.0  
+##  [6] stringr_1.5.1   dplyr_1.1.4     purrr_1.0.2     readr_2.1.5     tidyr_1.3.1    
+## [11] tibble_3.2.1    ggplot2_3.5.2   tidyverse_2.0.0
+## 
+## loaded via a namespace (and not attached):
+##  [1] generics_0.1.3     stringi_1.8.4      lattice_0.22-6     hms_1.1.3         
+##  [5] magrittr_2.0.3     evaluate_1.0.3     grid_4.4.2         timechange_0.3.0  
+##  [9] Matrix_1.7-1       tinytex_0.57       survival_3.7-0     scales_1.3.0      
+## [13] cli_3.6.3          crayon_1.5.3       rlang_1.1.5        bit64_4.6.0-1     
+## [17] munsell_0.5.1      splines_4.4.2      withr_3.0.2        parallel_4.4.2    
+## [21] tools_4.4.2        SparseM_1.84-2     polynom_1.4-1      tzdb_0.4.0        
+## [25] MatrixModels_0.5-3 colorspace_2.1-1   vctrs_0.6.5        R6_2.5.1          
+## [29] lifecycle_1.0.4    bit_4.5.0.1        vroom_1.6.5        MASS_7.3-61       
+## [33] pkgconfig_2.0.3    pillar_1.10.1      gtable_0.3.6       glue_1.8.0        
+## [37] Rcpp_1.0.14        xfun_0.50          tidyselect_1.2.1   highr_0.11        
+## [41] rstudioapi_0.17.1  knitr_1.49         farver_2.1.2       labeling_0.4.3    
+## [45] compiler_4.4.2     quantreg_6.00
+\end{verbatim}
+\begin{alltt}
+\hlkwd{Sys.time}\hldef{()}
+\end{alltt}
+\begin{verbatim}
+## [1] "2025-09-30 12:22:06 EDT"
+\end{verbatim}
+\end{kframe}
+\end{knitrout}
+
+
+\end{document}
