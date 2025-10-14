@@ -1,3 +1,4 @@
+
 ---
 title: 'DSPC 7514 Assignment 5: \break Water shutoffs, race, and income in Detroit: \break Community impact by race and income'
 author: "YOUR NAME"
@@ -62,4 +63,5 @@ In this section, we'll explore variation *between* different groups of Census tr
 # Conclusion
 
 ## Based on the "cross-sectional" and time series analysis conducted above, does race or income appear to be a more important factor for explaining what type of households are most affected by the public water shutoffs? Explain.
+
 
