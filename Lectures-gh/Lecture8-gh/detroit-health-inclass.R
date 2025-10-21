@@ -3,7 +3,7 @@
 ## [ PROJ ] Week 8: Water shutoffs, race, and health in Detroit (Part 2)
 ## [ FILE ] detroit-health.r
 ## [ AUTH ] < YOUR NAME >
-## [ INIT ] < March 11, 2025 >
+## [ INIT ] < Oct 21, 2025 >
 ##
 ################################################################################
 
@@ -144,9 +144,9 @@ getwd()
   # join to end up with zipcode-month observations - how many should there be? 
   # also use mutate along with make_date to create a date variable(month_year)
   # sort by zip5, then year, then month
-  joined_temp1 <- left_join(input_hcup_zip, 
-                            MI_acs_zip.clean, 
-                            by = c("zip5", "year")) %>% 
+  joined_temp1 <- input_hcup_zip %>% 
+    left_join(MI_acs_zip.clean,
+              by = c("zip5", "year")) %>% 
     mutate(month_year = make_date(year, month)) %>% 
     arrange(zip5, year, month)
   
@@ -191,9 +191,9 @@ getwd()
     # 48225 (Harper Woods) and 48127 (Dearborn Heights)
       #inspect and rename columns so you 1 col each for year and month w/no NAs
     
-    joined_temp2 <- full_join(joined_temp1, 
-                              si_zip_ym, 
-                              by = c("zip5", "month_year")) %>% 
+    joined_temp2 <- joined_temp1 %>% 
+      full_join(si_zip_ym,
+                by = c("zip5", "month_year")) %>% 
       filter(zip5 != 48225, zip5 != 48127)  %>%  
       #drop Harper Woods & Dearborn Heights (53 obs) bc they extend past Detroit
       mutate(si_count = replace_na(si_count, 0)) %>%
@@ -226,8 +226,9 @@ getwd()
   # are any Detroit zip codes missing?
   
   # Q: WHAT KIND OF JOIN DO WE WANT
-  joined_temp4 <- left_join(joined_temp3, input_vacancy_qtr, 
-                            by = c("zip5", "year", "quarter"))
+  joined_temp4 <- joined_temp3 %>% 
+    left_join(input_vacancy_qtr,
+              by = c("zip5", "year", "quarter"))
   # inspect
   head(joined_temp4)
   
@@ -245,7 +246,8 @@ getwd()
   
   
   # get FE dummy for each year-month combination, and for each zipcode
-  zip_panel <- dummy_cols(zip_panel, select_columns = c("ym", "zip5")) 
+  zip_panel <- dummy_cols(zip_panel, 
+                          select_columns = c("ym", "zip5")) 
 
   
 # G. Prepare cross-sectional data for comparative analysis
@@ -268,7 +270,7 @@ getwd()
            vac_res_p100 = (vac_res / total_res) * 100 )
   
   # sample code if you want to save this as a dataframe or csv
-  save(zip_cross, file="Data/zip_cross.rdata")
+  save(zip_cross, file = "Data/zip_cross.rdata")
             
   # remove temporary data frames from environment (check the upper right pane)
   rm(joined_temp1, joined_temp2, joined_temp3, joined_temp4)
@@ -314,8 +316,13 @@ getwd()
   
   
   # check correlation
-  cor(zip_cross$si_1000, zip_cross$vac_res_p100, use = "pairwise.complete.obs")
-  wtd.cor(zip_cross$si_1000, zip_cross$vac_res_p100, weight = zip_cross$pop)
+  cor(zip_cross$si_1000, 
+      zip_cross$vac_res_p100, 
+      use = "pairwise.complete.obs")
+  
+  wtd.cor(zip_cross$si_1000, 
+          zip_cross$vac_res_p100, 
+          weight = zip_cross$pop)
   
   # QUESTION: what should we make of this association? 
   # think about internal validity
