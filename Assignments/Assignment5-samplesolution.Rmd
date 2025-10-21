@@ -1,6 +1,5 @@
-
 ---
-title: 'U6614 Assignment 5: \break Water shutoffs, race, and income in Detroit: \break Community impact by race and income'
+title: 'DSPC 7514 Assignment 5: \break Water shutoffs, race, and income in Detroit: \break Community impact by race and income'
 author: "SAMPLE SOLUTION"
 date: "`r Sys.Date()`"
 output:
@@ -83,7 +82,7 @@ tract <- tract_ym %>%
 ```
 
 
-## Visualize and interpret the relationship between share Black and shutoffs per capita across census tracts in Detroit.
+## Visualize and interpret the relationship between share Black and shutoffs per capita across census tracts in Detroit. Make sure to clearly label your plot axes.
 
 ```{r q1.1}
 
@@ -92,7 +91,9 @@ tract <- tract_ym %>%
                            y = si_1000, weight = pop, size = pop)) + 
     geom_point(alpha = 0.1) +
     scale_size(range = c(0.1, 6), guide = "none") +
-    ggtitle("Shutoffs per capita on Black share of population")
+    ggtitle("Shutoffs per capita on Black share of population") +
+    xlab("Share of Black residents") +
+    ylab("Shutoffs per 1,000 residents") 
 ```
 
 
@@ -101,7 +102,7 @@ The above scatterplot plots the relationship between shutoffs per capita and the
 Also note that all Census tract statistics based on the American Community Survey (for share Black, median household income, and population) are calculated as averages from 2010 through 2017. 
 
 
-## Visualize and interpret the relationship between median income and shutoffs per capita across census tracts in Detroit.
+## Visualize and interpret the relationship between median income and shutoffs per capita across census tracts in Detroit. Make sure to clearly label your plot axes.
 
 ```{r q1.2}
 #scatterplot: median income vs shutoffs
@@ -109,21 +110,18 @@ Also note that all Census tract statistics based on the American Community Surve
                            y = si_1000, weight = pop, size = pop)) + 
     geom_point(alpha = 0.1) +
     scale_size(range = c(0.1, 6), guide = "none") +
-    ggtitle("Shutoffs per capita on median income")
-
+    ggtitle("Shutoffs per capita on median income") +
+    xlab("Median household income") +
+    ylab("Shutoffs per 1,000 residents") 
 ```
 
 The above scatterplot plots the relationship between shutoffs per capita and median household income across Census tracts (Census tracts are again weighted by population). The overwhelming majority of tracts have a median income below 50,000, and the relationship between shutoffs per capita and median income is positive (albeit much weaker than the positive correlation between shutoffs per capita and share Black, `r round(wtd.cor(tract$medianinc, tract$si_1000, weight = tract$pop)[1,1],2)` compared to `r round(wtd.cor(tract$blackshare, tract$si_1000, weight = tract$pop)[1,1],2)`).
 
 
-## Visualize and interpret how shutoffs per capita relate to both Black share and median income on the ***same*** plot. Does race or income appear to be more salient? 
+## Visualize and interpret how shutoffs per capita relate to both Black share and median income on the ***same*** plot. Make sure to clearly label your plot axes and legend. Does race or income appear to be more salient? 
 
 ```{r q1.3}
-
 #scatterplot: median income & race vs shutoffs
-  #HINT: try plotting Black share on the X-axis and median income on the Y-axis
-  #      then experiment w/marker size and color to indicate greater shutoff rates
-
   ggplot(data = tract, 
          aes(x = blackshare, 
              y = medianinc, 
@@ -133,10 +131,9 @@ The above scatterplot plots the relationship between shutoffs per capita and med
     scale_size(range = c(0.1, 6), guide = "none") +
     scale_color_gradient(low="purple", high="red") +
     ggtitle("Shutoffs per capita by median income and Black share") + 
-    xlab("Share of Black Residents") +
+    xlab("Share of Black residents") +
     ylab("Median Income") + 
-    labs(color = "Shutoff Intensity")
-
+    labs(color = "Shutoffs per 1,000 residents")
 ```
 
 The above scatterplot shows how shutoffs per capita vary along with both share Black and median household income: tracts with more shutoffs per capita appear as larger, redder circles. While most tracts in Detroit are relatively low income and over 75% Black, it's clear that the tracts with the highest shutoffs per capita tend to be those with the highest share Black, regardless of median income. 
@@ -148,7 +145,7 @@ The above scatterplot shows how shutoffs per capita vary along with both share B
 
 In this section, we'll explore variation *between* different groups of Census tracts and over time *within* groups (with groups defined based on tract-level income and racial composition).
 
-## Plot and interpret shutoffs per capita over time for tracts below/above citywide median housheold income (show two time series on a single plot).
+## Plot and interpret shutoffs per capita over time for tracts below/above citywide median housheold income (show two time series on a single plot). Make sure to clearly label your plot axes and legend.
 
 ```{r, results = 'hide', echo = FALSE}
 
@@ -179,27 +176,26 @@ In this section, we'll explore variation *between* different groups of Census tr
                                     levels = c(0,1),
                                     labels = c("Below median income", 
                                                "Above median income"))
-
 ```
 
 
 ```{r q2.1}
 #time series plot of SI per capita for tracts above/below citywide median income
-   ggplot(ym_inc, 
+  ggplot(ym_inc, 
          aes(x = date, y = si_1000)) + 
     geom_line(aes(color = inc_above_median)) + 
     ggtitle("Time series plot of shutoffs by tracts above/below median income") + 
   xlab("Year") +
-    ylab("Shutoff Intensity") + 
+    ylab("Shutoffs per 1,000 residents") + 
+    xlab("") +
     labs(color = "Tract Income") +
     scale_color_brewer(palette = "Set2")
-
 ```
 
 Shutoffs per capita exhibit pronounced seasonal variation, but beginning in 2014 monthly shutoffs per capita are nearly identical in Census tracts above and below the citywide median. 
 
 
-## Plot and interpret shutoffs per capita over time for tracts that are at least 75% Black and those that aren't (show two time series on a single plot).
+## Plot and interpret shutoffs per capita over time for tracts that are at least 75% Black and those that aren't (show two time series on a single plot). Make sure to clearly label your plot axes and legend.
 
 ```{r, results = 'hide', echo = FALSE}
 #get total population of Detroit tracts which are above/below 75% black
@@ -226,7 +222,6 @@ Shutoffs per capita exhibit pronounced seasonal variation, but beginning in 2014
   ym_race$black75 <- factor(ym_race$black75,
                             levels = c(0,1),
                             labels = c("Less than 75% Black", "At least 75% Black"))
-
 ```
 
 
@@ -236,12 +231,10 @@ Shutoffs per capita exhibit pronounced seasonal variation, but beginning in 2014
          aes(x = date, y = si_1000)) + 
     geom_line(aes(color = black75)) + 
     ggtitle("Time series plot of shutoffs by tracts above/below 75% Black") + 
-    xlab("Year") +
-    ylab("Shutoff Intensity") + 
+    xlab("") +
+    ylab("Shutoffs per 1,000 residents") + 
     labs(color = "Tract Share Black") +
     scale_color_brewer(palette = "Set2") 
-
-
 ```
 
 When comparing shutoffs per capita over time for Census tracts that are at least 75% Black to other tracts, pronounced differences are visible: monthly shutoffs per capita are noticeably higher in predominantly Black Census tracts compared to other tracts in nearly every month. 
