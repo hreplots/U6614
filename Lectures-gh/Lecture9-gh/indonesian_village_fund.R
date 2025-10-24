@@ -3,13 +3,13 @@
 ## [ PROJ ] Working with strings and dates 
 ## [ FILE ] indonesian_village_fund.r
 ## [ AUTH ] < YOUR NAME >
-## [ INIT ] < October 2024 >
+## [ INIT ] < Oct 23, 2025 >
 ##
 ################################################################################
 
-#This lesson works with messy panel data on Village Fund Allocations in Indonesia
+# This lesson works w/messy panel data on Village Fund Allocations in Indonesia
 
-#Organization of this R script:
+# Organization of this R script:
 
   #1. Cleaning up Village Fund data using string functions
   #2. Using the Village Fund data to work with dates
