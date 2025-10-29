@@ -12,7 +12,7 @@
 <meta name="author" content="Instructor: Harold Stolper" />
 <meta name="author" content="Submission author: YOUR NAME" />
 
-<meta name="date" content="2025-03-28" />
+<meta name="date" content="2025-10-28" />
 
 <title>Difference-in-differences with Staggered Treatments</title>
 
@@ -2836,7 +2836,7 @@ font-size: 0.95em;
 <h3 class="subtitle">Gun-related Deaths and Stand Your Ground Laws (Cheng &amp; Hoekstra 2013)</h3>
 <h4 class="author">Instructor: Harold Stolper</h4>
 <h4 class="author">Submission author: YOUR NAME</h4>
-<h4 class="date">2025-03-28</h4>
+<h4 class="date">2025-10-28</h4>
 
 </div>
 
@@ -3194,7 +3194,7 @@ Here, <span class="math inline">\(evertreated_s\)</span> is a binary variable in
 <h1><span class="header-section-number">7</span> So what should we do?</h1>
 <p>Now that we understand what TWFE models do tell us, how should we approach estimation in a staggered rollout design?</p>
 <p>It turns out that with a staggered rollout, TWFE models can yield biased treatment effect estimates under certain conditions. The Goodman-Bacon decomposition demonstrates how the TWFE estimate is the weighted average of the effect from the different types of comparisons. Some of these comparisons may be ‘good’ for the purposes of causal inference: (1) treated units to never treated units (good!); and (2) earlier treated units to not-yet treated units (good provided there are no anticipation effects). When the time profile of treatment effects is heterogeneous, the third comparison, later treated units with earlier treated units, is ‘bad’!</p>
-<p>The problem is that the earlier treated group is not a good control group for the later treated group. This is because earlier treated units are on a different trajectory from later treated units because they have been exposed to the treatment for longer. The takeaway is that we don’t want to obtain estimates that are driven in part by this third type of comparison. Relatedly, some of the weights obtained from the Goodman-Bacon decompostion can in fact be negative! The consequences of this can be drastic, in some cases yielding negative treatment effects when the true effect is actually positive for all units.</p>
+<p>The problem is that the earlier treated group is not a good control group for the later treated group. This is because earlier treated units are on a different trajectory from later treated units because they have been exposed to the treatment for longer. The takeaway is that we don’t want to obtain estimates that are driven in part by this third type of comparison. Relatedly, some of the weights obtained from the Goodman-Bacon decompostion can in fact be negative! Early treated units can get negative weights if they are used as a control for a large number of later-treated units (Roth et al., 2023). The consequences of this can be drastic, in some cases yielding negative treatment effects when the true effect is actually positive for all units.</p>
 <p>There are a number of papers that have explored this problem and advanced solutions… along with their own R packages! We’ll stop here, but you can implement alternative estimators from packages such as <code>did</code> (Callaway and Sant’Anna 2021), <code>did_multiplegt</code> (Chaisemartin and D’Haultfœuille 2020, 2021), and <code>fixest::sunab</code> (Sun and Abraham 2020), among others. <a href="https://asjadnaqvi.github.io/DiD/">Here</a> is a good resource on DID solutions using R, as well as Python and Stata.</p>
 </div>
 
