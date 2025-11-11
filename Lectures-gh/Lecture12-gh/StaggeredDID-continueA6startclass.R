@@ -3,7 +3,7 @@
 ## [ PROJ ] Difference-in-differences with Staggered Treatments 
 ## [ FILE ] StaggeredDID.R
 ## [ AUTH ] < YOUR NAME >
-## [ INIT ] < Nov. 2024 >
+## [ INIT ] < Nov. 2025 >
 ##
 ################################################################################
 
