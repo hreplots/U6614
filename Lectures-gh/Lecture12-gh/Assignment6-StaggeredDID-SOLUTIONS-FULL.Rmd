@@ -27,7 +27,7 @@ library(kableExtra)
 library(fixest)
 library(ggfixest)
 library(bacondecomp)
-library(Manu)
+# library(Manu)
 ```
 
 <style type="text/css">
@@ -164,11 +164,13 @@ data %>%
 ```{r desc2-5}
 # hom_rate histogram
   data %>% 
+  filter(year == 2000) %>% 
     ggplot(aes(x = hom_rate)) + 
     geom_histogram(binwidth = 1)
 
 # ln(hom_rate) histogram
   data %>% 
+  filter(year == 2000) %>% 
     ggplot(aes(x = l_hom_rate)) + 
     geom_histogram(binwidth = 0.25)
 ```
@@ -359,7 +361,7 @@ data %>%
 
 ## Your plot should show that the gap in log homicide rate between 2006 adopters and never-treated states widens in 2006, the first year the treatment was in effect, after which the gap fluctuates a bit but is more or less stable. In other words, there is a positive and immediate effect of the law on the log homicide rate. Discuss any internal validity concerns that you have. Do you have any reason to believe that the positive effect we observe from 2005 to 2006 could overstate or understate the true effect?
 
-> <span style="color: #1565c0;"><font size="4">ANSWER: The fact that that the log of the homicide rate is converging prior to the treatment in 2006 suggests that there are omitted time varying factors that are affecting outcomes in the treatment and comparison groups differently. A violation of parallel trends is a form of omitted variable bias which threatens the internal validity of the estimated treatment effect.<br><br>If this narrowing gap would have persisted into the treatment period in the absence of the treatment, it implies that the counterfactual gap between 2006 adopters and never treated states would have been even smaller. If this were the case, estimated effects would be understated relative to the true effect.</font> </span>
+> <span style="color: #1565c0;"><font size="4">ANSWER: The fact that the log of the homicide rate is converging prior to the treatment in 2006 suggests that there are omitted time varying factors that are affecting outcomes in the treatment and comparison groups differently. A violation of parallel trends is a form of omitted variable bias which threatens the internal validity of the estimated treatment effect.<br><br>If this narrowing gap would have persisted into the treatment period in the absence of the treatment, it implies that the counterfactual gap between 2006 adopters and never treated states would have been even smaller. If this were the case, estimated effects would be understated relative to the true effect.</font> </span>
 
 
 ## Discuss any external validity concerns that you have.
@@ -470,7 +472,7 @@ Why are we interested in the $\beta^{pre}_j$ parameters? These coefficients are 
   twfe_es <- feols(l_hom_rate ~ i(rel_year, evertreated, ref = -1) | sid + year, 
                  data = data_es,
                  cluster = ~sid,
-                 weights = data$population)
+                 weights = data_es$population)
   summary(twfe_es)
   
 # plot estimates
@@ -485,7 +487,7 @@ Let's walk through what this plot is showing us. First, recall the estimated ave
 
 The above event study plot helps us to assess the plausibility of parallel trends. We can never confirm with absolute certainty that the parallel trends assumption holds, as they are inherently unobservable: the assumption says the counterfactual path of treated states during the treatment period is captured by comparison states, and we never observe these counterfactual trends! What the above event study plot lets us do is test whether *prior trends* are parallel; to examine whether treated and untreated states were trending similarly before they were treated. Indeed, we observe that all of the estimate coefficients prior to the treatment, prior to $j = -1$, are not statistically significant — we know this because none of the plotted 95% confidence intervals (using SEs clustered at the state level) intersect with zero. Recall how we interpret each $\beta^{pre}_j$ estimate: as the difference in the log of the homicide rate between each pre-treatment period and the reference period for treated states, compared to the same difference for the comparison group of states. It turns out that there are additional limitations to relying on the familiar hypothesis test for statistically significant differences. They are beyond the scope of this course, but if you're interested you can read Section 4.4 of [Roth et al 2023](https://www.jonathandroth.com/assets/files/DiD_Review_Paper.pdf#page=16.46).
 
-The fact that plot seems to be consistent with parallel *pre-trends* is a good sign for the parallel trends assumption, the remaining question is whether anything else coinciding with the treatment period may have affected adopting states differently from non-adopting states.
+The fact that the plot seems to be consistent with parallel *pre-trends* is a good sign for the parallel trends assumption, the remaining question is whether anything else coinciding with the treatment period may have affected adopting states differently from non-adopting states.
 
 The event study plot also allows us to examine the dynamics of the treatment effect, which fluctuates between .07 and .13 throughout the treatment window, or an average increase in each treatment period of approximately 7 to 13 percent in the homicide rate.
 
@@ -582,8 +584,7 @@ ggplot(df_bacon) +
     labs(x = "Weight", y = "Estimate", shape = "Type") +
     labs(color    = "Type", 
          shape    = "Type") +
-    theme_minimal() +
-    scale_colour_manual(values = get_pal("Gloomy_Nudi"))
+    theme_minimal()
 ```
 
 
@@ -593,6 +594,6 @@ Now that we understand what TWFE models do tell us, how should we approach estim
 
 It turns out that with a staggered rollout, TWFE models can yield biased treatment effect estimates under certain conditions. The Goodman-Bacon decomposition demonstrates how the TWFE estimate is the weighted average of the effect from the different types of comparisons. Some of these comparisons may be 'good' for the purposes of causal inference: (1) treated units to never treated units (good!); and (2) earlier treated units to not-yet treated units (good provided there are no anticipation effects). When the time profile of treatment effects is heterogeneous, the third comparison, later treated units with earlier treated units, is 'bad'!
 
-The problem is that the earlier treated group is not a good control group for the later treated group. This is because earlier treated units are on a different trajectory from later treated units because they have been exposed to the treatment for longer. The takeaway is that we don't want to obtain estimates that are driven in part by this third type of comparison. Relatedly, some of the weights obtained from the Goodman-Bacon decompostion can in fact be negative! The consequences of this can be drastic, in some cases yielding negative treatment effects when the true effect is actually positive for all units. 
+The problem is that the earlier treated group is not a good control group for the later treated group. This is because earlier treated units are on a different trajectory from later treated units because they have been exposed to the treatment for longer. The takeaway is that we don't want to obtain estimates that are driven in part by this third type of comparison. Relatedly, some of the weights obtained from the Goodman-Bacon decompostion can in fact be negative! Early treated units can get negative weights if they are used as a control for a large number of later-treated units (Roth et al., 2023). The consequences of this can be drastic, in some cases yielding negative treatment effects when the true effect is actually positive for all units. 
 
 There are a number of papers that have explored this problem and advanced solutions... along with their own R packages! We'll stop here, but you can implement alternative estimators from packages such as `did` (Callaway and Sant’Anna 2021), `did_multiplegt` (Chaisemartin and D’Haultfœuille 2020, 2021), and `fixest::sunab` (Sun and Abraham 2020), among others. [Here](https://asjadnaqvi.github.io/DiD/) is a good resource on DID solutions using R, as well as Python and Stata.

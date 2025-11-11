@@ -165,11 +165,13 @@ data %>%
 ```{r desc2-5}
 # hom_rate histogram
   data %>% 
+  filter(year == 2000) %>% 
     ggplot(aes(x = hom_rate)) + 
     geom_histogram(binwidth = 1)
 
 # ln(hom_rate) histogram
   data %>% 
+  filter(year == 2000) %>% 
     ggplot(aes(x = l_hom_rate)) + 
     geom_histogram(binwidth = 0.25)
 ```
