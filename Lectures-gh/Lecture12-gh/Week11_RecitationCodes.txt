@@ -1,0 +1,75 @@
+# Codes for applying Callaway and Sant'Anna methods ==========
+
+library(tidyverse);library(rFIA);library(sf);library(stringr);library(fipio)
+library(tictoc);library(did)
+
+fia.bm.dead <- did::att_gt(data = fia.w.eab_panel %>% 
+                                  mutate(log_BIO_ACRE_ALIVE = log(BIO_ACRE_ALIVE),
+                                         log_BIO_ACRE_DEAD = log(BIO_ACRE_ALL - BIO_ACRE_ALIVE),
+                                         BIO_ACRE_DEAD = BIO_ACRE_ALL - BIO_ACRE_ALIVE,
+                                         geoID.n = as.numeric(as.factor(geoID))), 
+                        yname = "BIO_ACRE_DEAD", 
+                        idname = "geoID.n",
+                        control_group = "notyettreated",
+                        tname = "YEAR", 
+                        gname = "year_disc",
+                        allow_unbalanced_panel = T,
+                        panel = T, xformla = NULL, est_method ="dr")
+
+ggdid(aggte(fia.bm.dead, 
+      type = "dynamic", min_e = -10, max_e = 15,
+      na.rm = T))
+
+
+
+# Visualization examples =========
+
+library(tidyverse);library(ggsci);library(splines);library(zoo);library(wesanderson)
+library(paletteer);library(sf)
+
+# Figure 1a of Kim and Gillingham 2025, Journal of the Association of Environmental and Resource Economists
+
+st_as_sf(direction.dat) %>% 
+  ggplot(aes(fill = GHI.anom)) + 
+  geom_sf(aes(color = SMOKE_BIN, linewidth= SMOKE_BIN)) +
+  geom_spoke(aes(x = lon, y = lat, angle = ((630-th) %% 360)*pi/180,
+                 radius = 0.05,),
+             arrow = arrow(length = unit(0.1, "inches")),
+             alpha = .35, linewidth = .75, color = 'darkblue') +
+  geom_segment(aes(x = x.90291 - 0.2,
+                   xend = x.90291,
+                   y = y.90291 - 0.2, 
+                   yend = y.90291), linewidth = 1) +
+  annotate("text", x = x.90291 - 0.22, 
+           y = y.90291 - 0.22, 
+           label = "D", size = 5) +
+  geom_segment(aes(x = -118.2,
+                   xend = -118.1,
+                   y = 34, 
+                   yend = 34.3), linewidth = 1) +
+  annotate("text", x = -118.1+0.02, 
+           y = 34.3 + 0.02, 
+           label = "B", size = 5) +
+  geom_segment(aes(xend = x.91320+0.01,
+                   x = -119,
+                   y = 34.5, 
+                   yend = y.91320), linewidth = 1) +
+  annotate("text", x = -119-0.01, 
+           y = 34.5+0.03, 
+           label = "C", size = 5)+
+  geom_point(aes(x=source.wf.x, y = source.wf.y), shape = 17, color = 'black', size = 3) +
+  geom_segment(aes(x = source.wf.x+0.005, xend = -118.2, y = source.wf.y+0.007, yend = 34.6), linewidth = 1) +
+  annotate("text", x=-118.2+0.01, y = 34.6+0.02, 
+           label = "A", size = 5) +
+  scale_fill_paletteer_c("grDevices::Geyser", direction = -1, n.breaks = 10) +
+  scale_color_manual(values = c("black", "red")) +
+  scale_linewidth_manual(values = c(0, 1.2)) +
+  theme_void() +
+  labs(x = '', y = '', color = '', linewidth = '', fill = "GHI anomaly") +
+  theme(legend.position = 'right',
+        legend.text = element_text(size = 12),
+        legend.title = element_text(size = 12),
+        plot.margin=grid::unit(c(0,0,0,0), "mm")) +
+  guides(fill=guide_colorbar(barheight = 22,label.position="right"),
+         color = 'none', linewidth = 'none')
+
