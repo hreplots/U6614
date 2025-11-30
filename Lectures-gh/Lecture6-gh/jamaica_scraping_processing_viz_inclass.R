@@ -6,7 +6,6 @@
 
 library(rvest)
 library(tidyverse)
-library(tidyr)
 library(lubridate)
 library(sf)
 library(gganimate)
@@ -38,19 +37,23 @@ library(gganimate)
 
   url <- "https://www.indecom.gov.jm/report/2017-security-force-related-fatalities"
   webpage <- read_html(url)
-  tables <- webpage %>% html_table()
+  str(webpage)
+  
+  tables <- webpage %>% html_table() # estract HTML tables
   length(tables)  # Check how many tables were extracted
+  str(tables)
   tables[[1]]  # View the first table
   
   # Works perfectly! But will require some cleaning. 
-  # Can I check two URLS?   
-  url1 <- c("https://www.indecom.gov.jm/report/2017-security-force-related-fatalities","https://www.indecom.gov.jm/report/2017-security-force-related-fatalities")
+  # Can we read 2 URLs? let's test by using read_html() on a vector of 2 tables   
+  url_test <- c("https://www.indecom.gov.jm/report/2017-security-force-related-fatalities",
+            "https://www.indecom.gov.jm/report/2017-security-force-related-fatalities")
   webpage <- read_html(url1[1])
 
   
 ### 2.1b - Building a dataframe with the complete URL list   
 
-  # create a df wit one column that stores the URLs
+  # create a df with one column that stores the URLs
   urldf <- data.frame(ulist = url) 
   
   for (year in 2018:2024){
@@ -84,7 +87,7 @@ library(gganimate)
     # extract var names, use to set column names, and then remove 1st row
     new_names <- as.character(extract_df[1, ])
     colnames(extract_df) <- new_names
-    extr_table <- extract_df[-1, ]  # remove the first row
+    extract_df <- extract_df[-1, ]  # remove the first row
     
     # we observe that the 2023 table (element 7) has an extra column to start
     # in all other years, the first column is a counter for the num of deaths
@@ -102,26 +105,31 @@ library(gganimate)
     extract_df <- extract_df %>% mutate(year = num + 2016) 
       # The first table is 2017=1+2016, the second is 2018=2+2016, etc.
     
-    # we can also remove empty rows by filtering on the year column
-    #extr_table <- extr_table %>% filter(year != "") 
-    
     return(extract_df) # Output
   }
   
+  
   # create an empty list to store the results
   df_list <- vector("list", 8)
+  str(df_list)
 
   # loop through 1 to 8 and apply extract_fun
   for (i in 1:8) {
     df_list[[i]] <- extract_fun(i)
   }
+  str(df_list)
+  View(df_list[[1]]) # view df created by extracting table for 2017
+
   
   # assign a name to each table (each element of the tables list) for each year
+  names(df_list) #currently there are no names for each element
+    
     # define the vector of years to use for table names
     year_names <- as.character(2017:2024)
+    
     # assign table names
     names(df_list) <- year_names
-
+    names(df_list)
 
 ## -----------------------------------------------------------------------------
 ## 3. Cleaning
@@ -147,7 +155,7 @@ library(gganimate)
   names(df_list[["2022"]])[5] <- "Related State Agent" # was Related State Agency
   names(df_list[["2024"]])[5] <- "Related State Agent" # was Related State Agency
   
-  # Binding all the data 
+  # Binding all data: extracts each table and appends (stacks or binds) all rows
   killings <- bind_rows(df_list)
   
   # Renaming columns
@@ -169,7 +177,8 @@ library(gganimate)
   killings <- killings %>% filter(name_deceased != "")
   
   # Let's keep only the columns of interest
-  killings <- killings %>% dplyr::select (input_id, date_of_incident, name_deceased, location, state_agent, year)
+  killings <- killings %>% 
+    dplyr::select (input_id, date_of_incident, name_deceased, location, state_agent, year)
 
 
 ### 3.1.1 Generate a variable with the number of deceased for every record
@@ -179,14 +188,13 @@ library(gganimate)
     filter(is.na(input_id) == TRUE | input_id == "") %>%
     select(input_id, name_deceased)
   filtered_killings
-  # we see that they are all records of one killing (as only one name appears for each)
+  # we see that they all record 1 killing (only one name appears for each)
   
-  # handle records with multiple killings
+  # Next how we handle records with multiple killings
   # Calculate the deceased variable as the difference between the first input_id number and the last
   # Set cases where there is no input_id equal to 1. 
   killings <- killings %>%
     mutate(
-      
       # Extract the first number (before the first comma, space, or dash)
       first_num = as.numeric(str_extract(input_id, "^\\d+")),
         # Regex overview:
@@ -206,7 +214,8 @@ library(gganimate)
       )
     ) %>%
     select(-first_num, -last_num)
-
+  head(killings)
+  
   
 ### 3.1.2 Generate a date variable
 
@@ -236,13 +245,14 @@ library(gganimate)
   killings$location <- gsub("\\s+"," ", killings$location) #remove duplicate spaces
   
   
-  # paste(..., collapse = "|") creates a pattern that matches any of the parish names (i.e., "kingston|andrew|thomas|...")
+  # paste(..., collapse = "|") creates a separated list the parish names (i.e., "kingston|andrew|thomas|...")
   parishes <- paste(c("kingston", "st andrew", "st thomas", "portland", 
                       "st mary", "st ann", "trelawny", "st james", "hanover",
                       "westmoreland", "st elizabeth", "manchester", 
                       "clarendon", "st catherine"), collapse = "|")
   
-  # extract the parish from the location column and assign to parish column
+  # extract the parish from the location column that matches from the parishes list
+  # then assign this value to a new parish column
   killings <- killings %>%
     mutate(parish = str_extract(location, parishes))
 
@@ -254,6 +264,7 @@ summary(as.factor(killings$parish))
 
 # and save the file
 save(killings,  file = "jamaica_clean.RData") 
+load('jamaica_clean.RData')
 
 
 ### 3.2. Convert to panel, join in population data
@@ -261,7 +272,7 @@ save(killings,  file = "jamaica_clean.RData")
   # cross-tab between parish and year including NAs
   table(killings$parish, killings$year, useNA = "always")
 
-  # By parish-year 
+  # convert to a long-form parish-year panel dataframe
   panel <- data.frame(table(killings$parish, 
                             killings$year, 
                             useNA = "no")) %>% 
@@ -361,6 +372,7 @@ save(killings,  file = "jamaica_clean.RData")
 # Load the shape file as an simple features (sf) data frame.
   jm_parish <- rnaturalearth::ne_states("Jamaica", returnclass = "sf")
   class(jm_parish)
+  str(jm_parish$geometry)
 
 # clean up parish names to join to panel_full
 # convert to lower case and recode 'saint' to 'st'
@@ -382,83 +394,90 @@ save(killings,  file = "jamaica_clean.RData")
     mutate(parish = str_to_title(parish))
 
 # static map of killings per capita in 2024
-panel_long_map %>% 
-  filter(year == 2024) %>% 
-  ggplot() + 
-  geom_sf(aes(fill = killings_pc)) +
-  theme(plot.title=element_text(size = 12),
-        axis.title = element_blank(),
-        axis.text  = element_blank(),
-        axis.ticks = element_blank(),
-        panel.grid.major = element_blank(), 
-        panel.grid.minor = element_blank()) +
-  scale_fill_gradient(limits = c(0, 6), 
-                      breaks = c(0, 2, 4, 6),
-                      low = "white", high = "purple", na.value="grey80") +
-  labs(title = 'Killings per 10,000 population',
-       fill='') +
-  geom_sf_text(aes(label = parish), size = 2.5, family = "sans")
+  
+  # first create theme to use in all maps
+  maptheme <- theme(
+    plot.title=element_text(size = 12),
+    axis.title = element_blank(),
+    axis.text  = element_blank(),
+    axis.ticks = element_blank(),
+    panel.grid.major = element_blank(), 
+    panel.grid.minor = element_blank()
+  )
+  
+  panel_long_map %>% 
+    filter(year == 2024) %>% 
+    ggplot() + 
+    geom_sf(aes(fill = killings_pc)) +
+    maptheme +
+    scale_fill_gradient(limits = c(0, 6), 
+                        breaks = c(0, 2, 4, 6),
+                        low = "white", high = "purple", na.value="grey80") +
+    labs(title = 'Killings per 10,000 population',
+         fill = '') +
+    geom_sf_text(aes(label = parish), size = 2.5, family = "sans")
 
 # static map of indexed killings per capita in 2024
-panel_long_map %>% 
-  filter(year == 2024) %>% 
-  ggplot() + 
-  geom_sf(aes(fill = kpci)) +
-  theme(plot.title=element_text(size = 12),
-        axis.title = element_blank(),
-        axis.text  = element_blank(),
-        axis.ticks = element_blank(),
-        panel.grid.major = element_blank(), 
-        panel.grid.minor = element_blank()) +
-  scale_fill_gradient(limits = c(0, 1100), 
-                      breaks = c(0, 250, 500, 750, 1000),
-                      low = "white", high = "purple", na.value="grey80") +
-  labs(title = 'Police killings indexed to 2017 levels',
-       fill='') +
-  geom_sf_text(aes(label = parish), size = 2.5, family = "sans")
+  panel_long_map %>% 
+    filter(year == 2024) %>% 
+    ggplot() + 
+    geom_sf(aes(fill = kpci)) +
+    maptheme +
+    scale_fill_gradient(limits = c(0, 1100), 
+                        breaks = c(0, 250, 500, 750, 1000),
+                        low = "white", high = "purple", na.value="grey80") +
+    labs(title = 'Police killings indexed to 2017 levels',
+         fill = '') +
+    geom_sf_text(aes(label = parish), size = 2.5, family = "sans")
 
+  
 ### 5.1 Adding Animation
 
 # animated plot of killings indexed to 2017 levels
-basemap <- panel_long_map %>% 
-  filter(year > 2017) %>% # omit 2017 as the indexed base year
-  ggplot() + 
-  geom_sf(aes(fill = kpci)) +
-  theme(plot.title=element_text(size = 12),
-        axis.title = element_blank(),
-        axis.text  = element_blank(),
-        axis.ticks = element_blank(),
-        panel.grid.major = element_blank(), 
-        panel.grid.minor = element_blank()) +
-  scale_fill_gradient(limits = c(0, 1100), 
-                      breaks = c(0, 250, 500, 750, 1000),
-                      low = "white", high = "purple", na.value="grey80") +
-  labs(title = 'Police killings indexed to 2017 levels',
-       fill='') 
+  basemap <- panel_long_map %>% 
+    filter(year > 2017) %>% # omit 2017 as the indexed base year
+    ggplot() + 
+    geom_sf(aes(fill = kpci)) +
+    maptheme +
+    scale_fill_gradient(limits = c(0, 1100), 
+                        breaks = c(0, 250, 500, 750, 1000),
+                        low = "white", high = "purple", na.value="grey80") +
+    labs(title = 'Police killings indexed to 2017 levels',
+         fill = '') 
+  
+  basemap
+  
+  g1 <- basemap +
+    transition_states(states = year) +
+    labs(subtitle = 'Year: {closest_state}')
+  
+  # render as a gif
+  animate(g1, renderer = gifski_renderer())
 
-basemap
-
-basemap +
-  transition_states(states = year) +
-  labs(subtitle = 'Year: {closest_state}')
-
-
+  
 # animated plot of killings per capita
-basemap <- panel_long_map %>% 
-  ggplot() + 
-  geom_sf(aes(fill = killings_pc)) +
-  theme(plot.title=element_text(size = 12),
-        axis.title = element_blank(),
-        axis.text  = element_blank(),
-        axis.ticks = element_blank(),
-        panel.grid.major = element_blank(), 
-        panel.grid.minor = element_blank()) +
-  scale_fill_gradient(low = "white", high = "purple", na.value="grey80") +
-  labs(title = 'Police killings per 10,000 population',
-       fill='') 
+  basemap2 <- panel_long_map %>% 
+    ggplot() + 
+    geom_sf(aes(fill = killings_pc)) +
+    maptheme +
+    scale_fill_gradient(low = "white", high = "purple", na.value="grey80") +
+    labs(title = 'Police killings per 10,000 population',
+         fill = '') 
+  
+  g2 <- basemap2 +
+    transition_states(states = year) +
+    labs(subtitle = 'Year: {closest_state}')
+  
+  animate(g1, renderer = gifski_renderer())
+  
+  
+  # if the above doesn't render for you, here is alternative syntax
+  g2 <- basemap2 +
+    transition_states(states = year) +
+    geom_text(aes(y = 17.8, x = -78.2, label = as.character(year)), 
+              check_overlap = TRUE, 
+              size = 6) 
+  animate(g2, renderer = gifski_renderer())
 
-basemap +
-  transition_states(states = year) +
-  geom_text(aes(y = 17.8, x = -78.2, label = as.character(year)), 
-            check_overlap = TRUE, 
-            size = 6) 
+  # here is a short gganimate tutorial
+  https://www.datanovia.com/en/blog/gganimate-how-to-create-plots-with-beautiful-animation-in-r/

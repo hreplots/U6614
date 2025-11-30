@@ -1,3 +1,4 @@
+
 ---
 title: "Tracking Police Killings in Jamaica"
 subtitle: 'Web Scraping, Processing, and Dynamic Visualizations'
@@ -75,7 +76,7 @@ This will show you a list of HTML elements. Before we proceed with the scraping,
 
 As Hadley Wickham explains, HTML has a hierarchical structure formed by elements which consist of a start tag (e.g., `<tag>`), optional attributes (`id='first'`), an end tag (like `</tag>`), and contents (everything in between the start and end tag). 
 
-First, we need the URL of the page to scrape. Next we'll need to read the HTML for that page into R using `read_html()`. This returns an xml_document object that we can manipulate using rvest functions.
+First, we need the URL of the page to scrape. Next we'll need to read the HTML for that page into R using `read_html()` in the `rvest` package. This returns an xml_document object that we can manipulate using `rvest` functions.
 
 ```{r}
 url <- "https://www.indecom.gov.jm/report/2017-security-force-related-fatalities"
@@ -257,7 +258,7 @@ names(df_list[["2024"]])[5] <- "Related State Agent" # was Related State Agency
 Now that we have a consistent set of column names, let's bind (or append) all of the data frames into a single data frame using the `bind_rows()` function. We'll also rename the columns.
 
 ```{r}
-# append data frames together
+# append (i.e. stack or bind) all data frames in the list together
 killings <- bind_rows(df_list)
   
 # Renaming columns
@@ -376,22 +377,25 @@ killings$location <- gsub("\\s+"," ", killings$location) #remove duplicate space
 Next let's create a character string that includes all of the parish names in lower case. Then we can use the `str_extract()` function to extract matched text in the location column, i.e. the matched parish name.
 
 ```{r}
-# paste(..., collapse = "|") creates a pattern that matches any of the parish names (i.e., "kingston|andrew|thomas|...")
+# paste(..., collapse = "|") creates a separated list the parish names (i.e., "kingston|andrew|thomas|...")
 parishes <- paste(c("kingston", "st andrew", "st thomas", "portland", 
                     "st mary", "st ann", "trelawny", "st james", "hanover",
                     "westmoreland", "st elizabeth", "manchester", 
                     "clarendon", "st catherine"), collapse = "|")
 
-# extract the parish from the location column and assign to parish column
+# extract the parish from the location column that matches from the parishes list
+# then assign this value to a new parish column
 killings <- killings %>%
   mutate(parish = str_extract(location, parishes))
+  
 killings %>% select(location, parish) %>% head() # glimpse results
+
 summary(as.factor(killings$parish)) # show distribution by parish (pooled over all years)
 ```
 
 Success! We have created a new column that identifies
 
-## Convert to panel data set
+## Convert to a long-form parish-year panel data set
 
 Now we are ready to create a tidy, long-form panel data set with parish-year as the unit of analysis. Let's start by looking at a cross-tab between parish and year.
 
@@ -628,16 +632,14 @@ basemap
 
 ```{r}
 basemap +
-  transition_states(states = year) +
-  geom_text(aes(y = 17.8, x = -78.2, label = as.character(year)), 
-            check_overlap = TRUE, 
-            size = 6) 
+    transition_states(states = year) +
+    labs(subtitle = 'Year: {closest_state}')
 ```
 
 Note how this map doesn't show where killings relative to population are high; rather, it shows where killings have increased more relative to 2017. Alternatively, we can stick with a map of killings per capita to see where and when killings relative to population are high relative to other parishes. The downside is that the variation *between* Kingston and the other parished is so large, it makes it difficult to visualize variation over time *within* any of the parishes. 
 
 ```{r}
-basemap <- panel_long_map %>% 
+basemap2 <- panel_long_map %>% 
   ggplot() + 
   geom_sf(aes(fill = killings_pc)) +
   theme(plot.title=element_text(size = 12),
@@ -650,11 +652,9 @@ basemap <- panel_long_map %>%
   labs(title = 'Police killings per 10,000 population',
        fill='')
 
-basemap +
-  transition_states(states = year) +
-  geom_text(aes(y = 17.8, x = -78.2, label = as.character(year)), 
-            check_overlap = TRUE, 
-            size = 6) 
+basemap2 +
+    transition_states(states = year) +
+    labs(subtitle = 'Year: {closest_state}')
 ```
 
 To summarize, we've tried to map the distribution of killings relative to population using two approaches: (1) killings per 10,000 population indexed to 2017 levels, which highlights *within* parish variation over time; and (2) killings per 10,000 population, which highlights the large variation *between* Kingston and other parishes. Both approaches are imperfect, in this case the most effective visualization may be the faceted plots for each parish.
