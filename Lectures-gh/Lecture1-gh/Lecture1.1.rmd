@@ -1,0 +1,292 @@
+---
+title: "[REVIEW] Lecture 1.1 Data Object Type and Structure"
+subtitle: "DSPC7514 Data Analysis for Policy Research"
+author: "Instructor: Harold Stolper"
+date: 
+output:
+  html_document:
+    toc: yes
+    toc_depth: 3
+    toc_float: yes
+    number_sections: yes
+    highlight: tango
+    theme: default
+    fig_caption: yes
+    df_print: tibble
+  pdf_document:
+    toc: no
+    toc_depth: '3'
+    number_sections: yes
+  urlcolor: blue
+---
+  
+```{r global options, include = FALSE}
+knitr::opts_chunk$set(warning=FALSE, message=FALSE)
+```
+
+# Introduction
+
+Load packages:
+```{r, message=FALSE}
+library(tidyverse)
+```
+
+Resources used to create this lecture:
+
+- https://ozanj.github.io/rclass/lectures/lecture1/lecture1.2.pdf
+- https://mgimond.github.io/ES218/Week02a.html
+- https://cran.r-project.org/doc/manuals/r-release/R-lang.html#Objects
+
+
+# Data types in R
+
+## Core data types
+
+Objects can be categorized by __type__ and by __class__. For example: 
+
+- a date is an object with a numeric type and a date class
+- a dataframe is an object with its own type and class
+
+__Functions__ in R do different things to objects depending on their type and/or class. For example:
+
+- date functions process objects with _type = numeric_ and _class = date_; these functions don't work on objects with _type = character_
+- the `typeof()` function works with any object
+
+In this lecture we'll use some basic functions, such as `typeof()`, that are part of the base R package (i.e. *base R syntax* that doesn't require loading additional packages).
+
+
+## Vectors
+
+The fundamental object in R is the "vector". A vector is a collection of values of a particular type. Individual values within a vector are called "elements."
+
+Element values in a vector can be __numeric__, __character__ (e.g. "whoa"), or __logical__ (TRUE/FALSE). Common numeric data types include the `integer` and `double`.
+
+The elements in a vector must be of the same type (e.g. all integers). We thus say that vectors are __homogeneous__.
+  
+We can create vectors using the combine function `c()`.
+
+- Remember you can try running `?c` for help to see that `c()` "combines values into a vector or list."
+
+### A vector with numeric elements {.unlisted .unnumbered}
+```{r}
+years <- c(2015, 2016, 2017, 2018, 2019, 2020) # create object called years as a vector with 3 integer elements
+years # print object x
+typeof(years)
+```
+
+#### A number is just a vector with 1 element!  {.unlisted .unnumbered}
+```{r}
+x <- 13
+typeof(x)
+y <- c(13)
+typeof(y)
+```
+
+### A vector with character elements {.unlisted .unnumbered}
+```{r}
+shades <- c("light pink", "hot pink", "deep pink") 
+shades
+typeof(shades)
+```
+
+### A vector with logical elements {.unnumbered}
+
+Logical values (TRUE/FALSE) can be used to store binary information.
+```{r}
+v2 <- c(TRUE, TRUE, FALSE) 
+v2
+typeof(v2)
+```
+
+Now is a good time to point out that the keyboard shortcut to insert the assignment operator `<-` is **Alt+-**	and **Option+-** for Windows and Mac, respectively.
+
+
+# Object class and factors
+
+Objects can have additional attributes that tell them to be treated in particular ways by certain functions. The __class__ of an object can store a set of attributes.
+
+One commonly used class is the __factor__. Telling R that an object should be a factor is how we tell it that we're working with a categorical variable. This enables certain functions to incorporate categorical information and utilize these discrete categories.  
+
+These categories are stored in another object attribute known as __levels__. 
+
+```{r}
+gender <- c("F", "M", "F", "NB", "O")
+typeof(gender)
+
+gender.fact <- as.factor(gender)
+typeof(gender.fact)
+```
+
+Note that factors are often displayed as characters, but they are stored internally as integers. The information R needs to do this is stored as attributes.
+```{r}
+gender 
+gender.fact 
+attributes(gender.fact)
+levels(gender.fact)
+```
+
+Also notice that the object names we used, e.g. `gender.fact` give us a clue about what the object means and how we want to treat it in R.
+
+It's good practice to give your objects meaningful names that make it easier to follow and organize your code.
+
+
+# Data structures
+
+The datasets we'll be working with include batches of values. These batches of values are stored in R with a particular _data structure_. A vector is one kind of data structure, as are data frames, matrices and lists.
+
+![](mgimond-datastructures.png)
+(Source: https://mgimond.github.io/ES218/Week02a.html#data_structures)
+
+## (Atomic) Vectors
+
+An atomic vector (vector for short), like the ones we've just seen, is just an ordered list of elements of the same data type. 
+
+```{r}
+quakes <- c(1565, 1696, 1566, 1808, 1637)
+quakes
+```
+
+The ordering just means each element is indexed by a given number (think of subscripts on variables denoting observation _i_). This allows us to easily access a given element or subset of elements.
+
+```{r}
+quakes[1]
+quakes[2:4] # Note that the : operator give us a sequence
+quakes[c(2,3)] # Here we're using a vector to identify elements of a larger vector
+```
+
+We can also assign new values to a particular element, by overwriting an existing value or adding an element.
+```{r}
+quakes[6] <- NA # Here we're adding a sixth element with the value NA
+quakes
+```
+
+Remember that vectors are __homogeneous__. So if you accidentally try to assign values with different data types to elements of the same vector, R will force each element into a single data type.
+
+```{r}
+v4 <- c(4, "six", TRUE)
+v4
+typeof(v4)
+```
+
+
+## Matrices and arrays
+
+A matrix works similarly to a vector, but is 2-dimensional. This means it has two ordered indices to indicate the row and column position. Matrices are also homogeneous -- all elements must be of the same data type. 
+
+Arrays work similarly but can be n-dimensional, not just limited to rows and columns.
+
+There are lots of ways to create matrices. Here is one approach that combines two vectors using the `cbind` function to generate a matrix with each vectors as its own column. 
+```{r}
+m <- cbind(years, quakes)
+m
+typeof(m)
+```
+
+If we want to refer to the number of earthquakes in 2017, we now have to identify the appropriate element by using both indices (column, row).
+```{r}
+m[3,2]
+```
+
+Note that if we try to incorporate another character vector, R will force all elements of the new vector into characters.
+```{r}
+magnitude <- c("5+", "5+", "5+", "5+", "5+", "5+")
+m2 <- cbind(m, magnitude)
+m2
+typeof(m2)
+```
+
+
+## Data frames
+
+A data frame is in line with our notion of a dataset (especially as we think of it in Stata). It functions like a matrix but allows for columns with different data types. 
+
+The term _variable_ can be used in different ways in R, but for present purposes we're going to continue referring to variables as columns of data of a certain data type (i.e. a vector), with each element representing the value for an observation drawn from some population.
+
+Let's use the `data.frame` function to make a data frame with three columns for the vectors we defined for years, earthquakes, and magnitude, respectively. 
+
+```{r}
+quakes.df <- data.frame(years, quakes, magnitude)
+quakes.df
+```
+
+This data.frame looks good -- similar to our matrix of earthquake information based on the same vectors (`m2`), but with a nicer print display that shows the number of rows and columns, and an index number for each observation. The data frame also lists the data type for each column underneath the column name. Most importantly, notice that unlike with our matrix, a data frame can include columns with different data types -- data frames can be __heterogenous__.
+
+Wait a minute, that looks good but what's a __tibble__?
+
+A tibble is "a modern re-imagining of the data.frame" which will make our lives a bit easier at times. They are an foundational tool of the __tidyverse__ package that we'll talk about more soon.
+
+Another convenient function that you should get used to using to explore your data is `str()`. According to the documentation provided by `?str`, this function will "compactly display the structure of an arbitrary R object."
+```{r}
+str(quakes.df)
+```
+
+We can access a subset of cells from the data frame by referring to the appropriate index values, just like with a vector or matrix.
+
+Suppose we want to look at the number of earthquake only for every other year (odd years).
+```{r}
+quakes.df[c(1,3,5), 1:2]
+```
+
+Try experimenting with this syntax to pull out different element(s) of the the data.frame `quakes.df`. See what happens when you leave the row index blank, e.g. `quakes[,1]`.
+
+Another useful bit of base R syntax allows us to refer to columns (or variables) within data frames using the `$` operator.
+```{r}
+quakes.df$years
+typeof(quakes.df$years)
+summary(quakes.df$quakes)
+```
+
+
+Data frames also have attributes that are handy to work with. Let's take a look at the attributes of `quakes.df` by calling the `attributes()` function.
+```{r}
+attributes(quakes.df)
+```
+
+## Lists
+
+A list is just an ordered set of elements stored in a vector. The catch is that the elements can include different types of objects. This can look a bit odd, but can be useful for passing arguments of different object types to a function.
+
+```{r}
+df <- data.frame(month = c("jan", "feb", "march", "april"), 
+                 misery_index = as.factor(c("low", "low", "medium", "high")) )
+logical_vec <- c(TRUE, FALSE)
+char_vec <- c("covid is scary")
+
+list1 <- list(A = df, B = logical_vec, C = char_vec)
+list1
+```
+
+Let's take a look a closer look at the structure of this list, and the names we assigned to each element of the list.
+```{r}
+str(list1)
+names(list1)
+```
+
+Notice that each element of our list has a name we explicitly gave it when creating the list. If we didn't do this, the `names()` function would return a `NULL` value.
+
+
+# NA and Null values
+
+R denotes missing values in vector elements as `NA` (not available). Sometimes we'll see values coded as `NULL`. `NULL` implies the element should not be present
+
+Note how summary statistics like the `mean()` treat `NA` and `NULL` differently.
+```{r}
+quakes
+mean(quakes)
+
+quakes2 <- c(1565, 1696, 1566, 1808, 1637, NULL)
+mean(quakes2)
+```
+
+We can tell R to ignore missing elements by adjusting a particular parameter of the mean function: setting `na.rm = TRUE`.
+
+```{r}
+mean(quakes, na.rm = TRUE)
+```
+
+In some cases we may eventually want to exclude missing values from the sample we use for data analysis. There are are other functions that can help us do that, such as `na.omit`.
+```{r}
+quakes.clean <- na.omit(quakes)
+quakes.clean
+```
+

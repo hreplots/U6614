@@ -1,0 +1,209 @@
+---
+title: "[REVIEW] Lecture 1.2 Introduction to the Tidyverse"
+subtitle: "DSPC7514 Data Analysis for Policy Research"
+author: "Instructor: Harold Stolper"
+date: 
+urlcolor: blue
+output: 
+  html_document:
+    toc: TRUE
+    toc_depth: 3
+    toc_float: TRUE
+    number_sections: FALSE
+    highlight: tango
+    theme: default
+    fig_caption: TRUE
+    #fig_width = 7 #Default width (in inches) for figures
+    #fig_height = 5 #Default height (in inches) for figures
+    #html_preview: TRUE #TRUE to also generate an HTML file for the purpose of locally previewing what the document will look like on GitHub.    
+    df_print: tibble # Method to be used for printing data frames. Valid values include "default", "kable", "tibble", and "paged". The "default" method uses print.data.frame. 
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
+```
+
+## Introduction
+
+Load packages:
+```{r}
+library(tidyverse)
+library(gapminder)
+```
+
+If you haven't already done so, remember you have to run `install.packages("tidyverse")` before loading the package with the library function.
+
+Resources used to create this lecture:
+
+- https://ozanj.github.io/rclass/lectures/lecture2/lecture2_ucla.pdf
+- https://mgimond.github.io/ES218/Week03a.html
+- https://stat545.com/dplyr-intro.html
+
+
+## What is the Tidyverse package?
+
+The [Tidyverse](https://www.tidyverse.org/) is actually a suite of packages. Some of the component packages we'll be relying on in this class include:
+
+* **tibble** for data table formatting
+* **dplyr** for data manipulation
+* **tidyr** for data tidying
+* **ggplot2** for data visualization
+* **readr** for data import
+
+So loading the Tidyverse library actually loads all of the above packages and a few more.
+
+
+## Data manipulation using dplyr
+
+the dplyr package offers a set of functions for manipulating data that is a bit easier to work with base R functions.
+
+Here are some basic functions we'll work with first:
+
+`dplyr` function   | Description
+-------------------|-------------
+`filter()`         | Subset rows (observations)
+`arrange()`        | Sort rows by values within columns
+`select()`         | Subset columns (variables)
+`mutate()`         | Add columns
+`rename()`         | Rename columns
+`summarize()`      | Summarize columns (i.e. summary statistics)
+
+Let's put these functions to work using the gapminder dataset (remember, this dataset is included with the gapminder package).
+
+
+### filter()
+
+The `filter()` function allows us to subset rows of the data, i.e. filter out observations based on certain criteria.
+
+```{r}
+filter(gapminder, country == "Burkina Faso")
+```
+
+Let's make sure we understand the terminology for this sample code chunk: we're calling the `filter()` function and passing two arguments to it: (1) the data frame; and (2) a conditional statement that determines how the function works. Because it's a conditional statement, we need a `==` operator or R will return an error. Also note that R is case sensitive.
+
+In the above code chunk, we just displayed the results of the `filter()` function without assigning them into a new object. 
+
+We almost NEVER want to alter the original object, in this case the gapminder data frame. But we might want to store the filtered data by assigning the results of the function call to a new object (using the assignment operator `<-`). Below we assign the results to a new data frame called `burkina`. We can show the first few observations of the new filtered data frame using the `head()` function, rather than printing the full data frame.
+
+```{r}
+burkina <- filter(gapminder, country == "Burkina Faso")
+head(burkina)
+```
+
+We can add more complicated filtering conditions that rely on the AND (,) and OR (|) operators, if necessary.
+```{r}
+filter(gapminder, year == 1952 | year == 2007, country == "Burkina Faso")
+```
+
+
+### arrange()
+
+Let's use the `arrange()` function to sort by life expectancy (lifeExp) among all countries in 2007. Note the syntax we use in the second argument of the function in order to sort in descending order.
+
+```{r}
+gap_2007 <- filter(gapminder, year == 2007)
+gap_2007.sort.asc  <- arrange(gap_2007, lifeExp)
+head(gap_2007.sort.asc)
+gap_2007.sort.desc  <- arrange(gap_2007, desc(lifeExp))
+head(gap_2007.sort.desc)
+```
+
+We can also view extreme observations by using both the `head()` and `tail()` functions.
+```{r}
+tail(gap_2007.sort.asc)
+```
+
+### select()
+
+The `select()` function allows us to drop columns (variables) by only selecting certain columns that we want to keep.
+
+```{r}
+select(gap_2007.sort.asc, country, lifeExp, gdpPercap)
+```
+
+You can use `select()` to specify the columns you want to keep, or columns you want to drop by preceding a column name with the `-` symbol.
+```{r}
+select(gap_2007.sort.asc, -continent, -pop, -year)
+```
+
+
+### mutate() and rename()
+
+The `mutate()` function is how we create new variables using the dplyr package. Say we want calculate total GDP by multiplying `gdpPercap` by `pop`.
+
+```{r}
+gap1 <- mutate(gapminder, totalgdp = gdpPercap * pop)
+head(gap1)
+```
+
+
+It's also pretty straightforward to rename existing variables using the `rename()` function.
+```{r}
+gap2 <- rename(gapminder, gdppercap = gdpPercap)
+head(gap2)
+```
+
+
+### summarize()
+
+The `summarize` function takes a data frame with _n_ observations, computes specified summary statistics, and generally returns a data frame with a single observation (i.e. the data is collapsed).
+
+```{r}
+summarise(gap_2007, lifeExp_min = min(lifeExp), lifeExp_max = max(lifeExp), n= n())
+```
+
+Try typing `?summarise` to see the list of functions available for computing summary statistics.
+
+
+## Calling multiple functions with the pipe operator `%>%`
+
+Suppose we want to subset observations for only African countries in 2007, only include the `country` and `lifeExp` columns, and sort in ascending order of life expectancy. This requires calling multiple functions: `filter()`, `arrange()` and `select()`. Instead of doing this in multiple steps, each stored as new data frame, we can use pipes to perform multiple steps all at once.
+
+The **pipe** symbol is `%>%`, which you can insert with the shortcut Ctrl+Shift+M. Pipes work by taking the object on the left of the pipe ***and then*** piping it into the function called on the right; the object on the left is actually passed to the function on the right as its first argument.
+
+Keep in mind that functions to right of the pipe operator shouldn't explicitly call an object that is the input to the function as an argument; the argument is set implicitly by appearing to the left of the pipe operator.
+
+Pipes are part of the tidyverse suite of packages, not base R.
+
+```{r}
+#gap.df.afr2007 <- gapminder
+gapminder %>%
+  filter(year == 2007, continent == "Africa") %>%
+  select(country, lifeExp)  %>%
+  arrange(desc(lifeExp))
+```
+
+As in the above code chunk, we typically want to insert line breaks to make long lines of code more readable. Just remember that the pipe operator should be the last thing before a line break, i.e. if a line in your script ends with `%>%` then RStudio will know to continue to the next line before executing.
+
+Note that we haven't created a new data frame in the previous code chunk. We still need to use the assignment operator `<-` to do that. 
+
+Also note how the assignment operator works compared to the pipe operator: the object to the left of the assignment operator `<-` ***gets*** the results of the function called to the right. Let's create a new data frame based on the above data manipulation and then take a look at the top 10 and bottom 10 African countries in terms of 2007 life expectancy.
+```{r}
+gap.df.afr2007 <- gapminder %>%
+  filter(year == 2007, continent == "Africa") %>%
+  select(country, lifeExp)  %>%
+  arrange(desc(lifeExp))
+head(gap.df.afr2007, n = 10)
+tail(gap.df.afr2007, n = 10)
+```
+
+The power of pipes is that we can use them to complete multiple data manipulation tasks in one line of code, and there are no leftover intermediate objects we don't care about.
+
+
+## Some useful keyboard shortcuts
+
+Shortcut description        | Windows       | Mac
+----------------------------|---------------|------------
+**OPERATORS**               |               |
+Insert assignment operator  |	Alt+-	        | Option+-
+Insert pipe operator	      | Ctrl+Shift+M  | Cmd+Shift+M
+**R MARKDOWN**              |               |
+Insert code chunk           |	Ctrl+Alt+I	  | Cmd+Option+I
+Knit Document	              | Ctrl+Shift+K	| Cmd+Shift+K
+**GENERAL CONTROL**         |               |
+Move cursor to Source Editor|	Ctrl+1	      | Ctrl+1
+Move cursor to Console	    | Ctrl+2	      | Ctrl+2
+Undo	                      | Ctrl+Z	      | Cmd+Z         
+Redo	                      | Ctrl+Shift+Z	| Cmd+Shift+Z
+
+
