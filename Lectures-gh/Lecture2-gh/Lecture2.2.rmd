@@ -1,220 +1,402 @@
 ---
-title: "Lecture 2.2 Working with R Markdown"
-author: "SIPA U6614 | Instructor: Harold Stolper"
+title: 'Lecture 2.2: Data Analysis Tools'
+subtitle: "DSPC7514 Data Analysis for Policy Research"
+author: "Instructor: Harold Stolper"
 date: 
-urlcolor: blue
-output: 
+output:
   html_document:
-    toc: TRUE
+    toc: yes
     toc_depth: 3
-    toc_float: TRUE
-    number_sections: TRUE
+    toc_float: yes
+    number_sections: yes
     highlight: tango
     theme: default
-    fig_caption: TRUE
-    #fig_width = 7 #Default width (in inches) for figures
-    #fig_height = 5 #Default height (in inches) for figures
-    #html_preview: TRUE #TRUE to also generate an HTML file for the purpose of locally previewing what the document will look like on GitHub.    
-    df_print: tibble # Method to be used for printing data frames. Valid values include "default", "kable", "tibble", and "paged". The "default" method uses print.data.frame. 
+    fig_caption: yes
+    df_print: tibble
+  pdf_document:
+    toc: yes
+    toc_depth: '3'
+urlcolor: blue
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-# Introduction to R Markdown
+# Introduction
 
-Throughout this course and beyond, you'll be using R Markdown to write-up your work. An R Markdown document is just a text file with the .rmd extension. R Markdown is a _markup syntax_ that you can use within R Studio to generate documents (html, pdf, Word docs) that allows you to easily embed R code and output along with additional write-up.
-
-R Markdown files consist of the following:
-
-1. The YAML header (required)
-1. The body of your document, including: 
-    + Text and section headers 
-    + R Code chunks
-
-The process of generating a document from an .rmd file using RStudio is called **knitting.** In other words, you don't simply run R code, you knit your .rmd file in R Markdown. You can do this by clicking on ![](knitbutton.png) at the top of the RStudio interface or by using the keyboard shortcut **Cmd/Ctrl + Shift + k**. This process will also run any R code you have inside your .rmd file.
-
-
-# The YAML header 
-
-The YAML header is code at the top of your R Markdown file that controls the look and feel of your document. At a minimum, your R Markdown file must contain the following YAML header located in between two sets of - - - :
-
-```{r eval = FALSE}
----
-title: "Your document title"
-author: "SIPA U6614"
-output:
-  html_document: default
----
-```
-
-The title and author, and any other fields you specify (e.g. date, subtitle) will display at the top of your document.
-
-Also make sure that the `html_document: default` line is indented at least two spaces or you'll run into an error. Each level requires another two spaces of indentation to execute properly.
-
-Note: apparently YAML stands for "YAML Ain't Markup Language", which I think is an attempt at recursive programming "humor"... if you think humor is the appropriate word `r emo::ji("upside_down_face")`.
-
-
-# Section headings & table of contents
-
-You can add section headings to your document by using one or more hashtags at the beginning of a line of code. Adding hashtags moves the text down one heading level (e.g. `##` specified a second level heading.
-
-```{r eval = FALSE}
-# Heading level 1
-
-Blah.
-
-## Heading level 2
-
-Blah blah.
-
-### Heading level 3
-
-Blah blah blah.
-```
-
-You can also specify options in the YAML header that display a table of contents based on the section headings you use (by adding `toc: TRUE` to the YAML header). There are different options you can play around with in the YAML header to change the formatting of the table of contents.
-
-```{r eval = FALSE}
----
-title: "Your document title"
-author: "SIPA U6614"
-output:
-  html_document: default
-    toc: TRUE
-    toc_depth: 3
-    toc_float: TRUE
-    number_sections: FALSE
----
-```
-
-
-# Text formatting
-
-You can freely enter text anywhere below the YAML header, and rely on R Markdown's built in options for text formatting. Some commonly used formatting syntax:
-
-- *Italics*: wrap text in asterisks `*like this*`
-- **Bold**: wrap text in double asterisks `**like this**`
-- Hyperlinks: create [hyperlinked](https://rmarkdown.rstudio.com/) text by using the syntax `[R Markdown website](https://rmarkdown.rstudio.com/)`
-- Bulleted lists like this one: start each item in your list with an asterisk followed by a space, indenting as appropriate:
-```{r eval = FALSE}
-* list item 1
-* list item 2
-```
-Consult the [R Markdown reference guide](https://rstudio.com/wp-content/uploads/2015/03/rmarkdown-reference.pdf?_ga=2.36341096.936527741.1595035327-1635033536.1592156702) for more formatting syntax.
-
-
-# R code chunks 
-
-## Embedded code chunks
-
-R Markdown documents allow you to embed **chunks** of R code and output into your document, so the reader can see your results and how they were generated. Here is the basic syntax for a code chunk.
-
-<pre class="output_example">```{r} 
-# do something
-(100 * 2) / 10 
-```</pre>
-
-Without any options specified, your document will show the code from inside the code chunk followed by any corresponding output.
-```{r}
-# do something
-(100 * 2) / 10 
-```
-
-The handy keyboard shortcut to insert a code chunk is **Ctrl+Alt+I** or	**Cmd+Option+I** for Windows and Macs, respectively.
-
-There are a number of options you can use to specify the handling of each code chunk. Here is a code chunk with `echo = FALSE` so the code chunk will run but only the output will show up in your knitted documented.
-
-<pre class="output_example">```{r echo = FALSE} 
-# nevermind
-```</pre>
-
-`include = FALSE` is another common code chunk option that executes the code chunk but suppresses both the code and output. 
-
-
-## Document wide code chunk options
-
-You can also specify code chunk options that apply to the entire document. It's often a good idea to use the following document-wide code chunk to hide warnings and messages that might show up in the console after running R code, but don't belong in your document. 
-
-<pre class="output_example">```{r include = FALSE}
-knitr::opts_chunk$set(message = FALSE, warning = FALSE)
-```</pre>
-
-## In-line code chunks
-
-Code results can be inserted directly into the text of a .Rmd file by enclosing the code with `r` (backticks). You can use this syntax to refer to objects in R.
-
-It's particularly useful syntax for referring to stored calculations, rather than hard-coding the values in your write-up. Let's suppose we want to make a calculation based on the Gapminder data frame (after loading the Gapminder library).
-
-```{r warning = FALSE}
+Load packages:
+```{r, message = FALSE, warning = FALSE}
+library(tidyverse)
 library(gapminder)
-gm_india <- subset(gapminder, country == "India")
-mean(gm_india$lifeExp)
 ```
-You could reference this calculation explicitly in your text write-up.
 
-<pre class = "output_example">
-The mean life expectancy for India over this period was 53.17.
-</pre>
+Resources used to create this lesson:
 
-A better way to do this is to point to the object in R that contains the mean using an in-line code reference to the mean.
-
-<pre class = "output_example">
-The mean life expectancy for India over this period was `r knitr::inline_expr('mean(gm_india$lifeExp)')`.
-</pre>
-
-This approach will generate the following output in your knitted document.
-
-<pre class = "output_out">
-The mean life expectancy for India over this period was `r mean(gm_india$lifeExp)`.
-</pre>
-
-Even better, let's use the `round()` function to improve the display format.
-
-<pre class = "output_example">
-The mean life expectancy for India over this period was `r knitr::inline_expr('round(mean(gm_india$lifeExp), 1)')`.
-</pre>
-
-<pre class = "output_out">
-The mean life expectancy for India over this period was `r round(mean(gm_india$lifeExp),1)`.
-</pre>
+- https://stat545.com/factors-boss.html
+- https://stat545.com/dplyr-single.html#group_by-is-a-mighty-weapon
+- https://mgimond.github.io/ES218/Week04c.html
+- https://r4ds.had.co.nz/data-visualisation.html
 
 
-# Workflow, tips and troubleshooting
+# Importing data
+
+The `utils` package that is automatically loaded with R includes a set of functions for importing data (e.g. `read.csv()`). Comparable functions included in the `readr` package (e.g. `read_csv()`) are generally faster and import data as tibbles that work well with `tidyverse` packages. We'll focus on the `readr` functions for importing data, which are included as part of the [Tidyverse](https://www.tidyverse.org/packages/) suite of packages.
 
 
-## Workflow
+## Comma delimited files (.csv) 
 
-1. Set up a clear file structure and stick to it. For example, create a Class folder, and then an Assignments folder within Class, and an Assignment 1 folder within Assignment (U6614/Assignments/Assignment 1). 
+Many datasets are stored as text files with rows of data and values for each column separated by commas (or some other *delimiter*).
 
-2. Open a new R Markdown file. Specify the settings you want in the YAML header
+```{r eval = FALSE}
+df1 <- read_csv("yourfilename.csv")
+```
 
-3. Save the R Markdown file in the appropriate folder. Make sure any other files you point to (e.g. data, images) are also stored in the same folder.
+The default is for strings to be stored as characters rather than factors (unlike `read.csv()` in the `utils` package, which has different default behavior). One common option you can set is to specify which values are read in as `NA`. In this example we'll treat blank character values as NAs. Another option allows you to specify column names.
+```{r eval = FALSE}
+varnames <- c("c1", "c2", "c3", "c4)
+df1 <- read_csv("yourfilename.csv", na = "", col_names = varnames)
+```
 
+`read_tsv()` is a similar function for reading in tab-delimited text files of data. `read_csv()` and `read_tsv()` are known as wrapper functions. Wrapper functions call another function that does the real work, but "wrap" that function in way that allows for simpler syntax and is easier to work with. Wrappers often specify some of the common options for you, but there are often many more options you can explore in the documentation.
 
-## Tips and troubleshooting
+In this case it's `read_delim()` that does the real work when you call `read_csv()`, `read_csv()` simply tells `read_delim()` to specify the options to treat commas as the file delimiter.
 
-* For the purposes of this class, all submissions should be submitted as pdf documents "knit" from an R Markdown file. 
-
-* Treat R Markdown as its own system object environment from the R console. If you refer to an object in a code chunk you first need to create it in R Markdown, an object created in the R Console won't be recognized by your R Markdown document.
-
-* Remember you only have to `install.packages()` once but you do have to load a package before using it with the `library()` function. You should never include `install.packages()` in your R Markdown script, but you should always load the libraries you need at the beginning of your script. Failing to load the correct libraries is a common source of errors.
-
-* Make sure any files you use are located in your working directory, which should be the same folder as your .rmd file.
-
-* Try knitting early and often. Don't wait until the end, or you're likely to have numerous errors to sort through. Knitting/running code piecewise as you go is a good way to identify errors and coding mistakes before things get too complicated.
-
-* Use section headers and comments to structure your write-up according to assignment questions or other document structure you want to create.
+`fread()` in the `data.tables` package is another powerful tool for reading in data without having to specify many (or any!) options.
 
 
-# R Markdown resources
+## Excel files
 
-Here are some resources to help you unlock more options and functionality with R Markdown:
+An Excel file is effectively a set of data tables, with each worksheet as its own data table. The `readxl` package includes the `excel_sheets()` function for recognizing sheet names, and the `read_excel()` function for importing specific sheets in a workbook of data. You can use `excel_sheets()` to obtain worksheet names and then tell R to read those worksheets by specifying them as arguments when calling `read_excel()`. You can also simply refer to a worksheet by its index number in the workbook, as in the below code chunk. Just make sure you remember to install and load the `readxl` package first.
+```{r eval = FALSE}
+library(readxl)
+excel_sheets("yourworkbook.xls")
+df2 <- read_excel("yourworkbook.xlsx", sheet = 2)
+```
 
-- [R Markdown reference guide](https://rstudio.com/wp-content/uploads/2015/03/rmarkdown-reference.pdf)
-- [R Markdown: A Definitive Guide](https://bookdown.org/yihui/rmarkdown/)
-- RStudio offers their own R Markdown [tutorial](https://rmarkdown.rstudio.com/lesson-1.html) and a helpful [cheat sheet](https://rstudio.com/wp-content/uploads/2016/03/rmarkdown-cheatsheet-2.0.pdf)
+## R data files
+
+R also has its own data file formats: an .rdata file can include one or more data objects, an .rds file includes just one data object. You can easily read in files in these formats using the `load()` and `readRDS()` functions in base R.
+```{r eval = FALSE}
+df3 <- load("yourrdatafile1.rdata") #load an .rdata file
+df3 <- readRDS("yourrdatafile2.rds") #load an .rds file
+```
 
 
+## Fixed width files
 
+A fixed width file is a text file where each column has a maximum number of characters (i.e. a "fixed width"). There are no delimiters used within rows to separate values for each column. This means you have tell R, or any statistical software package, which characters should be assigned to which variables. `read_fwf()` is a `readr` package that makes it relatively easy to read in fixed width files.
+
+
+# Saving and exporting data
+
+You can save one or more objects in your environment as an .rdata file that can be loaded at another time.
+```{r eval = FALSE}
+# Saving one object in an rdata file
+save(dataobject1, file = "data.RData")
+
+# Save multiple objects
+save(dataobject1, dataobject2, file = "data.RData")
+
+# To load the data again
+load("data.RData")
+```
+
+There may be instances where you want to export data for use in other applications, such as mapping software or web-based applications. Also included in the `readr` package, the `write_csv()` function is an easy wrapper function for exporting .csv files.
+```{r eval = FALSE}
+write_csv(yourdataframe, "yourfilename.csv")
+```
+
+
+# Appending data sets
+
+Appending is simply stacking rows of data on top of each other. For example, you may have two identically formatted data frames, each with data for a different year, that you want to combine into a single data frame spanning both years. 
+
+The most important requirement for effective appending is to make sure all of your datasets have comparable information stored under the same column names, and with values coded in a consistent manner. For example, if you appended individual-level data from one year with height measured as inches to another year of data where height is measured as centimeters, you'd end up with a useless set of height measurements. You'd first want to convert height in one dataset to the same unit of measurement as the other, then you'd want to make sure height is stored under the same column name in both datasets.
+
+Here is the generic syntax for appending two data frames (df1 and df2) using `rbind()`.
+```{r eval = FALSE}
+df_combined <- rbind(df1, df2)
+```
+
+`rbind()` only works if both data frames have the exact same columns. If you have an additional column of data in one data frame that you want to keep when you append them together (assigning NA values for this column to observations from the other set), try `rbind.fill()` in the `plyr` package.
+
+Combining **columns of data** is known as a **join**, which we will explore next week.
+
+
+# Inspecting columns of data
+
+We've already seen that `str()` is a very handy tool for inspecting the data object types. Before we start cleaning and summarizing data, let's review some basic functions for inspecting data frames and columns of data. We'll focus on the familiar gapminder dataset and the `continent` column as an example.
+
+`str(gapminder)` shows us the structure of any object, in case the gapminder data frame, including the dimensions (columns x rows), column names, data type/class, and snapshot of values for each column.
+```{r}
+str(gapminder)
+```
+
+`head()` and `tail()`: Show the first or last parts of an object (an optional argument allows you to specify how many observations to show). This is useful for observing high/low values of a variable after calling `arrange()`.
+```{r}
+gapminder %>% filter(year == 2007) %>% arrange(desc(lifeExp)) %>% head(n = 5)
+```
+
+There are a number of functions that allow us to inspect specific columns of data (i.e. variables). Remember that if you pass a data frame to a tidyverse function through a pipe, you don't need to refer to the data frame as an argument in the next function, and you can just refer to columns by name when specifying function arguments (when applicable). But if you call a base R function that isn't part of the tidyverse package, you'll need to use the `$` syntax to access specific columns within a data frame.
+```{r}
+gapminder %>% head(n = 3)
+head(gapminder, n = 3)
+dim(gapminder)
+typeof(gapminder$continent)
+attributes(gapminder$continent)
+class(gapminder$continent)
+levels(gapminder$continent)
+nlevels(gapminder$continent)
+```
+
+
+# Basic data cleaning tools
+
+The dplyr functions introduced last week are useful tools for understanding and managing your dataset: `filter()`, `arrange()`, `select()`, `mutate()` and `rename()`. They help us understand what columns of data look like... and by extension suggest certain data cleaning tasks to make the information we want to work with clear, consistent, and ready for statistical analysis.
+
+Here are some basic tools for recoding information stored in columns of data.
+
+## Recoding values
+
+`recode()` is another dplyr function for replacing numeric, character or factor values. Say we want to recode gapminder observations listed with the country name "West Bank and Gaza" to instead refer to the country name "State of Palestine." We can use the `recode()` function as part of the argument in the `mutate()` function to create a new variable called `country_clean`.
+```{r}
+g2 <- gapminder %>% 
+  mutate(country_clean = recode(country, "West Bank and Gaza" = "State of Palestine")) 
+# let's check if it worked by printing observations where country == "West Bank and Gaza"
+g2 %>% filter(country == "West Bank and Gaza") 
+```
+Note that `country` is a factor, so categorical values (levels) are stored as integers but displayed as characters. We can refer to the levels themselves when using `recode()`.
+
+`recode()` can also be used to recode values in numeric, character, and logical columns of data.
+
+`replace()` is a base R function that is can also be used fo recoding values.
+
+
+## Setting factor levels
+
+Suppose that we have a factor variable `var1` with 4 categories, but we want to exclude observations in the fourth category as `NA` because we're unclear what this category means. One way to do that is to use `factor()` to explicitly set the levels to use, in turn treating all excluded factor levels as `NA`.
+
+```{r eval = FALSE}
+# set a vector including the desired factor levels to use for var1
+levels_to_keep <- c("cat1", "cat2", "cat3")
+
+# assign this vector to the levels attribute of factor var1
+df %>% mutate(var1 = factor(var1, levels = levels_to_keep))
+```
+
+## Re-ordering factor levels
+
+The `forcats` package included in the tidyverse includes a number of tools for working with factors. `forcats` includes a set of functions for re-ordering factor levels, which can be useful for summarizing factor variables.
+```{r message = FALSE, warning = FALSE}
+# the default level is alphabetical
+gapminder$continent %>% levels()
+
+# reorder levels in reverse alphabetical order
+gapminder$continent %>% 
+  fct_rev() %>% 
+  levels()
+
+# reorder levels by frequency 
+fct_count(gapminder$continent)
+gapminder$continent %>% 
+  fct_infreq() %>% 
+  levels()
+
+# reorder levels by putting Europe first
+gapminder$continent %>% 
+  fct_relevel("Europe") %>% 
+  levels()
+
+# reorder levels based on minimum lifeExp among all observations in each continent
+gapminder$continent %>% 
+  fct_reorder(gapminder$lifeExp, min) %>% 
+  levels()
+```
+You can take a look at the forcats [documentation](https://forcats.tidyverse.org/) for a cheat sheet that describes other functions for working with factor variables.
+
+
+## if_else
+
+`if_else` is a useful dplyr function for manipulating data in (non-factor) columns of data based on conditional statements. To get a sense of how `if_else` works, let's create a binary (logical) variable called `cont_asia` equal to `TRUE` if `continent == "Asia"` and `FALSE` for other continents.
+```{r message = FALSE, warning = FALSE}
+g3 <- gapminder %>% 
+  mutate(cont_asia = if_else(continent == "Asia", TRUE, FALSE) ) 
+str(g3)
+```
+We'll check to make sure this mutate worked correctly in the next section. 
+
+Also note that base R includes its own `ifelse` function that works a bit differently than the dplyr `if_else` function. The dplyr version is more rigid when it comes to working with different data types.
+
+`mutate_if()` is another tool for creating variables in ways that depend on certain specified conditions.
+
+
+# Summary statistics
+
+**Summary statistics**, or **descriptive statistics**, are terms we'll use to describe information about the distribution of a random variable. Before we start exploring relationships between variables, we generally want to understand the distribution of individual variables. Some examples of summary statistics:
+
+- mean, median, min, max, and standard deviation are statistics that characterize the distribution of a *continuous variable*
+- frequency tables characterize the distribution of *categorical variables* 
+
+
+## summary()
+
+`summary()` is a base R function that summarizes objects in ways that depend on the class of the object. It can be a handy way to quickly generate summary statistics for columns of data, though the display format varies depending on the class of the argument. Here are some examples.
+
+```{r message = FALSE, warning = FALSE}
+summary(g3)
+
+# note how summary treats factors, characters, and logical data types differently
+summary(g3$continent)
+summary(as.character(g3$cont_asia))
+summary(g3$cont_asia)
+```
+
+
+## summarize()
+
+A more flexible function for computing summary statistics is the `summarize()` function in the dplyr package. `summarize()` stores results as data frames and can be used to perform more complicated calculations in combination with `group_by()`. This can be helpful for characterizing *conditional distributions*, such as computing statistics for one variable conditional on the value of another variable. (Crosstabs, discussed in the next section, are another tool for showing *conditional* or *joint* distributions.)
+
+```{r message = FALSE, warning = FALSE}
+gapminder %>%
+  filter(year == 2007) %>%  
+  summarize(n_countries = n(), avg_lifeExp_2007 = mean(lifeExp))
+```
+
+Here is a list of "helper" functions we can use within `summarize()`:
+
+| Function | Description |
+|----------|-------------|
+| `n`  |    count   |
+| `n_distinct`  |   count unique values    |
+| `mean`  | mean      |
+| `median`  |   median    |
+| `max` | largest value |
+| `min` | smallest value |
+| `sd`  | standard deviation |
+| `sum`  |  sum of values    |
+| `first` | first value |
+| `last` | last value |
+| `nth`  |  nth value     |
+| `any`  |  condition true for at least one value |
+
+
+## Frequency tables and crosstabs
+
+The base R `table()` function is a quick tool for generating frequency tables (also known as one-way tables) and crosstabs (two-way tables). Note that passing the data column `continent` as an argument to the `table()` function yields an equivalent frequency table as passing it to the `summary` function.
+```{r}
+table(g3$continent)
+```
+
+Let's look at a crosstab between `continent` and `cont_asia` to make sure we correctly created the logical variable indicating Asian observations in Section 6.4: [if_else]. We can also look at column or row proportions (conditional distributions) instead of cell counts.
+```{r message = FALSE, warning = FALSE}
+# joint distribution
+table(g3$continent, g3$cont_asia)
+
+# distribution of continent conditional on being in Asia (admittedly not very interesting)
+prop.table(table(g3$continent, g3$cont_asia) , 2)  %>% round(2)
+```
+
+Note that there may be other packages with functions specifically designed for the types of data you're working with. For example, `fct_count()` in the `forcats` package shows a frequency table for factor variables, yielding equivalent results to the base R `table()` function but with enhanced presentation.
+```{r message = FALSE, warning = FALSE}
+fct_count(g3$continent)
+```
+
+
+# Grouping
+
+The `group_by()` function allows us to add extra structure to your data by telling R to recognize groups. This allows for calculating statistics at the group-level using `summarize()` and `mutate()`, both of which respect groups.
+
+`summarize()` will generally take a dataset and return a single observation (per group) with specified summary statistics, such as counting observations or computing means (in each group, if groups are specified).  
+
+Combined with `mutate()`, `summarize()` and other dplyr functions, `group_by()` enables exploratory data analysis tools that we will use throughout this course. Let's start by using these functions with the gapminder data frame to count observations for certain groups of country-year observations and make some calculations at the continent level. Take a look at the following examples.
+```{r message = FALSE, warning = FALSE}
+# use summarize to count observations in each continent
+gapminder %>%
+  filter(year %in% c(1952, 2007)) %>% # %in% identifies if an element belongs to a vector 
+  group_by(continent) %>%
+  summarize(n = n())
+
+# count does both grouping and counting in a single function!
+gapminder %>%
+  filter(year %in% c(1952, 2007)) %>% 
+  count(continent) 
+
+# use summarize to count observations for each country-year and compute mean lifeExp
+gapminder %>%
+  filter(year %in% c(1952, 2007)) %>% 
+  group_by(continent, year) %>%
+  summarize(n = n(), avg_lifeExp = mean(lifeExp))
+
+# let's use mutate to compute the change between 1952 and 2007 in country life expectancy
+gapminder %>%
+  filter(year %in% c(1952, 2007)) %>% 
+  group_by(country) %>% 
+  select(country, year, lifeExp) %>% 
+  mutate(lifeExp_gain = lifeExp - first(lifeExp))
+
+# here's a more advanced example: obtaining extreme lifeExp values for each year
+gapminder %>%
+  select(year, country, lifeExp) %>%
+  group_by(year) %>%
+  filter(min_rank(desc(lifeExp)) < 2 | min_rank(lifeExp) < 2) %>% # min_rank is a dplyr ranking function
+  arrange(year, lifeExp) %>%
+  print(n = Inf) # Infinity can be used to override limits on the number of rows/columns printed
+```
+
+
+# Intro to ggplot for visualization
+
+ggplot2 is a package in the tidyverse that provides a system for creating data visualizations. It's a bit more difficult to learn than other R functionality because ggplot syntax relies on its own grammatical rules.
+
+With ggplot2, you begin a plot with the function `ggplot()`. This creates a coordinate system that you can add layers to. We start with three components:
+
+- **data**: the first argument of `ggplot()` is the data to use in the graph, e.g. `ggplot(data = gapminder)`. This creates an empty graph that you can add one or more layers to. 
+- **aesthetics** map variables to visual properties like color, shape, size, etc. **Aesthetic mappings are set as arguments to the `aes()` function, which must be specified along with a `ggplot()` call. ggplot2 knows to look for mapped variables inside the data argument.
+- **geometries** are geometric elements added to plots in layers. Examples includes points, lines, and bars (e.g. `geom_point()`, `geom_line()`, and `geom_bar()` or `geom_histogram()`).
+
+Other components that you can specify include scale, statistical transformations, or facets that break information into subplots. [Here](https://ggplot2.tidyverse.org/reference/) is a handy reference sheet from ggplot2.
+
+We'll cover ggplot data visualization in more detail in a few weeks, but for now let's review just the very basics needed to generate histograms and barplots as a tool for summarizing data.
+
+
+## barplots
+
+Let's learn the basic syntax by plotting the number of countries observed in each continent in the gapminder dataset for 2007. Barplots use `geom_bar()` to plot categorical data, whereas histograms use `geom_histogram()` to visualize the distribution of a continuous variable.
+```{r message = FALSE, warning = FALSE}
+gap_2007 <- gapminder %>% filter(year == 2007) 
+```
+
+```{r eval = FALSE}
+# it can be helpful to include argument names while learning the syntax
+ggplot(data = gap_2007) + aes(x = continent) + geom_bar()
+```
+
+```{r message = FALSE, warning = FALSE}
+# but R is smart enough to recognize many arguments without specifying by name
+ggplot(gap_2007) + aes(continent) + geom_bar()
+```
+
+Here is the same information with additional options to display continent proportions instead of counts.
+```{r message = FALSE, warning = FALSE}
+# but R is smart enough to recognize many arguments without specifying by name
+ggplot(gap_2007) + aes(x = continent, y = ..prop.., group = 1) + geom_bar()
+```
+
+
+`geom_bar()` works by simply counting observations in each category of the argument x (in this case `x = continent`). Alternatively, we can collapse the country-level data to continent level observations using `group_by()` and `summarize()`, and the plot the data directly using `geom_col()`. Don't worry too much about this, just note that the geometries we use in our plots depend on the structure of the data.
+```{r message = FALSE, warning = FALSE}
+gap_continents <- gapminder %>% 
+  filter(year == 2007) %>% 
+  group_by(continent) %>% 
+  summarize(country_ct = n())
+ggplot(data = gap_continents) + aes(x = continent, y = country_ct) + geom_col()
+```
+
+
+## histograms
+
+Here is the code to illustrate the distribution of life expectancy across countries in 2007 using a very basic histogram with no additional options specified.
+```{r message = FALSE, warning = FALSE}
+ggplot(gap_2007) + aes(x = lifeExp) + geom_histogram()
+```
