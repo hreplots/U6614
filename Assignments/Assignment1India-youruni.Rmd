@@ -1,6 +1,6 @@
 
 ---
-title: 'U6614: Assignment 2'
+title: 'U7514: Assignment 1'
 author: 'your name (your uni) '
 date: '`r Sys.Date()`'
 output:
@@ -41,6 +41,7 @@ knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
 
 ### 1a) Inspect the data frame and state the data types for each column. {-}
 - make sure to inspect the age, gender, caste, income source, state & educ columns
+
 
 
 ### 1b) Use the mutate function to create new column for gender: {-}
