@@ -150,27 +150,25 @@ levels(gapminder$continent)
 nlevels(gapminder$continent)
 ```
 
-
 # Basic data cleaning tools
 
-The dplyr functions introduced last week are useful tools for understanding and managing your dataset: `filter()`, `arrange()`, `select()`, `mutate()` and `rename()`. They help us understand what columns of data look like... and by extension suggest certain data cleaning tasks to make the information we want to work with clear, consistent, and ready for statistical analysis.
+The dplyr functions introduced last week are useful tools for understanding and managing your dataset: `filter()`, `arrange()`, `select()`, `mutate()` and `rename()`. They help us understand what columns of data look like... and by extension may suggest certain data cleaning tasks to make the information we want to work with clear, consistent, and ready for statistical analysis.
 
 Here are some basic tools for recoding information stored in columns of data.
 
+
 ## Recoding values
 
-`recode()` is another dplyr function for replacing numeric, character or factor values. Say we want to recode gapminder observations listed with the country name "West Bank and Gaza" to instead refer to the country name "State of Palestine." We can use the `recode()` function as part of the argument in the `mutate()` function to create a new variable called `country_clean`.
+There are a number of functions available to recode values, such as `case_when()`, `if_else()`, and `recode()`. These functions can be used as helper functions within `mutate()` to replace certain values in a column of data with other values. Here we'll put `case_when()` to use in order to rename certain countries according to their most recent, UN-recognized names. We'll create a new variable called `country_clean` and assign it to a new data frame `gap2`.
+
 ```{r}
-g2 <- gapminder %>% 
-  mutate(country_clean = recode(country, "West Bank and Gaza" = "State of Palestine")) 
-# let's check if it worked by printing observations where country == "West Bank and Gaza"
-g2 %>% filter(country == "West Bank and Gaza") 
+gap2 <- gapminder %>% 
+  mutate(country_clean = case_when(country == 'Czech Republic' ~ 'Czechia',
+                                   country == 'Swaziland' ~ 'Eswatini',
+                                   country == "West Bank and Gaza" ~ "Palestine"))
 ```
-Note that `country` is a factor, so categorical values (levels) are stored as integers but displayed as characters. We can refer to the levels themselves when using `recode()`.
 
-`recode()` can also be used to recode values in numeric, character, and logical columns of data.
-
-`replace()` is a base R function that is can also be used fo recoding values.
+Recall that country is stored as a factor. There are a number of functions designed specifically for working with factors and factor levels.
 
 
 ## Setting factor levels
@@ -185,12 +183,14 @@ levels_to_keep <- c("cat1", "cat2", "cat3")
 df %>% mutate(var1 = factor(var1, levels = levels_to_keep))
 ```
 
+
 ## Re-ordering factor levels
 
 The `forcats` package included in the tidyverse includes a number of tools for working with factors. `forcats` includes a set of functions for re-ordering factor levels, which can be useful for summarizing factor variables.
+
 ```{r message = FALSE, warning = FALSE}
 # the default level is alphabetical
-gapminder$continent %>% levels()
+levels(gapminder$continent)
 
 # reorder levels in reverse alphabetical order
 gapminder$continent %>% 
@@ -199,6 +199,7 @@ gapminder$continent %>%
 
 # reorder levels by frequency 
 fct_count(gapminder$continent)
+
 gapminder$continent %>% 
   fct_infreq() %>% 
   levels()
@@ -213,22 +214,24 @@ gapminder$continent %>%
   fct_reorder(gapminder$lifeExp, min) %>% 
   levels()
 ```
+
 You can take a look at the forcats [documentation](https://forcats.tidyverse.org/) for a cheat sheet that describes other functions for working with factor variables.
 
 
-## if_else
+## if_else()
 
-`if_else` is a useful dplyr function for manipulating data in (non-factor) columns of data based on conditional statements. To get a sense of how `if_else` works, let's create a binary (logical) variable called `cont_asia` equal to `TRUE` if `continent == "Asia"` and `FALSE` for other continents.
+`if_else()` is a useful dplyr function (in the tidyverse) for manipulating data in columns of data based on conditional statements. To get a sense of how `if_else()` works, let's create a binary (logical) variable called `cont_asia` equal to `TRUE` if `continent == "Asia"` and `FALSE` for other continents.
+
 ```{r message = FALSE, warning = FALSE}
-g3 <- gapminder %>% 
+gap3 <- gapminder %>% 
   mutate(cont_asia = if_else(continent == "Asia", TRUE, FALSE) ) 
-str(g3)
+str(gap3)
 ```
+
 We'll check to make sure this mutate worked correctly in the next section. 
 
-Also note that base R includes its own `ifelse` function that works a bit differently than the dplyr `if_else` function. The dplyr version is more rigid when it comes to working with different data types.
+Also note that base R includes its own `ifelse()` function that works a bit differently than the dplyr `if_else()` function. The dplyr version is a more rigid but safer option when it comes to working with different data types.
 
-`mutate_if()` is another tool for creating variables in ways that depend on certain specified conditions.
 
 
 # Summary statistics
@@ -244,12 +247,12 @@ Also note that base R includes its own `ifelse` function that works a bit differ
 `summary()` is a base R function that summarizes objects in ways that depend on the class of the object. It can be a handy way to quickly generate summary statistics for columns of data, though the display format varies depending on the class of the argument. Here are some examples.
 
 ```{r message = FALSE, warning = FALSE}
-summary(g3)
+summary(gap3)
 
 # note how summary treats factors, characters, and logical data types differently
-summary(g3$continent)
-summary(as.character(g3$cont_asia))
-summary(g3$cont_asia)
+summary(gap3$continent)
+summary(as.character(gap3$cont_asia))
+summary(gap3$cont_asia)
 ```
 
 
@@ -260,46 +263,47 @@ A more flexible function for computing summary statistics is the `summarize()` f
 ```{r message = FALSE, warning = FALSE}
 gapminder %>%
   filter(year == 2007) %>%  
-  summarize(n_countries = n(), avg_lifeExp_2007 = mean(lifeExp))
+  summarize(n_countries = n(), 
+            avg_lifeExp_2007 = mean(lifeExp))
 ```
 
 Here is a list of "helper" functions we can use within `summarize()`:
 
-| Function | Description |
-|----------|-------------|
-| `n`  |    count   |
-| `n_distinct`  |   count unique values    |
-| `mean`  | mean      |
-| `median`  |   median    |
-| `max` | largest value |
-| `min` | smallest value |
-| `sd`  | standard deviation |
-| `sum`  |  sum of values    |
-| `first` | first value |
-| `last` | last value |
-| `nth`  |  nth value     |
-| `any`  |  condition true for at least one value |
+| Function    | Description |
+|-------------|-------------|
+| `n`         |    count    |
+| `n_distinct`|   count unique values    |
+| `mean`      | mean      |
+| `median`    |   median    |
+| `max`       | largest value |
+| `min`       | smallest value |
+| `sd`        | standard deviation |
+| `sum`       |  sum of values    |
+| `first`     | first value |
+| `last`      | last value |
+| `nth`       |  nth value     |
+| `any`       |  condition true for at least one value |
 
 
 ## Frequency tables and crosstabs
 
 The base R `table()` function is a quick tool for generating frequency tables (also known as one-way tables) and crosstabs (two-way tables). Note that passing the data column `continent` as an argument to the `table()` function yields an equivalent frequency table as passing it to the `summary` function.
 ```{r}
-table(g3$continent)
+table(gap3$continent)
 ```
 
 Let's look at a crosstab between `continent` and `cont_asia` to make sure we correctly created the logical variable indicating Asian observations in Section 6.4: [if_else]. We can also look at column or row proportions (conditional distributions) instead of cell counts.
 ```{r message = FALSE, warning = FALSE}
 # joint distribution
-table(g3$continent, g3$cont_asia)
+table(gap3$continent, gap3$cont_asia)
 
 # distribution of continent conditional on being in Asia (admittedly not very interesting)
-prop.table(table(g3$continent, g3$cont_asia) , 2)  %>% round(2)
+prop.table(table(gap3$continent, gap3$cont_asia) , 2)  %>% round(2)
 ```
 
 Note that there may be other packages with functions specifically designed for the types of data you're working with. For example, `fct_count()` in the `forcats` package shows a frequency table for factor variables, yielding equivalent results to the base R `table()` function but with enhanced presentation.
 ```{r message = FALSE, warning = FALSE}
-fct_count(g3$continent)
+fct_count(gap3$continent)
 ```
 
 
@@ -339,7 +343,7 @@ gapminder %>%
 gapminder %>%
   select(year, country, lifeExp) %>%
   group_by(year) %>%
-  filter(min_rank(desc(lifeExp)) < 2 | min_rank(lifeExp) < 2) %>% # min_rank is a dplyr ranking function
+  filter(min_rank(desc(lifeExp)) == 1 | min_rank(lifeExp) == 1) %>% # min_rank is a dplyr ranking function
   arrange(year, lifeExp) %>%
   print(n = Inf) # Infinity can be used to override limits on the number of rows/columns printed
 ```
@@ -347,9 +351,9 @@ gapminder %>%
 
 # Intro to ggplot for visualization
 
-ggplot2 is a package in the tidyverse that provides a system for creating data visualizations. It's a bit more difficult to learn than other R functionality because ggplot syntax relies on its own grammatical rules.
+`ggplot2` is a package in the tidyverse that provides a system for creating data visualizations. It's a bit more difficult to learn than other R functionality because ggplot syntax relies on its own grammatical rules.
 
-With ggplot2, you begin a plot with the function `ggplot()`. This creates a coordinate system that you can add layers to. We start with three components:
+With `ggplot2`, you begin a plot with the function `ggplot()`. This creates a coordinate system that you can add layers to. We start with three components:
 
 - **data**: the first argument of `ggplot()` is the data to use in the graph, e.g. `ggplot(data = gapminder)`. This creates an empty graph that you can add one or more layers to. 
 - **aesthetics** map variables to visual properties like color, shape, size, etc. **Aesthetic mappings are set as arguments to the `aes()` function, which must be specified along with a `ggplot()` call. ggplot2 knows to look for mapped variables inside the data argument.
@@ -368,29 +372,30 @@ gap_2007 <- gapminder %>% filter(year == 2007)
 ```
 
 ```{r eval = FALSE}
-# it can be helpful to include argument names while learning the syntax
 ggplot(data = gap_2007) + aes(x = continent) + geom_bar()
-```
-
-```{r message = FALSE, warning = FALSE}
-# but R is smart enough to recognize many arguments without specifying by name
-ggplot(gap_2007) + aes(continent) + geom_bar()
 ```
 
 Here is the same information with additional options to display continent proportions instead of counts.
 ```{r message = FALSE, warning = FALSE}
-# but R is smart enough to recognize many arguments without specifying by name
-ggplot(gap_2007) + aes(x = continent, y = ..prop.., group = 1) + geom_bar()
+gap_2007 %>% 
+  ggplot(aes(x = continent, 
+             y = ..prop.., 
+             group = 1)) +
+  geom_bar()
 ```
 
+`geom_bar()` works by simply counting observations in each category of the argument x (in this case `x = continent`). Alternatively, we can collapse the country-level data to continent level observations using `group_by()` and `summarize()`, and the plot the data directly using `geom_col()`. The lesson here is to keep in mind that the geometries we use in our plots depend on the structure of the data.
 
-`geom_bar()` works by simply counting observations in each category of the argument x (in this case `x = continent`). Alternatively, we can collapse the country-level data to continent level observations using `group_by()` and `summarize()`, and the plot the data directly using `geom_col()`. Don't worry too much about this, just note that the geometries we use in our plots depend on the structure of the data.
 ```{r message = FALSE, warning = FALSE}
 gap_continents <- gapminder %>% 
   filter(year == 2007) %>% 
   group_by(continent) %>% 
   summarize(country_ct = n())
-ggplot(data = gap_continents) + aes(x = continent, y = country_ct) + geom_col()
+
+gap_continents %>% 
+  ggplot(aes(x = continent, 
+             y = country_ct)) + 
+  geom_col()
 ```
 
 
@@ -398,5 +403,7 @@ ggplot(data = gap_continents) + aes(x = continent, y = country_ct) + geom_col()
 
 Here is the code to illustrate the distribution of life expectancy across countries in 2007 using a very basic histogram with no additional options specified.
 ```{r message = FALSE, warning = FALSE}
-ggplot(gap_2007) + aes(x = lifeExp) + geom_histogram()
+gap_2007 %>% 
+  ggplot(aes(x = lifeExp)) + 
+  geom_histogram()
 ```
