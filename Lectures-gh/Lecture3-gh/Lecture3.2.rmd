@@ -1,0 +1,197 @@
+---
+title: 'Lecture 3.2: Inference and Regression'
+subtitle: "DSPC7514 Data Analysis for Policy Research"
+author: "Instructor: Harold Stolper"
+date: 
+urlcolor: blue
+output: 
+  html_document:
+    toc: TRUE
+    toc_depth: 3
+    toc_float: TRUE
+    number_sections: TRUE
+    highlight: tango
+    theme: default
+    fig_caption: TRUE
+    df_print: tibble  
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Introduction
+
+Load packages:
+```{r, message = FALSE, warning = FALSE}
+library(tidyverse)
+library(gapminder)
+library(lmtest)
+library(sandwich)
+```
+
+Resources used to create this lesson:
+
+- https://www.econometrics-with-r.org/3-5-cmfdp.html
+
+We're going to explore basic R functionality for inference and regression in the context of gapminder data, this time filtering for only 2007 observations.
+
+```{r, message = FALSE, warning = FALSE}
+gap_2007 <- gapminder %>% filter(year == 2007)
+```
+
+# Formulas in R
+
+Before we introduce functions for statistical inference and regression analysis, it's useful to introduce the concept of a "formula" in R.
+
+R uses "formulas" to convey the idea of a statistical model, or an unevaluated expression. Formulas are handy for econometrics because they can be used as arguments in other functions to generate special behavior; for example, to point to values of certain variables without evaluating the expression. Here is a formula that allows for a linear relationship between some objects `x` and `y`:
+
+```{r}
+linear <- y ~ x # read as: y is a function of x
+```
+
+Let's examine how R stores this kind of object:
+
+```{r}
+typeof(linear)
+attributes(linear)
+```
+
+OK, so R refers to this type of object as `language` with `class = formula`. What can we do with this formula? Lots of things! Like specify a population regression function, for one:
+
+```{r}
+# this is a formula for a linear model
+lm1 <- gap_2007$lifeExp ~ gap_2007$gdpPercap
+lm1
+```
+
+Notice what happens when we print `lm1`--nothing is evaluating! This allows us to pass a model of relationships between variables as an argument to other functions that can in turn interpret the formula and evaluate in the appropriate context... like functions that perform t-tests and estimate OLS regression, among many other examples.
+
+
+# Inference
+
+There are many different applications of statistical inference that are relevant for policy research, but the t-test is a something we'll frequently use to test differences in means and regression coefficients, among other applications. 
+
+
+## `t.test()` with vectors
+
+The `t.test()` function in the `stats` package is a commonly used function for performing one and two sample t-tests on vectors of data (e.g. columns of data in a data frame).
+
+Suppose we want to test the null hypothesis that the difference in mean life expectancy across Asian countries differs from European countries. We need to specify the two columns of data to use for computing each group mean. The life expectancy data doesn't exist in separate columns by continent, but we can easily create them by filtering the gapminder data and assigning to new continent-specific data frames.
+
+```{r, warning = FALSE}
+# create new data frames filtered by continent
+gap_2007_asia <- gap_2007 %>% filter(continent == "Asia")
+gap_2007_eur <- gap_2007 %>% filter(continent == "Europe")
+
+# conduct t-test for diff in mean lifeExp by referencing appropriate lifeExp columns
+t.test(gap_2007_asia$lifeExp, gap_2007_eur$lifeExp)
+```
+
+The results indicate a t-stat of `r round(t.test(gap_2007_asia$lifeExp, gap_2007_eur$lifeExp)$statistic, 2)` and associated p-value of close to 0, with a difference in mean life expectancy of almost 7 years that is statistically significant at the 1% level.
+
+But wait a minute, what formula is R using to estimate the standard error of the difference?? We probably want to allow for unequal variances in the different group populations, which is equivalent to robust SEs in the analogous bivariate regression setting (we'll get to the bivariate regression framing shortly!). Here the default option is to assume the sample means are drawn from populations with unequal variances, but can we still explicitly specify the variance formula as an additional option. Consult Stock and Watson Chapter 3.4 (3rd edition) for a refresher on difference-in-mean tests and the appropriate SE formula.
+
+```{r, message = FALSE, warning = FALSE}
+# conduct t-test allowing for unequal population variances
+t.test(gap_2007_asia$lifeExp, 
+       gap_2007_eur$lifeExp, 
+       var.equal = FALSE)
+```
+We can also specify other function options to specify the t-test interest we're interested in if we don't want to rely on the default options: 
+
+- `conf.level = 0.99` specifies 99% confidence
+- `mu = 10` specifies a null hypothesized value other than zero, if appropriate
+- `alternative = "less"` specifies the appropriate one-tailed test if a two-tailed test isn't appropriate
+
+
+## `t.test()` with formulas
+
+An alternative approach is to pass a single formula as an argument to the `t.test()`, instead of two vectors of data. Before we see this in action, first let's introduce a new function from another package, `dummy_cols`, that converts a categorical variable into separate dummy variables for each category of that variable. In this, case let's use this function to create dummy variables indicating each continent (e.g. continent_Asia).
+
+```{r, message = FALSE, warning = FALSE}
+# create dummy variables for each category of continent (as new columns)
+gap_2007_d1 <- fastDummies::dummy_cols(gap_2007, select_columns = "continent")
+str(gap_2007_d1)
+```
+Note that the syntax `fastDummies::dummy_cols()` is a way of accessing the `dummy_cols()` function in the `fastDummies` function without loading the full package.
+
+Now let's run the same t-test as above but using a formula as the argument specifying the null hypothesis to test, **H~0~: mean life expectancy across Asian countries differs from European countries**. The key idea is to specify the formula for a bivariate regression that yields an equivalent t-statistic: lifeExp~i~ = b~0~ + b~1~continent_Asia~i~ + u~i~, estimated over Asian and European countries only. We just need to pass this formula to the `t.test()` function, along with another argument specifying the data source in which to look for elements references in the formula. (If you're fuzzy on the equivalence between a conventional difference-in-means t-tests and the bivariate regression approach, please revisit my **Quant II Video Lecture 2.2a** posted to our class [website](https://hreplots.github.io/U6614/) under Class Resources/Review Materials from Quant II.)
+
+```{r, message = FALSE, warning = FALSE}
+# filter gap_2007 to exclude countries outside of Asia and Europe
+gap_2007_asia_eur <- gap_2007_d1 %>% 
+  filter(continent == "Asia" | continent == "Europe")
+
+# conduct t-test for diff in mean lifeExp by passing formula for appropriate bivariate PRF
+t.test(lifeExp ~ continent_Asia, 
+       data = gap_2007_asia_eur, 
+       var.equal = FALSE)
+```
+
+Notice we get the same t-statistic as above, 4.4802!
+
+Both syntactic approaches to `t.test()` will come in handy, depending on how your data is set up and the particular null hypothesis you want to test.
+
+
+# OLS Regression
+
+We've already seen how formulas can be used to specify a population regression function (PRF). All we need to do is pass the formula to a function that will estimate the corresponding OLS regression. Enter the `lm()` function for fitting linear models, along with `summary()` function to report results.
+
+```{r, message = FALSE, warning = FALSE}
+# estimate bivariate linear regression of lifeExp on continent_Asia (dummy variable)
+ols1 <- lm(lifeExp ~ continent_Asia, data = gap_2007_asia_eur)
+summary(ols1) # view OLS estimates
+```
+
+The coefficient on continent_Asia gives us the same difference in mean life expectancy between Asian and European countries as with `t.test()`... except we haven't specified robust SEs, which means we haven't allowed for unequal variances in the underlying population of life expectancy between countries in the two continents. 
+
+There is one more step to go to perform inference on regression coefficients using robust SEs... we need to install and load two more packages: `lmtest` and `sandwich`. The former allows us to call the `coeftest()` function to conduct inference on estimated coefficients, and the latter allows us to specify the appropriate covariance matrix used to estimate robust SEs.
+```{r, message = FALSE, warning = FALSE}
+# conduct inference on coefficient from linear model ols1
+coeftest(ols1, vcov = vcovHC(ols1, type="HC1")) # type="HC1" specified robust SE formula
+```
+Now we have the exact same t-statistic (`r round(coeftest(ols1, vcov = vcovHC(ols1, type="HC1"))[2,3], 2)`) as with the conventional difference-in-means t-test assuming unequal population variances.
+
+An alternative and simpler approach is to use the `lm_robust` function in the `estimatr` package, accessed by `summary`:
+
+```{r, message = FALSE, warning = FALSE}
+# linear model
+library(estimatr)
+ols1_lm <- lm_robust(lifeExp ~ continent_Asia, 
+          se_type="HC1",  #type="HC1" specifies robust SE formula
+          data = gap_2007_asia_eur) 
+summary(ols1_lm)
+```
+
+
+## Model specification 
+
+We've already seen how `fastDummies::dummy_cols()` is a useful function for creating dummy variables that can be in included as variables in a regression. Some other commonly used tools for specifying non-linear models include:
+
+- log transformations: `log1p(x)`(uses a particular form of the `log()` function)
+- interactions: `x * y`
+- quadratic terms: `I(x^2)` (uses the `I()` or "as-is" operator)
+
+Here is an example of the formula syntax for the following non-linear PRF: 
+
+*lifeExp~i~ = b~0~ + b~1~pop~i~ + b~2~continent_Asia~i~ +b~3~populationXcontinent_Asia~i~ + b~4~gdpPercap~i~ + + b~4~gdpPercap^2^~i~ + u~i~ *
+
+We have no good reason to estimate this particular model so let's not dwell on the results, it's just a hypothetical PRF that puts (most of) the above specification tools to use.
+```{r}
+ols2 <- lm(lifeExp ~ pop * continent_Asia + gdpPercap + I(gdpPercap^2), data = gap_2007_asia_eur)
+summary(ols2)
+```
+
+
+## Plotting sample regression functions
+
+Another use of linear models is plotting regression estimates (the sample regression function) under `ggplot` using the `geom_smooth()` geometry. We'll spend more time on visualizations with ggplot in a few weeks, but for now here is an example:
+```{r}
+#add linear prediction line to scatter plot
+gap_2007 %>% 
+  ggplot(aes(x = log1p(gdpPercap), y = lifeExp)) +  #set aesthetic mappings
+  geom_point() +                                  #add geometry layer for scatterplot
+  geom_smooth(method = 'lm', formula = y ~ x)     #add geometry layer for regression line
+```
+
