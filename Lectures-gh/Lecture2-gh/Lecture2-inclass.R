@@ -1,366 +1,460 @@
 ################################################################################
 ##
-## [ PROJ ] < Caste-based expenditure gaps and the ACCESS 2018 Survey >
-## [ FILE ] < Lecture2-inclass.R >
-## [ INIT ] < Sept 05, 2024 >
+## [ PROJ ] Lecture 2: Subway Fare Evasion Arrests in Brooklyn Microdata Analysis
+## [ FILE ] Lecture2-inclass.r
+## [ AUTH ] < YOUR NAME >
+## [ INIT ] < Jan 27, 2026 >
 ##
 ################################################################################
 
-## ---------------------------
-## LIBRARIES
-## ---------------------------
+## POLICY QUESTION FOR THE NEXT 3 CLASSES:
+## Police can stop and ticket or arrest people for subway fare evasion. 
+## Is there racial bias in their subway fare evasion enforcement in Brooklyn? 
 
-# install packages once and only once!
-# install.packages('tidyverse')
-# install.packages('DescTools)
+## Week 3: What can we learn from microdata?
+##  - Which demographic groups experience the most enforcement?
+##  - Where is the NYPD making the most subway fare evasion arrests?
 
-# load packages every time you start a new RStudio session
+## Please consult the data primer for an overview of the data and policy context
+
+
+## -----------------------------------------------------------------------------
+## 1. load libraries and check working directory
+## -----------------------------------------------------------------------------
+
+#install.packages("fastDummies")
+library(fastDummies)
 library(tidyverse)
-library(DescTools)
+#library(forcats) #included with Tidyverse
 
 
-## ---------------------------
-## DIRECTORY PATHS
-## ---------------------------
-
+#also confirm correct working directory
 getwd()
 
 
 ## -----------------------------------------------------------------------------
-## 1. load and inspect access2018 data: 
+## 2. Load, inspect and describe the two public defender client datasets 
+##
+##  a. load datasets using read_csv() and inspect
+##
+##    two datasets of administrative records from public defenders in Brooklyn
+##      1. microdata_BDS_inclass.csv: Brooklyn Defender Services
+##      2. microdata_LAS_inclass.csv: Legal Aid Society
+##
+##    each row contains client data for an individual arrested for subway fare evasion
+##
+##    note these files were provided by the respective orgs with no documentation
+##
+##  b. give a brief overview of the data 
+##     (start to think about this now, but revisit after you know what
+##      information proved most relevant for your analysis)
+##
+##  c. what is the unit of observation? what population does this `sample` represent?
+##     do you think this sample does a good job representing the population of interest?
+##
+##  d. inspect and describe the coding of race/ethnicity information in each dataset
+##
+##  e. are there any data limitations you think are important to note from the outset? 
+##     - note that messy data isn't a limitation, it just means we have work to do.
+##     - limitations might include information that is missing in this data/sample
+##
+## -----------------------------------------------------------------------------
+
+# 2a. 
+
+  # reading in blanks as NA
+    arrests_bds <- read_csv("microdata_BDS_inclass.csv", na = "")
+    arrests_las <- read_csv("microdata_LAS_inclass.csv", na = "")
+    
+    str(arrests_bds, give.attr = FALSE) 
+    str(arrests_las, give.attr = FALSE)
+    # note the give.attr argument to make long str() output more readable
+  
+  # recall string variables are imported as characters by default (not factors)
+  # this isn't useful for summary statistics
+    summary(arrests_bds)
+    summary(arrests_las)
+  
+  # let's convert race and ethnicity to factors to inspect before cleaning
+    arrests_bds <- arrests_bds %>% 
+      mutate(race = as.factor(race), 
+             ethnicity = as.factor(ethnicity))
+    
+    arrests_las <- arrests_las %>% 
+      mutate(race = as.factor(las_race_key), 
+             ethnicity = as.factor(hispanic_flag))
+
+# 2b.
+  
+
+# 2c.
+  
+  # compare race coding
+    summary(arrests_bds$race)
+    summary(arrests_las$race)
+    
+  # compare Hispanic/ethnicity coding
+    summary(arrests_bds$ethnicity)
+    summary(arrests_las$ethnicity)
+
+
+# 2d.
+  
+
+
+## -----------------------------------------------------------------------------
+## 3. clean BDS race and ethnicity data: 
+##
+##  recode race and ethnicity vars and assign to new df called arrests_bds.clean
+##  generate 3 new columns for cleaned data:
+##    a. race_clean
+##    b. ethnicity_clean
+##    c. create a single factor variable w/mutually exclusive groups (race_eth)
+##       - Black, Non-Hispanic White, Hispanic, Asian/Pacific Islander, Other, NA
 ##    
-##    a. inspect the data frame and data types for each column
-##        - make sure to inspect the age, gender, caste, income source, state & educ columns
-##
-##    b. use the mutate function to create new column for gender:
-##        - gender.fac = as.factor(gender),
-##        - check if it worked by calling the str() function
-##
-##    c. in a single pipe, include gender.fac in a new data frame called access2018.temp1, 
-##       also create factors for caste, income source, state and education,
-##       and exclude the columns for HHID and date
-##       after creating access2018.temp1, print the first 5 observations
-##
-##    d. inspect caste.fac, gender.fac, incsource.fac, education.fac and state.fac
-##.      using the levels() function,
-##       what package is the levels() function located in?
-##
-##    e. use filter() to only include rows only for the state "Uttar Pradesh",
-##       store as a new object access_UP,
-##       print the first 5 observations,
-##       confirm your data only includes observations for Uttar Pradesh
-##
-##.   f. what is the female share of respondents in Uttar Pradesh? 
-##       compare it to the female share of respondents in Bihar. 
-##
-##    g. remove the access2018.temp1 object from memory using the rm() function
+##  before we do this...
+##    
+##  in-class discussion questions: 
+##  - what cat do you want to use for Black Hispanic identity?
+##  - what is missing by using mutually exclusive, single identity categories?
 ## -----------------------------------------------------------------------------
 
-# 1a. 
+# 3a. BDS race
 
-  load("access2018.RData")
-  str(access2018)
-  
-  # View(access2018)
-  # we can also inspect the data frame by double-clicking in the Environment tab
-  # NOTE: DON'T INCLUDE View() IN YOUR R MARKDOWN SUBMISSION!
-
-  summary(access2018$age)
-  
-  # note how summary is not very useful with character variables
-  summary(access2018$gender) 
-  summary(access2018$caste) 
-  summary(access2018$education) 
-  summary(access2018$state)
-  
-  # we need to coerce these characters into factors to see their distribution!
-
-  
-# 1b.
-  mutate(access2018, gender.fac = as.factor(gender)) 
-  
-  # note: the output is an object, we're just not assigning it to the environment
-  # but we can put the entire operation within str() to inspect the output
-  str(mutate(access2018, gender.fac = as.factor(gender))) 
-  summary(mutate(access2018, gender.fac = as.factor(gender))$gender.fac) 
-  
-  # but mutate() is a tidyverse function, so better to initialize with a pipe!
-  access2018 %>% mutate(gender.fac = as.factor(gender)) 
-  
-  
-# 1c. going forward, when working with tidyverse functions
-#     let's start by passing an object (usually data frames) into a pipe 
-  access.temp1 <- access2018 %>% 
-    mutate(gender.fac = as.factor(gender),
-          caste.fac = as.factor(caste),
-          education.fac = as.factor(education), 
-          state.fac = as.factor(state),
-          incsource.fac = as.factor(incsource)) %>% 
-    select(-HHID, -date) 
-
-  head(access.temp1, n = 5) 
-
-  # some helpful syntax for later: 
-  # subset the first row of access.temp1
-  access.temp1[1,]
-  
-  # subset the cell in the first row, 4th column (i.e. first obs for age)
-  access.temp1[1,5]
-
-
-# 1d.
-  levels(access.temp1$gender.fac)
-  levels(access.temp1$caste.fac)
-  levels(access.temp1$education.fac)
-  levels(access.temp1$state.fac)
-  levels(access.temp1$incsource.fac)
-
-  ?levels   
-  # note that levels is a base R function
-  # so levels can't be used with columns using tidyverse syntax (i.e. not within a pipe)
-  # make sure you understand why this won't work: 
-    cps.temp1 %>% levels(sex.fac)
-
-
-# 1e.
-  access_UP <- access.temp1 %>% 
-    filter(state == "UTTAR PRADESH")
-  
-  access_UP %>% head(n = 5)
-  
-  # validate
-  summary(access_UP$state.fac)
-
-  
-# 1f.
-
-  #Share of female respondents in UP
-  summary(access_UP$gender.fac)
-  prop.table(table(access_UP$gender.fac))
-  
-  # let's round to 3 decimals
-  # the output from prop.table() is just a vector, we can pass it into a pipe to round
-  prop.table(table(access_UP$gender.fac)) %>% round(3)
-  
-  # however...
-  # in the write-up of your RMD file you'll enter code to return the female share
-  # don't hardcode numbers in your RMD write-up
-  # in your RMD file, you can't use pipes with in-line code references
-  # so here is code that works to round as an in-line code reference
-  round(prop.table(table(access_UP$gender.fac)), 3)
-  
-  # can also the Desc() function in the DescTools package
-  Desc(access_UP$gender)
-  
-  # OPTIONAL advanced exercise (something to try on your own if you have time): 
-  
-    # what type of object is the output of Desc()
-    str(Desc(access_UP$gender)) # a list! 
-  
-    # actually...
-    # it's a list with another list as the 1st and only element of the list (weird!)
-    str(Desc(access_UP$gender)[[1]])
-    Desc(access_UP$gender)[[1]]
-  
-    # how can you refer directly to the female share?
+  # inspect
+  # NOTE: don't show all of this in your R Markdown submission, it's just for yoU!
+    levels(arrests_bds$race)
+    typeof(arrests_bds$race) #remember factors are stored as integers corresponding to levels
+    summary(arrests_bds$race)
+    arrests_bds %>% count(race, sort = TRUE)
+    arrests_bds %>% count(race, ethnicity, sort = FALSE)
     
-    # first find which element of the list is the frequency table
-    Desc(access_UP$gender)[[1]]$freq
+    # a quick and easy way to show a crosstab using base R (just show this!)
+      table(arrests_bds$race, 
+            arrests_bds$ethnicity, 
+            useNA = "always")
+      # NOTE: why set useNA = "always" here?
+      
+      
+  # ok now let's recode in an internally consistent manner...
     
-    # this object is a matrix, now just point to the right element of the matrix!
-    round(Desc(access_UP$gender)[[1]]$freq[2,3], 3)
+  # Approach #1: use recode() in the dplyr package
+    
+    # recode 0 and Unknown into NA (use use NA_character)
+    # recode Am Indian as Other because only 1 observation
+    # assign to race_clean as a factor w/correct race groups
+    
+    # note the original ordering of the levels
+    # let's assign Other to be last in the ordering of levels
+    
+    arrests_bds.clean <- arrests_bds %>% 
+      mutate(race_clean = recode(race,
+                                 "0" = NA_character_, # use NA_character 
+                                 "Unknown" = NA_character_, 
+                                 "Am Indian" = "Other")) %>% 
+      mutate(race_clean = fct_relevel(race_clean,
+                                      "Asian/Pacific Islander",
+                                      "Black",
+                                      "White",
+                                      "Other"))
+      
+  # Approach #2: use case_when() in the dplyr package
+    
+    arrests_bds.clean <- arrests_bds %>% 
+      mutate(race_clean = case_when(race == "0" ~ NA_character_,
+                                    race == "Unknown" ~ NA_character_,
+                                    race == "Am Indian" ~ "Other",
+                                    TRUE ~ race))  %>% 
+      mutate(race_clean = fct_relevel(race_clean,
+                                      "Asian/Pacific Islander",
+                                      "Black",
+                                      "White",
+                                      "Other"))
+    
+  # also note how we could easily go back and forth between character and factor 
+  # (no need to do this, just showing you what is possible)
+    arrests_bds.clean <- arrests_bds.clean %>% 
+      mutate(race_clean = as.character(race_clean)) %>%  
+      mutate(race_clean = as.factor(race_clean))
+
+  # validation: confirm the recode worked as intended
+    arrests_bds.clean %>% 
+      count(race_clean, sort = TRUE)
+    table(arrests_bds.clean$race, 
+          arrests_bds.clean$race_clean, 
+          useNA = "always")
+    
+    
+# 3b. BDS ethnicity (Hispanic identity)
+      
+  # inspect
+  # NOTE: don't show all of this in your R Markdown submission, it's just for yoU!
+    levels(arrests_bds.clean$ethnicity)
+    table(arrests_bds.clean$race_clean, 
+          arrests_bds.clean$ethnicity, 
+          useNA = "always")
   
+  # now let's recode by creating a Hispanic column where:
+  # hispanic takes the values Hispanic, Non-Hispanic, or NA
+    arrests_bds.clean <- arrests_bds.clean %>% 
+      mutate(hispanic = recode(ethnicity, 
+                               "0" = NA_character_,
+                               "Other" = "Non-Hispanic")) 
+    
+  # validation: confirm the recode worked as intended
+    table(arrests_bds.clean$hispanic, 
+          arrests_bds.clean$ethnicity, 
+          useNA = "always")
+    summary(arrests_bds.clean$hispanic) #less useful for validation!
+      
 
-  #Share of female respondents in Bihar
-  access_bihar <- access.temp1 %>% 
-    filter(state == "BIHAR")
-  summary(access_bihar$gender.fac)
-  prop.table(table(access_bihar$gender.fac))
-  
 
-# 1g.
-  rm(access.temp1)
-  rm(access_bihar)
-
-
-## -----------------------------------------------------------------------------
-## 2. Describe the access_UP data frame
-##
-##    a. what is the unit of observation (or unit of analysis)?
-##
-##    b. how many individuals are observed? 
-##       how many of these are from 'Reserved' castes (i.e: Scheduled Caste, Scheduled Tribe, Other Backward Class")? 
-##       how many are "General" caste members?
-##       [Note: for this question, use the 'table' and 'prop.table' functions. 
-##             'table' will give the number of observations belonging to each caste category.
-##             'prop.table will give the proportion]
-##
-##    c. do you think the sample is representative of all households in India?
-##       how would you describe the population represented by this sample?
-##       is there more information you would like to see to assess the representativeness of the sample?
-##
-##    d. what is the average age of individuals in the sample? youngest and oldest person?
-## -----------------------------------------------------------------------------
-
-# 2b. Note: For this question, first run the following code to add a dummy 
-# variable 'reserved' to the 'access_UP' dataframe. This variable has two levels— 
-# 'Other Backward Class', 'Scheduled Caste' and 'Scheduled Tribe' belong to the 
-# 'Reserved' level, while the rest are assigned to 'General'.
-  access_UP <- access_UP %>% 
-    mutate(reserved = factor(if_else(caste.fac %in% c("Other Backward Class", 
-                                                      "Scheduled Caste",
-                                                      "Scheduled Tribe"),
-                                     "Reserved",
-                                     "General")))
-
-  #Number of total observations in access_UP
-
-  
-  #Number of 'Reserved' and 'General' individuals
-
-  
-  #Proportion of 'Reserved' and 'General' individuals
+# 3c. race_eth
+      
+  # let's investigate a bit...
+  # examine every possible combination of hispanic identity and race
 
     
-
-# 2d. 
-
-
-
-## -----------------------------------------------------------------------------
-## 3. Let's now look at expenditures per month for different groups in Uttar Pradesh
-##
-##    a. find the observation for the top monthly expenditure using the summarize() function, 
-##        assign this to a new object called max_exp_obs1
-##
-##    b. find max monthly expenditures using the arrange function instead of summarize
-##
-##    c. use the filter function to subset for the observation with max monthly expenditure
-##        (don't hardcode the max expenditure to filter on, refer to the max_exp_obs1 object from a),
-##        store in new data frame max_exp_obs2,
-##        confirm it worked
-##
-##    d. what is the age, gender and caste of the top monthly spender in the sample?
-##
-##    e. list the age, gender and caste of the top 10 monthly spenders in the sample.
-##
-##    f. how many individuals spend more than the mean monthly expenditure amount of the sample?
-## -----------------------------------------------------------------------------
-
-# 3a. 
-
-  
-# 3b. 
-
-  
-# 3c. 
-# HINT: your condition needs to refer to the max monthly expenditures (month_exp)
-# you created max_exp_obs1 as a data frame in part a,
-# so in your filter() call refer to the value from max_exp_obs1 that you want to filter on
-# this requires subsetting the appropriate element from that data frame
-# (in this case just the max_exp column of the max_exp_obs1 data frame)
-  
-  
-  #validate
-
-    
-# 3d.
-
-
-# 3e.
-
-  
-# 3f.
-
-
-  
-## -----------------------------------------------------------------------------
-## 4. Now, let's look at caste-based monthly expenditure gaps in Uttar Pradesh. 
-##    [Note: Since this data has no earnings data, we are using monthly expenditure 
-##    (month_exp) as a proxy for earnings.]
-##
-##    a. use the filter function and 'reserved' dummy variable to subset observations belonging to the 'General' caste, 
-##       assign to new data frame, access_UPgen,
-##       sort in descending order of monthly expenditure
-##       check if it worked
-##
-##    b. repeat part a, but this time, use the filter function to subset observations 
-##       belonging to 'Reserved" castes.
-##       assign them to a new data frame called 'access_UPres'. 
-##
-##    c. use summarise to find mean, min & max monthly expenditure for the General 
-##       category and Reserved category of castes, separately.
-##       name each statistic appropriately (i.e. name each column in the 1-row table of stats)
-##       what is the gap in mean monthly expenditure between the two groups? 
-##
-##    d. research suggests that people belonging to the 'General' caste category
-##       own 65% of agricultural land in India (India Human Development Survey, 2020). 
-##       they are also more likely to own land in a proportion that is much higher
-##       than their share of the population. 
-##       we will now use this data to compare 'General' versus 'Reserved' households
-##       using the 'reserved' dummy variable to understand whether this is true. 
-##       - use the 'table' and 'prop.table' functions to explore the total number 
-##         of landowners by their caste. 
-##       - here, 'landowners' are people whose primary source of income is 
-##         agriculture on their own land. So, you can use the 'incsource.fac' 
-##         variable to filter the 'access_UP' data frame for 'Agriculture (own land)'
-##       - does the number of General and Reserved caste landowners seem 
-##         proportional to the overall number of 'General' and 'Reserved' caste 
-##         individuals in Uttar Pradesh's population (as calculated in Q2 b)? 
-##
-##    e. do differences in landowning explain the expenditure gap between General and Reserved castes?
-##       i.e., does the General-Reserved expenditure gap persist among landowning families?
-##       what is the gap in mean monthly expenditures of General vs Reserved category landowners? 
-##
-##    f. is there a gap between the mean monthly expenditures of General caste male 
-##       and Reserved caste male landowners? what about the same, but for the female landowners? 
-##
-##    g. does educational attainment explain part of the expenditure gap 
-##       between General and Reserved caste landowners?
-##       what is gap between landowning General vs. Reserved household with a HS degree or more? 
-## -----------------------------------------------------------------------------
-
-# 4a. 
-
-  
-  #validate
-
-  
-# 4b. 
-
-  
-  #validate
-
-
-# 4c.
-
-
-# 4d.
-
-
-# 4e. 
-
-
+  # when recoding vars, 1st determine the recoding logic you want to implement:
+  # let's generate a new variable race_eth by...
+    # first, assigning Hispanic identity if indicated
+    # second, filling in the new variable with race if they are not Hispanic
+    # third, rename White and Black levels as Non-Hispanic White & Non-Hispanic Black
  
-## Is this difference statistically significant?
-## It is critical to test for significance before emphasizing differences in means.
-## we will cover the functions to do inference in Week 4
+
+  
+  # validate results
+    
+    # joint distribution of race_eth and hispanic
+
+    # wait a minute... Non-Hispanic, White, and Black still appear as levels!
+    # even though they are longer categories we want to use and has no observations
+    # so let's remove them from the vector of levels by specifying levels to keep
+
+    
+    # let's validate again
+
+    
+    # what's a tidyverse way of showing the distribution of race_eth
+
+    
+  
+## -----------------------------------------------------------------------------
+## 4a. Repeat steps from q3 for Legal Aid Society (LAS) data:
+##      - create race_eth in arrests_las with the same coding as for BDS
+##      - note that Hispanic identity is included in two columns, not one:
+##          - las_race_key and hispanic_flag
+##      - Make sure you end up with a data frame with the following var names
+##        and identical coding as in arrests_bds_clean:
+##        - race_eth, age, male, dismissal (not in the BDS data), st_id, loc2
+## -----------------------------------------------------------------------------
+
+# 4.
+  FILL IN CODE
+
+
+  # validate with relevant cross-tabs
+  FILL IN CODE
+ 
+
+
+## -----------------------------------------------------------------------------
+## 5. Append BDS and LAS microdata -- stack rows with bind_rows()
+##
+##    a. create a column (pd) to identify PD data source ("las" or "bds")
+##
+##    b. Append arrests_bds.clean and arrests_las.clean
+##        - use bind_rows from the dplyr package
+##        - store combined data as new data frame called arrests.clean
+##        - only keep columns for pd, race_eth, age, male, dismissal, st_id, loc2,
+##          converting to factors for columns w/categorical data as needed
+##        - note that dismissal column is in LAS data but not BDS
+##        - inspect race_eth for accuracy/consistency
+##        - store as new data frame arrests.clean
+##
+##    c. use the nrow function to display the total number of arrests
+##
+##    d. Save arrests.clean df as an .RData file in a new Lecture4 folder for next week
+##
+## -----------------------------------------------------------------------------
+
+# 5a.
+
+  
+# 5b. since we don't have arrests_las.clean yet, for now let's append arrests_bds.clean to itself
+
+  MAKE SURE TO UPDATE ABOVE CODE TO APPEND arrests_las.clean TO arrests_bds.clean
+  
+  
+# 5c. 
+  
+  
+# 5d.
+  save(LIST DATA OBJECTS TO SAVE HERE SEPARATED BY COMMAS,
+       file = "arrests.clean.RData")  
+
+  # for future reference, can also write to a csv file:
+  # write_csv(arrests_all, "arrests_all.csv") 
+
+  
+  
+## -----------------------------------------------------------------------------
+## 6. Descriptive statistics by race_eth (grouping)
+##
+##    a. group arrests.clean by race_eth,
+##       show arrest counts for each race_eth category using tidyverse functions
+##        Note: we already obtained this information using the summary command,
+##        but sometimes it's useful to store this information to work with
+##
+##    b. show a table with the proportion of total arrests in each race_eth category
+##        - how does excluding NAs change the results? 
+##
+##    c. compute avg age, share male, and dismissal rate for each race_eth group, 
+##       along with the total sample size. 
+##       also compute the sample size for the dismissal variabe as well
+##        (just the number of non-NA observations for dimissal)
+##        - assign results to a new object, race_eth_stats
+##        - HINT: similar to (a) above, but specify different stats in summarise()
+##        - HINT: for most of these stats you need to tell R to ignore NA values
+##
+##    d. what, if anything, do you think is interesting to note about the
+##       distribution of:
+##        - age by race (conditional distribution of age)
+##        - male share by race
+##        - dismissal by race
+## -----------------------------------------------------------------------------
+
+# 6a. 
+
+
+    
+# 6b.
 
 
 
-# 4f. 
+# 6c. 
+    
+  # assign results to new data frame so you can refer to them in write-up
+    race_eth_stats <- FILL IN CODE
+    
+    
+# 6d. 
 
 
   
-# 4g. 
-# Note: First run the following code to create a dummy variable 'degree' with two levels: 
-# "HS degree or above" and "Less than HS".
-  access_UP <- access_UP %>% 
-    mutate(degree = factor(if_else(education.fac %in% c("Grade 12", 
-                                                         "Graduate or above"),
-                                    "HS degree or above",
-                                    "Less than HS")))
+## -----------------------------------------------------------------------------
+## 7. grouping by subway station, with subway-station level statistics.
+##      our data includes the following columns
+##        - st_id: unique subway station identifier
+##        - loc2: subway station name (recognized by google maps)
+##      for the remainder of this Assignment, group by loc2
+##   
+##    a. use dummy_cols() in the fastDummies package to create dummies for each race_eth cat
+##       and show the mean for each category
+##
+##    b. using group_by(), create a new data frame w/station-level observations,
+##       call it arrests_stations and including the following information:
+##      - station name (given by loc2)
+##      - st_id
+##      - total number of arrests at each station
+##      - total number of arrests for each race_eth category at each station
+##      - sort in descending order of total number of arrests
+##      - only show the top 10 stations 
+##
+##    c. create a new data frame called arrests_stations_top with the following information
+##      - the combined total number of Black and Hispanic arrests (call it n_bh)
+##      - the number of arrests with race/ethnicity coded as NA
+##      - sh_bh = share of arrests that are Black and Hispanic (excluding race_eth = NA from denominator)
+##      - sort in ascending order of Black and Hispanic arrest share
+##      - only show for stations with at least 50 total arrests
+##      - use kable() in the knitr package for better formatting
+##        - HINT: save as a data frame and pass as an argument to knitr::kable()
+##
+##    d. briefly summarize any interesting findings about the distribution of race across stations
+##      - hint: are there any high arrest stations w/a high share of NHW arrests?
+## -----------------------------------------------------------------------------
+
+# 7a.
+  arrests.clean <- dummy_cols(arrests.clean, 
+                              select_columns = "race_eth")
+  str(arrests.clean)
+  summary(arrests.clean[,8:13]) #too clunky, don't show this in your submission!
   
-  # General v Reserved landowners who have degrees
+  # what's a better way to show just the means using summarise()?
 
   
+
+# 7b.
+  
+  # let's generate station-level counts for each race_eth group
+  # general approach: sum dummy variables
+  arrests_stations <- arrests.clean %>%  FILL IN CODE
+  
+
+# 7c. 
+  arrests_stations_top <-  FILL IN CODE
+  
+  
+#  7d.
+  
+
+## -----------------------------------------------------------------------------
+## 8. OPTIONAL: barplots 
+##
+##    a. barplot of all arrests by race_eth category (proportions of all arrests, sorted)
+##
+##    b. same as part a but exclude all observations with race_eth == NA
+##
+##    c. stacked barplot showing race_eth breakdown for top 10 stations by total arrest count
+## -----------------------------------------------------------------------------
+
+# 8a. 
+  arrests.clean %>% 
+    ggplot(aes(x = race_eth)) + 
+    geom_bar()
+  
+  arrests.clean %>% 
+    ggplot(aes(x = fct_infreq(race_eth),
+               y = ..prop.., group = 1)) + 
+    geom_bar() + 
+    scale_y_continuous(labels = scales::percent_format()) 
+
+  
+# 8b.
+  arrests.clean.nomiss <- arrests.clean %>% 
+    filter(is.na(race_eth) == FALSE)
+  summary(arrests.clean.nomiss$race_eth)
+  
+  arrests.clean.nomiss %>% 
+    ggplot(aes(x = race_eth)) + 
+    geom_bar()
+  
+  arrests.clean.nomiss %>% 
+    ggplot(aes(x = fct_infreq(race_eth),
+               y = ..prop.., group = 1)) + 
+    geom_bar() + 
+    scale_y_continuous(labels = scales::percent_format())
+
+
+# 8c.
+  arrests_stations_race_top <- arrests.clean %>%  
+    group_by(loc2) %>% 
+    mutate(st_arrests = n()) %>% 
+    ungroup() %>% 
+    group_by(loc2, race_eth)  %>%
+    summarise(arrests = n(), 
+              st_arrests = first(st_arrests)) %>% 
+    arrange(desc(st_arrests)) %>% 
+    filter(st_arrests > 100)
+  
+  arrests_stations_race_top
+  
+  
+  arrests_stations_race_top %>% 
+    ggplot(aes(x = reorder(loc2, -st_arrests),
+               y = arrests,
+               fill = race_eth)) + 
+    geom_bar(stat = "identity") + 
+    theme(axis.text.x = element_text(angle = 90, 
+                                     vjust = 0.5, 
+                                     hjust=1)) 
