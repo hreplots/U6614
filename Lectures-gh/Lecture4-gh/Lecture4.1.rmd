@@ -1,7 +1,7 @@
 ---
-title: 'Lecture 4.1: Data Analysis Tools Part 2'
+title: 'Lecture 4.1: Exploratory Data Analysis and Weighting'
 #subtitle: ""
-author: "SIPA U6614 | Instructor: Harold Stolper"
+author: "SIPA U7514 | Instructor: Harold Stolper"
 date: 
 urlcolor: blue
 output: 
@@ -28,280 +28,522 @@ knitr::opts_chunk$set(echo = TRUE)
 Load packages:
 ```{r, message = FALSE, warning = FALSE}
 library(tidyverse)
-library(gapminder)
+library(estimatr)
+library(modelsummary)
+library(SciViews)
+library(weights)
+library(Weighted.Desc.Stat)
+library(kableExtra)
 ```
 
 Resources used to create this lesson:
 
-- https://dplyr.tidyverse.org/reference/join.html
-- https://stat545.com/join-cheatsheet.html
-- https://mgimond.github.io/ES218/Week03c.html
-- https://www.guru99.com/r-apply-sapply-tapply.html
+- https://ozanj.github.io/rclass/lectures/lecture8/lecture8_ucla.html
+- https://ozanj.github.io/rclass/lectures/lecture7/lecture7.pdf
+- https://r4ds.had.co.nz/exploratory-data-analysis.html
+- https://www.rdocumentation.org/packages/Weighted.Desc.Stat/versions/1.0/topics/Weighted.Desc.Stat-package
 
 
-# Joins
+# What is explanatory data analysis?
 
-In this section we'll review the `dplyr` functions for joining columns of data from one data frame to another.
+Exploratory data analysis, or EDA, is a pretty self-explanatory term... to a degree. Some disciplines emphasize this term more than others, and focus on different goals and methods. We're going to use this term in a very general sense: before we can determine which more rigorous econometric methods make sense and how to implement them, we need to make sense of the datasets we're working with, explore individual variables in the raw data ("input variables"), prepare analysis variables from these input variables, and then explore associations between variables. 
 
-We'll be using the gapminder dataset again, with country-year observations on average life expectancy, population, and GPD per capita. Remember to load the library and then take a minute to re-familiarize yourself with the dataset. Let's filter out gapminder observations for all years besides 2002 and 2007, and for the time-being we're also going to treat country as a character rather an a factor -- joining on a factor can cause a bit of trouble down the road.
-```{r warning = FALSE, message = FALSE}
-# filter gapminder for 2002 and 2007 and coerce country from factor to char
-gap <- gapminder %>% 
-  filter(year == 2007 | year == 2002) %>% 
-  mutate(country = as.character(country))
+We've already touched on many of the statistical methods and R functionality to carry out EDA, but let's provide some structure and guiding principles you can turn to in different situations.
 
-# inspect new data frame
-str(gap)
-head(gap, n = 5)
+EDA doesn't follow a linear process, but here are broad steps to follow for each dataset you're working with.
+
+1. Understand how the data was produced.
+2. Identify the unit of observation and representative population, and any related obstacles/limitations.
+3. Obtain the sample size and dimensions of the overall dataset and any subgroups of interest.
+4. Explore individual variables and clean/recode/transform as needed.
+5. Explore relationships between key variables.
+
+
+# EDA steps and tools
+
+## Understand how the data was produced.
+
+Are you working with **survey data**? If so, how was the survey carried out and what is the representative population? Are there any major issues or limitations? How should we weight observations? Consult the survey documentation and dataset codebook.
+
+Are you working with **administrative data**? If so, the documentation may be more sparse, but you still need to understand how records were kept, which records were shared and how they are coded, and identify any data quality issues.
+
+
+## Identify the unit of observation and representative population
+
+We've been talking a lot about the unit of observation. We can think of each observation as a draw of one or more random variable that each follow some underlying (population) distribution. Datasets include observations for some *entity* that we observe in the data: surveyed individuals, states, countries, families, schools, years, etc. 
+
+Once you confirm the unit of observation for the sample at hand, determine the *population represented by your sample*. You can't assess *external validity* without understanding the representative population and relating it to the the policy question at hand.
+
+In some cases the raw datasets you start with may not be organized in a very intuitive, or useful way. Data scientists often refer to **tidy data**, a term coined by Hadley Wickham to refer to rectangular tables where each variable is a column each observation is a row.
+
+One of your first goals should be to structure data this way, with observations as rows and variables as columns. Sometimes the first question you need to answer is really "what *should* the unit of observation be," because the raw data isn't structured in a useful way.
+
+While most data that's out there isn't tidy, many of the *datasets* intended for policy research are pretty close to tidy. So we won't more spend time on tidying data right now, but if you encounter data that requires quite a bit more thought and restructuring to get into a usable, tidy structure, here are two good resources to start with:
+
+- https://ozanj.github.io/rclass/lectures/lecture8/lecture8_ucla.html
+- https://mgimond.github.io/ES218/Week03b.html
+
+
+We'll talk more about data structure when we cover panel data in a couple weeks.
+
+
+### Unit of observation vs unit of analysis
+
+In many instances we'll have to make a distinction between the **unit of observation** across different data sources, and the **unit of analysis** we ultimately choose to work with. Consider the datasets we used for the subway fare evasion enforcement analysis:
+
+* Public defender datasets included microdata (*individual observations*)
+* Ridership, poverty and crime data was provided for subway station areas (*station-level observations*)
+* Ultimately we'll rely on an analysis sample that collapses the microdata to the subway station level, i.e. the *unit of analysis* will be the subway station area.
+
+The decision to collapse the data to aggregate units (subway station areas) allows us to **exploit variation that is more useful** for exploring racial disparities in enforcement. Instead of exploiting variation in race across arrested individuals, we'll exploit variation in racial composition across neighborhoods.
+
+
+## Obtain the sample size and dimensions of the dataset
+
+How many observations do we have in out data, and how many variables (i.e. how many rows and columns)? We've already seen a number of functions to obtain this information, including `str()`and `dim()`.
+
+Keep in mind that sometimes the raw data you read in to R might have some rows of data that aren't really observations -- e.g. blank rows, subtotals, or headers. The data cleaning tools we covered in the previous lectures can help you identify and remove/recode uninformative values and observations. See Lecture 4.1.6 for some examples of how to remove rows that shouldn't be treated as observations.
+
+
+## Explore individual variables and clean/recode/transform
+
+Random variables exhibit variation in our sample that we want to describe. Before we start thinking about covariation *between* variables, we need to describe the variation *within* variables--the distribution of a variable in a sample of data. We've already covered R functions for doing this, but let's review some guiding principles and approaches we should use for different types of variables. 
+
+The idea is to understand variables in the raw data, think about how we should clean up and recode the information from these input variables so we can convert this information into a more useful variables for analysis.
+
+First, some **rules to follow**:
+
+1. Don't modify an original variable. 
+    + Instead, create new variables based on original variables. You can deselect the old ones when you're ready, but you want to keep the original variables in order to validate your new variables against them.
+2. For every value you observe for an input variable, think about the value the corresponding analysis variable should take. 
+    + This is what we did when recoding race and ethnicity in the public defender arrest data.
+3. Pay close attention to missing values and how they are coded. In many instance R will not automatically treat true missings as `NA`, so you'll have to do some investigating and recoding.
+4. Check to make your new analysis variables were created correctly (**data validation**), and document new variables with labels and use comments in the your code.
+
+Next let's review some statistical approaches we can use depending on the type of variable we're working with, and corresponding R functionality.
+
+
+### Continuous variables
+
+We can visualize the distribution of a continuous variable with a histogram using `ggplot()` and the `geom_histogram()` geometry (see [Lecture 3.1.9](https://hreplots.github.io/U6614/Lectures/Lecture3/Lecture3.1.html#9_Intro_to_ggplot_for_visualization)). We can also compute the mean, median, standard deviation, min, max, and percentiles. We reviewed the `summary()`, `summarize()` and `count()` functions for computing summary statistics in [Lecture 3.1.7](https://hreplots.github.io/U6614/Lectures/Lecture3/Lecture3.1.html#7_Summary_statistics). If quantiles or percentiles are of interest, try the `quantiles()` function. 
+
+Here are some examples of R code used to analyze arrests per 100k swipes (a continuous variable) in our grouped subway-station level data from week 4.
+
+```{r, message = FALSE, warning = FALSE}
+# load grouped station data from Lecture4-inclass
+stations <- readRDS("stations.rds")
+
+# get summary stats to describe distribution of arrests/swipe across stations
+# note that NAs recognized by R will prevent calcs unless na.rm = TRUE
+summary(stations$arrperswipe) #no NAs for this columns
+
+# visualize distribution with histogram
+stations %>% 
+  ggplot(aes(x = arrperswipe)) + 
+  geom_histogram()
+
 ```
 
-Of course we can still temporarily treat `country` as a factor to count the number of distinct countries observed in the gapminder data for 2002 and 2007
-```{r warning = FALSE, message = FALSE}
-# check how many countries are in the gap data frame
-str(as.factor(gap$country))
+
+### Categorical variables
+
+For most analytic functions, we want to tell R to treat columns of categorical data as **factors**. Remember we can use `as.factor()` to coerce a character or numeric variable to a factor that R treats as a categorical variable with a given set of **levels**. 
+
+In some cases you may encounter categorical data as labeled integers instead of factors. You'll probably find it easier to coerce these variables into factors using `as.factor()`, but you can also explore the labeling tools included in the `labelled` package (here is an [introduction](https://cran.r-project.org/web/packages/labelled/vignettes/intro_labelled.html)).
+
+We can visualize the distribution of a categorical variable in a similar way to continuous variables, but we use the `geom_bar()` geometry instead of `geom_histogram()`. A bar plot of a categorical variable is a visualization of the sample distribution of that variable--a visual representation of a frequency table. `summary()` and `table()` are quick and easy functions to show a frequency table for categorical variable (e.g. `summary(gapminder$continent)`).
+
+Keep in mind that you always have the option to transform a continuous variable into a categorical variable. Doing so necessarily entails a loss of information, but reducing continuous variation to broad categories can *sometimes* be useful for splitting your sample into groups or exploring interaction effects. Here is an example using the `cut()` function; you can also call `cut()` when using `mutate()` in order to create a new column that condenses an existing column into fewer categories:
+```{r, message = FALSE, warning = FALSE}
+# create vector of values with one NA value
+x_cont <- c(seq(1:10), NA)
+x_cont
+
+# use cut function to split into low (0-5), high(6-9) w/other values as NA
+x_cat <- cut(x_cont, 
+             breaks = c(0,5,9),
+             labels = c("low", "high") )
+
+# take a look to validate the results!
+table(x_cont, x_cat)
+summary(x_cat)
 ```
 
-To learn different `dplyr` join functions, we'll be working with a .csv file including annual country-level observations from the [World Bank](https://data.worldbank.org/indicator/SH.XPD.CHEX.PC.CD) on health expenditures per capita (from 2002-2017). Let's take a look.
-```{r warning = FALSE, message = FALSE}
-# load and inspect healthexp data
-healthexp <- readRDS("healthexp_long.rds")
-str(healthexp, give.attr = FALSE)
-head(healthexp, n = 5)
+Here are some examples of EDA tools for a categorical variable, the uncleaned race input variable from the BDS client microdata for arrested individuals. You can revisit week 3 for details on how we recoded the information in `race` into the more useful variable `race_clean`, and then incorporated `hispanic`to get a single categorical analysis variable `race_eth` with mutually exclusive categories and proper treatment of true missings as `NA`.
+
+```{r, message = FALSE, warning = FALSE}
+#load clean BDS microdata from Lecture3-inclass
+arrests_bds.clean <- readRDS("arrests_bds.clean.rds")
+
+#frequency table of race
+table(arrests_bds.clean$race_eth, useNA = "always")
+
+#table with proportions
+arrests_bds.clean     %>%
+  group_by(race_eth)      %>%
+  summarise (n = n()) %>%
+  mutate(prop = n / sum(n)) %>% 
+  arrange(desc(prop))
+
+#barplot (using forcats package to sort bars by count)
+ggplot(data = arrests_bds.clean, aes(x = forcats::fct_infreq(race_eth))) + 
+  geom_bar(na.rm = FALSE)
+
 ```
 
-Note that the gapminder data includes observations for 142 countries 5 years apart, e.g. 2002 and 2007, while the health expenditure data includes annual observations for 264 countries between 2002 and 2017.
+#### Creating dummy variables
+
+Whenever you want to account for a variable with categorical information in a regression, you need to include dummy variables for each category (omitting one base category). Many R functions, such as `lm_robust()` and `lm()` are quite intuitive in that if they see any regressors stored as a factor or a logical, they will automatically create dummy variables for each category and exclude the first level. While this is useful, there are two things to keep in mind.
+
+First, you *cannot* include a categorical variable that is stored as a continuous data type (numeric or integer) as a control variable, because the units of the categories have no inherent meaning and would result in misleading comparisons (see [this](https://www.moresteam.com/whitepapers/download/dummy-variables.pdf) link for a very short refresher about using variables in regression analysis). 
+
+Second, you need to be intentional about which category (level) of a categorical (factor) variable to omit as the base category against which comparisons are made. One way to do this is reorder the levels so that the first level is the category you want to omit as the base category. For sample code to reorder levels, please consult Lecture3.1, Section 6.3.
 
 
-## Mutating joins
+### Missing values and data validation
 
-In the parlance of `dplyr`, a *mutating join* refers to merging in new columns of data to existing columns of data. Let's review the different types of mutating joins. 
+In many cases the input variables from the raw data don't properly code true missing values. For example, survey data often codes missing values as a negative number (e.g. `-8`, `-9`) to indicate different reasons for missing observations, or alternatively as very high values (e.g. `999999`).
+
+Regardless of whether a variable is continuous or categorical, we want to make sure all of the values that appear for that variable make sense--the coding should be correct, consistent, and useful. In many cases we'll be recoding special values as `NA`, recoding a column to have a new set of categorical values (e.g. collapsing into fewer categories or creating dummy variables), and/or transforming continuous variables (e.g. taking the log of a variable), as covered in Lectures 3.1 and 2.3. 
+
+Recoding and transforming is often part of an iterative process, where we explore and describe data, manipulate the data, then describe again through summary statistics or charts. It's important to continuously **validate** the data along the way, lest we unknowingly end up working with data that doesn't make sense.
 
 
-### `inner_join`
+#### Recoding missings as `NA`
 
-`inner_join(df1, df2, by = col_to_join_by)` returns all rows in `df1` with values for `col_to_join_by` that match values in `df2`, and including all columns from both `df1` and `df2`. In this case we want to match on two columns that appear in both data frames, `country` and `year`. If there are multiple matches between `df1` and `df2`, all combinations of the matches are returned, which may not be what you want. This is considered a mutating join because we're adding columns to an existing data frame, in a similar fashion as the `mutate` function.
+Remember from Lecture 3 that one tool for recoding missing values so R recognizes them as `NA` is by using `mutate()` along with the `recode()` function from the `dplyr` package.  In week 3 we recoded all unclear values in the race column with the text value "NA" and then told R to recognize "NA" as the system `NA`. 
+
+Below is alternative approach for recoding 0 values for the messy race input variable as `NA`. This approach relies on the base R `ifelse`, tells it to look for a vector of uninformative values to recode (using the `%in%` operator), recodes instances of these uninformative values as `NA`, otherwise uses the original levels for the race variable. 
+
+```{r, message = FALSE, warning = FALSE}
+# load clean BDS microdata from Lecture3-inclass
+arrests_bds.clean  %>% 
+  mutate(race_temp = ifelse(race %in% c("0", "-"), #tells R to look for "0" and "-" values
+                            NA,                       #tells R to replace with NA
+                            levels(race)[race])) %>%  #otherwise use race levels
+count(race_temp)
+```
+
+Note that in the above code chunk we already know and specify the values to recode as `NA`, whereas the approach from class required us to specify the values to keep as levels for a new factor variable.
+
+
+#### Undefined values 
+
+In practice we may want to call functions to describe the distribution of a variable at multiple points along the way as we process our data. For example, say we have a vector of incomes and we are considering using a natural log transformation. Taking a look at the results of the log transformation is a simple reminder that we can't take the log of 0 or negative numbers.
+```{r, message = FALSE, warning = FALSE}
+income <- c(19000, 76000, 42000, 132000, 0, 37000, -100)
+ln_income <- ln(income) 
+  # note: ln() is in the SciViews package and is equivalent to log() in base R
+```
+
+If we take a look at the transformed data we can see that according to R, `log(0)` = `-Inf` and `log(-100)` = `NaN`. You might guess that the former refers to negative infinity, while the `NaN` means "it's "not a number". In this case there is a mathematical distinction, but in both cases the values are effectively undefined for the purposes of statistical analysis. A simple reminder that we may need to adjust our approach to transforming the data.
+```{r, message = FALSE, warning = FALSE}
+income 
+ln_income
+```
+
+#### Extreme values
+
+Outliers are important to take note of, but if the data is accurate and representative then extreme values aren't necessarily a problem for statistical analysis. In fact, external validity concerns may necessitate including *all* observations to ensure the sample is representative of the underlying population. The exception is if you think a certain subset of observations are governed by a different set of empirical relationships than those you want to explore. 
+
+When data validation reveals extreme values that are likely data entry errors or codes for missing values, then we need to take action to recode these values and document our decisions to manipulate values that appeared in the raw data.
+
+
+## Explore relationships between key variables
+
+Here is a brief overview of the some of the methods and functions we've used the past two weeks to explore relationships between variables, along with a few examples and added tools.
+
+We'll often refer to this sort of bivariate EDA as **descriptive analysis**. This terminology emphasizes that it likely does not uncover causal relationships, but help motivate further analysis that attempts to account for confounding factors.
+
+
+### Categorical vs. categorical
+
+* **Cross-tabs**: `table()` for counts and `prop.table()` for proportions
+  + **Visualizations**: stacked bar charts; below is a two-way plot using `geom_count()`
+* **Inference on difference in proportions between groups**: 
+  + `t.test()` allows for robust SEs (unequal variance between groups) but no weights
+  + `lm_robust()` allows for weights and robust SEs
+  + `datasummary_balance()` is great for automated difference-in-means tables, but only reports the mean difference and SE, not an associated p-value.
+
+```{r, message = FALSE, warning = FALSE}
+# load clean BDS microdata from Lecture3-inclass
+arrests_bds.clean <- readRDS("arrests_bds.clean.rds")
+
+# cross-tab of race_clean vs hispanic
+table(arrests_bds.clean$race_clean, 
+      arrests_bds.clean$hispanic, 
+      useNA = "always")
+
+# visualize cross-tab to assess common combinations
+arrests_bds.clean %>% 
+  ggplot(aes(x = race_clean, y = hispanic)) +
+  geom_count(na.rm = FALSE)
+
+# test difference in Hispanic share between Blacks and whites
+  
+  # NOTE: to use t.test() to run a diff-in-means test:
+  #   - make sure the grouping var is a logical (not a factor)
+  
+  # first create logical variables for being Hispanic and being Black
+  # and filter out race groups that are not Black or White
+  arrests_bds_clean_d <- arrests_bds.clean %>% 
+    mutate(hisp_log = as.logical(hispanic == "Hispanic")) %>% 
+    mutate(race_black_log = as.logical(race_clean == "Black")) %>% 
+    filter(race_clean == "White" | race_clean == "Black")
+  
+  str(arrests_bds_clean_d$hisp_log)
+  str(arrests_bds_clean_d$race_black_log)
+  
+  # diff in mean Hispanic share by Black vs White arrestees (using dummies) 
+  
+    # t.test()
+    t.test(hisp_log ~ race_black_log, 
+           data = arrests_bds_clean_d, 
+           var.equal = FALSE)
+    
+    # lm_robust()
+    lm_robust(hisp_log ~ race_black_log, 
+           data = arrests_bds_clean_d)
+    
+    # datasummary_balance()
+    # NOTE: if there's a column called weights, weighted stats will be calculated
+    datasummary_balance(~ race_black_log, 
+                        fmt = 2, 
+                        data = subset(arrests_bds_clean_d, 
+                                      select = c("hisp_log", 
+                                                 "race_black_log")))
+    
+```
+
 ```{r}
-# inner join by country-year with gap on the left, healthexp on the right
-gap_joined_inner <-  
-  inner_join(gap, healthexp, by = c("country", "year")) %>% 
-  mutate(country = as.factor(country)) 
+# load station-level data for stations with >100 arrests
+arrests_stations_race_top <- readRDS("arrests_stations_race_top.rds")
 
-# inspect results of inner join
-gap_joined_inner %>% head(n = 5)
-```
-
-Note that all columns from the "right-hand" data frame (`healthexp`) that aren't already in the "left-hand" data frame (`gap`) are added as new columns at the end of the new, joined data frame: `Indicator.Name` and `healthexp`. The new joined data frame now has 8 columns in total.
-
-A requirement for a successful join is that the variable(s) we're matching on, in this case combinations of `country` and `year`, are coded identically in both data frames. For `year` this is pretty straightforward, visual inspection confirms years are coded as a familiar four digit number. For `country`, on the other hand, different spellings for the same country name in both data frames will prevent a match. This means it's critical to inspect the coding of `country` in each data frame and the results of the join to find any coding inconsistencies that need to be addressed.
-
-Also note that if the columns you're matching on have different names in each data frame, you can modify the `by` argument as `by = c("left_col" = "right_col")`.
-
-In the previous code chunk, we *coerced* `country` in the joined data frame from a character back to a factor, and we can confirm that 132 factor levels for `country` (e.g. countries) from `gap` were retained in the inner join. This means 12 countries in the gapminder data were not matched to the health expenditure data. 
-```{r}
-# use nlevels function to show how many factor levels for country survived the join
-nlevels(gap_joined_inner$country)
-```
-
-How can we identify the 10 countries that weren't matched? There are a number of ways to do this, but let's pause that discussion until we introduce filtering joins.
-
-
-### `full_join`
-
-`full_join(df1, df2, by = col_to_join_by)` return all rows and all columns from both `df1` and `df2`. For rows in each data frame with no matching values for `col_to_join_by` in the other, the rows are retained with `NA` values assigned to elements of missing column data. If there are multiple matches between `df1` and `df2`, all combination of the matches are returned, which may not be what you want. This is a mutating join where all elements of both data frames are retained in the new, joined data frame.
-
-```{r}
-# full join by country-year with gap on the left, healthexp on the right
-gap_joined_full <- full_join(gap, healthexp, by = c("country", "year")) %>% 
-  mutate(country = as.factor(country)) 
-
-# inspect results of full join
-gap_joined_full %>% head(n = 5)
-str(gap_joined_full)
-```
-Notice from the dimensions of the resulting data frame (4,244 x 8) that this approach retains all year-country gapminder observations, including those with no health expenditure data. It also retains observations for countries with health expenditure data that aren't included in the gapminder data (e.g. Azerbaijan). We can confirm that there are now 274 factor levels for `country`, i.e. 274 countries that appear in one data frame or the other. This is useful to know, but if we're interested in exploring the relationship between life expectancy and health expenditures, we probably want to analyze a data frame with only countries appear in 
-
-
-### `left_join` (and `right_join`)
-
-`left_join(df1, df2, by = col_to_join_by)` returns all rows from `df1` and all columns from `df1` and `df2`. If there are multiple matches between x and y, all combination of the matches are returned, which may not be what you want. This is also a mutating join where columns are added and all observations retained from the "left hand" data frame.
-```{r}
-# left join by country-year with gap on the left, healthexp on the right
-gap_joined_left <- left_join(gap, healthexp, by = c("country", "year")) %>% 
-  mutate(country = as.factor(country)) 
-
-# inspect results of left join
-gap_joined_left %>% head(n = 5)
-nlevels(gap_joined_inner$country)
-```
-Here we can see all `r nlevels(gap_joined_inner$country)` countries are retained from the gapminder data, even though we know that 12 countries from the gapminder data were not matched to countries in the health expenditure data.
-
-
-## Filtering joins
-
-Filtering joins keep cases from the left-hand data. 
-
-
-### `semi_join`
-
-`semi_join(df1, df2, by = col_to_join_by)` will only retain observations from `df1` with matching values in `df2`. Unlike an inner join, a semi join will never duplicate rows from `df1` if there are multiple matches. The results of a semi join with `gap` as the left-hand data frame should once again return a data frame with 132 matched countries and all 6 columns from `gap`.
-```{r}
-# semi join by country-year with gap on the left, healthexp on the right
-gap_joined_semi <- semi_join(gap, healthexp, by = c("country", "year")) %>% 
-  mutate(country = as.factor(country)) 
-
-# inspect results of semi join
-gap_joined_semi %>% head(n = 5)
-str(gap_joined_semi)
+# stacked barplot of arrests by race_eth at each top arrest station
+arrests_stations_race_top %>% 
+  ggplot(aes(x = reorder(loc2, -st_arrests), 
+             y = arrests, fill = race_eth)) + 
+    geom_bar(stat = "identity") + 
+    theme(axis.text.x = element_text(angle = 90, 
+                                     vjust = 0.5, hjust=1)) 
 ```
 
 
-### `anti_join`
+### Categorical vs. continuous
 
-`anti_join(df1, df2, by = col_to_join_by)` will only retain observations from `df1` **with no matching values** in `df2`. This is useful for inspecting unmatched observations. Let's start by filtering out gapminder observations for all years besides 2002 and 2007.
-```{r}
-# anti join by country-year with gap on the left, healthexp on the right
-gap_joined_anti <- anti_join(gap, healthexp, by = c("country", "year")) %>% 
-  mutate(country = as.factor(country)) 
-
-# inspect results of anti join
-gap_joined_anti
-nlevels(gap_joined_inner$country)
-```
-
-The full results of the anti-join are printed above, which includes 20 observations that were not matched between the two data frames -- each of 10 countries observed twice (in 2002 and 2007).
-
-This shows why `anti_join()` is a great tool for inspecting matches when we call join functions. We've now identified 10 countries from the left-hand data frame that don't appear in the right-hand data frame, and we should investigate further to see if this is just due to alternative country spellings, or countries in gapminder that are in fact missing from the health expenditure data.
+* **Difference-in-means** or other distributional differences between categories: 
+  + **Tables**: use `summarize()` along with `group_by()`
+  + **Inference**: difference in means using `t.test()` or bivariate regression (if you're not clear on how to implement a difference in means test using bivariate regression with a dummy regressor, please review [Video Lecture 2.2.a](https://drive.google.com/file/d/1-kM9FlwZz7Kx1ynbe3_9ArhHtfHNGNz6/view?usp=sharing) from Quant II)
+  + **Visualizations**: 
+    + `ggplot()` with `geom_bar()` geometry
+    + compare continuous distributions using `ggplot()` with `geom_freqpoly()` geometry
 
 
-## Visual representation
+```{r, message = FALSE, warning = FALSE}
+# load grouped station data from Lecture4-inclass
+stations <- readRDS("stations.rds")
 
-Below are graphics depicting what happens under different mutating join scenarios, taken from https://mgimond.github.io/ES218/Week03c.html:
+# difference in means table between high & low pov stations
+stations %>% 
+    ungroup() %>% 
+    group_by(highpov) %>% 
+    summarise(n = n(),
+              mean_pov = mean(povrt_all_2016),
+              mean_arrper = mean(arrperswipe))
 
-```{r, eval = FALSE}
-inner_join(df, dj, by = "y")
-```
-![](inner_join.png){width=75%}
-
-```{r, eval = FALSE}
-full_join(df, dj, by = "y")
-```
-![](full_join.png){width=75%}
-
-```{r, eval = FALSE} 
-left_join(df, dj, by = "y")
-```
-![](left_join.png){width=75%}
-
-```{r, eval = FALSE}
-right_join(df, dj, by = "y")
-```
-![](right_join.png){width=75%}
-
-
-# Grouping: aggregation
-
-Last week we worked with the `dplyr` functions `group_by()` and `summarise()` to compute statistics based on column values for groups of observations (e.g. average life expectancy by continent-year).
-
-`group_by()` in combination with `summarise()` is also how we aggregate observations and change the unit of analysis. For example, we might start with survey microdata (individual observations) and want to collapse individuals into meaningful groups such as families or states/provinces. 
-This is the same functionality we introduced in Lecture3.1, but here we'll be using it to generate a new data frame for ongoing analysis not just summary statistics by group.
-
-As a reminder of how this works, let's collapse all country observations in the original gapminder data frame to yearly observations with columns for the total population and GDP... with a bit of data manipulation to get there.
-```{r}
-# collapse to yearly (global) observations
-gap_global <- gapminder %>% 
-  group_by(year) %>% 
-  mutate(gdp_tot = gdpPercap * pop) %>% # get total GDP by country 
-  summarize(population = sum(pop), gdp = sum(gdp_tot)) %>% # compute global pop and GDP
-  mutate(gdppercap = gdp / population ) # compute global GDP per capita
-
-gap_global
+# test significance of difference in mean arrests per swipe 
+t.test(arrperswipe ~ highpov, 
+       data = stations, 
+       var.equal = FALSE)
+  
+# visualize distribution of arrperswipes by high/low pov categories
+stations %>% 
+  ggplot(aes(x = arrperswipe, colour = as.factor(highpov))) + 
+  geom_freqpoly(binwidth = 1)
 ```
 
 
-# Grouping: normalizing observations
 
-Another application of `group_by()` is that it allows us to normalize variables based on group-wise statistics. Normalization can help us standardize the units of a variable for more meaningful measurement and comparisons over time/between groups. For example, comparing raw test scores between students in different years is misleading if the difficulty of the test varied over times. Instead we might want to use *standardized* test scores, measured as z-scores instead of raw test scores (or alternatively measured as standard deviations from the mean).
+### Continuous vs. continuous
 
-In the following code chunk, we use the gapminder data and standardize the distribution of life expectancy across countries (separately within each year) so that life expectancy is measured in z-scores (life_z)
-```{r}
-# collapse to yearly (global) observations w/standardized lifeExp
-gap_z <- gapminder %>% 
-  group_by(year) %>% 
-  mutate(mean_life = mean(lifeExp), # compute mean lifeExp in each year across countries (store as col)
-         sd_life = sd(lifeExp),      # compute s.d. lifeExp in each year across countries (store as col)
-         life_z = (lifeExp - mean_life) / sd_life) %>% # normalize every lifeExp obs to a z-score (within-year) 
-  arrange(desc(life_z))
+* **Scatterplots**: `ggplot()` with `geom_point()`
+* **Correlation coefficients**: `cor()`
+* **Fit linear/quadratic models**: 
+  + add `geom_smooth()` geometry to `ggplot()`
+  + or estimate separately using `lm_robust()`
+  + of course you can also fit regression models when the data isn't continuous
 
-# look at most extreme country-year life expectancy observations after standardization
-gap_z %>% head(n = 5)
-gap_z %>% tail(n = 5)
+```{r, message = FALSE, warning = FALSE}
+# plot pov rate vs arrest per swipes over stations, add linear fit
+stations %>% 
+  ggplot(aes(x = povrt_all_2016, y = arrperswipe)) + 
+  geom_point() + 
+  ggtitle('Linear regression fit') + 
+  labs(x = 'poverty rate', y = 'arrest rate') + 
+  geom_smooth(method = 'lm', formula = y ~ x) #add regression line
+
+# compute correlation coefficient between pov rate and arrests per swipes
+cor(stations$povrt_all_2016, stations$arrperswipe)
+
+# estimate linear model (outside of ggplot)
+ols1l <- lm_robust(arrperswipe ~ povrt_all_2016, 
+                   se_type="HC1", 
+                   data = stations)
+
+# get summary of the model
+summary(ols1l) 
 ```
 
-If you're interested in learning more about normalization, [here](https://kharshit.github.io/blog/2018/03/23/scaling-vs-normalization) is a short primer on standardization vs. scaling as normalization approaches using R.
+### Application: Difference-in-means tables
 
+We're not going to worry too much about nicely formatted results until later in the semester, the first order of business is to obtain the desired statistical results and decide what information we want to present. 
 
-# The apply family of functions
+The important thing to understand for now is that a difference-in-means table is a common and powerful tool for highlighting key differences between groups of interest (e.g. predominantly Black subway station areas and non-Black station areas): differences in outcomes (e.g. arrests intensity), or differences in characteristics (e.g. poverty rates) that could confound our interpretation of policies or programs.
 
-Recall that the base R `summary()` function is a quick and easy way to get a snapshot of the distribution of numeric variables. We've also used `dplyr`'s `summarize()` function to compute statistics. Another approach is to use an **apply** function to call another function multiple times for multiple objects or elements of objects (e.g. get the mean for different columns of data). Apply functions include `lapply()`, `sapply()`, `vapply()`, and `tapply()`. Let's briefly introduce `sapply()` and `tapply()` because they may come in handy down the road.
+For now, here is a fairly crude way of getting the structure of a difference-in-means table in place.  
 
-`sapply()` will apply a specified function to each element of a list or vector and returns a corresponding list or vector of results.
-```{r, eval = FALSE}
-sapply(X, FUN)
-Arguments:
--X: A vector or an object
--FUN: Function applied to each element of x
+1. Use Tidyverse functions to get a table of differences in means.
+2. Transpose table
+3. Calculate difference as new column
+4. Add columns with p-values for diff in means t tests w/unequal variances
+
+```{r, message = FALSE, warning = FALSE}
+#1. obtain diff in means using summarise_at to apply same transformation to multiple vars
+  t1 <- stations %>% 
+    group_by(nblack) %>% 
+    summarise_at(.vars = vars(arrperswipe, swipes2016, arrests_all, povrt_all_2016, shareblack),
+                  .funs = funs(mean, 
+                               .args = list(na.rm = TRUE)) )
+  t1
+
+#2. transpose table using t() and format as necessary
+  # transpose
+  t2 <- t(t1)
+  t2
+
+  # extract group names for column headings
+  colnames1 <- t2[1,]
+  colnames1
+  
+  # convert to data frame with numeric values and col labels
+  t2 <- t2[-1, ]
+  t2
+
+  t2.df <- as.data.frame(t2)
+  t2.df[, 1:2] <- sapply(t2.df[, 1:2], as.numeric)
+  t2.df[, 1:2] <- round(t2.df[, 1:2], 2)
+  colnames(t2.df) <- colnames1
+  t2.df 
+
+#3. compute difference column
+  t3 <- t2.df %>% mutate(diff = round( (t2.df[,2] - t2.df[,1]), 2)) 
+  t3
+
+#4. compute P-value column
+  # specify linear models for each var in the table on grouping dummy (nblack)
+  ols1_a <- lm_robust(arrperswipe ~ nblack, data = stations)
+  ols1_b <- lm_robust(swipes2016 ~ nblack, data = stations)
+  ols1_c <- lm_robust(arrests_all ~ nblack, data = stations)
+  ols1_d <- lm_robust(povrt_all_2016 ~ nblack, data = stations)
+  ols1_e <- lm_robust(shareblack ~ nblack, data = stations)
+
+  # get p-values for coefficient of interest in each model
+  p_a <- summary(ols1_a)$coefficients[2,4]
+  p_b <- summary(ols1_b)$coefficients[2,4]
+  p_c <- summary(ols1_c)$coefficients[2,4]
+  p_d <- summary(ols1_d)$coefficients[2,4]
+  p_e <- summary(ols1_e)$coefficients[2,4]
+
+  # assign p-values to new column and round to 4 decimals
+  t4 <- t3 %>% mutate(pvalue = round(c(p_a, p_b, p_c, p_d, p_e), 4) )
+  t4
+
+#5. add row names and apply kable styling
+  rownames1 <- c("Arrests per 100k riders",
+                  "Station ridership",
+                  "Arrests",
+                  "Station area poverty rate",
+                  "Station area share Black")
+  t4.df <- t4 %>% 
+    mutate(variable = rownames1) %>% 
+    relocate(variable) %>% 
+    kable() %>%  
+    kable_styling()
+  t4.df 
 ```
 
-For example:
-```{r}
-# isolate all numeric gapminder columns for 2007 in new data frame
-gap_cols <- gapminder %>% filter(year == 2007) %>% select(pop, lifeExp, gdpPercap)
 
-# use sapply to apply mean function to all columns in gap_cols
-sapply(gap_cols, mean)
+# Weighting observations
+
+Should you be weighting observations in your data?
+
+The answer depends on the policy question and data at hand, but let's focus on two different weighting scenarios:
+
+1. Weighting to give some observations more importance (based on the value of a given variable)
+2. Weighting to make sample representative of population of interest (based on sampling weights).
+
+The latter is generally a requirement when working with survey data. This is because the likelihood of a subject responding to a survey is not random, but depends on characteristics like age, gender, education, etc. 
+
+We need to apply **sampling weights** to survey data observations or else the sample won’t provide representative statistics for the true population of interest. Weights allow us to:
+
+- Weight down observations for people who were more likely to respond
+- Weight up observations for people who were less likely to respond
+
+As an example, think about which respondents are more likely to respond to a telephone survey. What does your answer tell you about which type of individuals should be weighted down/up?
+
+
+## Weighting in R
+
+In class we used the base R function `weighted.mean()`, and the `wtd.t.test()` function from the `weights` package. The weights package provides some additional functions that utilize weights, like `wtd.cor()` and `wpct()`. 
+
+Another useful package for working with survey data that requires you to use sampling weights is `Weighted.Desc.Stat`. Here are some basic examples of weighted summary statistics.
+
+```{r, message = FALSE, warning = FALSE}
+# input sample x, y and weight (w) vars
+xy <- cbind(x = 1:10, y = c(1:3, 8:5, 8:10))
+w <- c(0,0,0,1,1,1,1,1,0,0)
+
+# assemble into a data frame
+xyw.df <- as.data.frame(cbind(xy, w))
+xyw.df
+
+# weighted summary statistics w/Weighted.Desc.Stat
+w.mean(xyw.df$x, xyw.df$w)        # wtd mean
+w.var(xyw.df$x, xyw.df$w)         # wtd variance
+w.r(xyw.df$x, xyw.df$y, xyw.df$w) # wtd correlation coef.
+
+# compare to unweighted stats
+mean(xyw.df$x) 
+var(xyw.df$x) 
+cor(xyw.df$x, xyw.df$y)
 ```
 
-`tapply()` is useful for factors, applying a specified function to each level of a given factor (e.g., to get group-specific means).
-```{r, eval = FALSE}
-tapply(X, INDEX, FUN = NULL)
-Arguments:
--X: An object, usually a vector (stats will be computed based on X values)
--INDEX: A list containing factor (stats will be computed for each INDEX group)
--FUN: Function applied to each element of x (FUN specifies the type of statistic)
+The `ggplot` package accepts weights as an argument to the aesthetic mapping function `aes()`. Compare the histograms for the above sample data with and without weights.
+
+```{r, message = FALSE, warning = FALSE}
+# unweighted histogram
+ggplot(xyw.df, 
+       aes(x)) + 
+  geom_histogram(bins = 4)
+
+# weighted histogram
+ggplot(xyw.df, 
+       aes(x, weight = w)) + 
+  geom_histogram(bins = 4)
 ```
 
-For example:
-```{r}
-# use tapply to get min lifeExp by country (i.e. for every level of country factor)
-tapply(gapminder$lifeExp, gapminder$country, min) %>% head()
+For estimating regressions, `lm()` and `lm_robust()` both accepts weights as an argument:
+```{r, message = FALSE, warning = FALSE}
+# unweighted and weighted regressions of y on x
+ols1_lmr_uw <- lm_robust(y ~ x, 
+                        se_type = "HC1", #get robust SEs
+                        data = xyw.df)
+ols1_lmr_w <- lm_robust(y ~ x, 
+                        se_type = "HC1", #get robust SEs
+                        weights = w, 
+                        data = xyw.df)
+summary(ols1_lmr_uw)
+summary(ols1_lmr_w)
 ```
 
-
-# Dealing with missing values
-
-It's usually a good idea to assign all missing values--and values that we want R to treat as missing--as soon as you load your data. Recall one tool for doing this is to specify which characters should be treated as `NA` when reading in your data. Different data input functions have different options to specify which values should be treated as `NA`, but here is an example we used last week:
-```{r, eval = FALSE}
-# set na = option to specify strings to treat as NA
-arrests_bds <- read_csv("microdata_BDS_inclass.csv", na = "")
-```
-
-Sometimes missing values will be assigned with specific codes in survey data (e.g. 999999). You can specify which values should be treated as `NA` when loading your data, or replace them after the fact.
-
-In any event, getting a handle on which values should be treated as missing and why that is should be on the top of your to-do list. In some instances you may want to keep all observations and exclude `NA`'s as needed when making certain calculations. In other instances, you may want to drop incomplete rows from your analysis so that your sample remains the same throughout your analysis.
-
-Let's introduce some tools for making decisions about `NA` values using the `healthexp` data from the World Bank. First let's look at all observations with `NA` health expenditure data for 2002:
-```{r}
-# use is.na function filter to identify observations with NA health exp
-healthexp %>% filter(year == 2002, is.na(healthexp) == TRUE)
-```
-Right away we can recognize that many missing observations--though not all--are for sub-national territories that may not report this information (e.g. Aruba is considered a "constituent country of the Kingdom of the Netherlands").
-
-Here is an easy way to remove all observations with `healthexp` equal to `NA`, if that is what we decide to do:
-```{r}
-# use na.omit function to drop all observations with NA health exp
-healthexp_2002 <- healthexp %>% filter(year == 2002)
-na.omit(healthexp_2002)
-```
-Note that `NA` observations like Aruba have been dropped from `healthexp_2002` (but we can still access these observations in `healthexp` if need be).
-
-
+Notice how the estimated coefficient on X switches signs when weights are applied, consistent with the change in sign of the correlation between X and Y.
