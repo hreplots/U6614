@@ -1,0 +1,165 @@
+---
+title: "Categorizing Racial & Ethnic Identity in the US"
+author: "SIPA U6614 | Instructor: Harold Stolper"
+date: 
+urlcolor: blue
+output: 
+  html_document:
+    toc: TRUE
+    toc_depth: 3
+    toc_float: TRUE
+    number_sections: TRUE
+    highlight: tango
+    theme: default
+    fig_caption: TRUE
+    #fig_width = 7 #Default width (in inches) for figures
+    #fig_height = 5 #Default height (in inches) for figures
+    #html_preview: TRUE #TRUE to also generate an HTML file for the purpose of locally previewing what the document will look like on GitHub.    
+    df_print: tibble # Method to be used for printing data frames. Valid values include "default", "kable", "tibble", and "paged". The "default" method uses print.data.frame. 
+---
+
+***Please post your response to the assignment (section 7) as a reply to [this](https://courseworks2.columbia.edu/courses/187109/discussion_topics/1167798){target="_blank"} Courseworks Discussion post. 
+Your response will count for 3 out of the 10 percentage points for participation towards your overall course grade. Full credit be awarded for thoughtful responses that reference specific variables in the ACS.***
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Introduction: race, ethnicity, and "data for good"
+
+Race and ethnicity are two related dimensions of personal identity that we'll be examining data on in different policy contexts. Race generally refers to physical characteristics that have taken on social significance, even though it is [not an accurate representation of human biological variation](https://onlinelibrary-wiley-com.ezproxy.cul.columbia.edu/doi/full/10.1002/ajpa.23882){target="_blank"}. Ethnicity refers to shared cultural characteristics. This document is a collection of observations drawing from other articles and resources that can help us think about what to make of the data we encounter on race, ethnicity, and other aspects of personal identity: what voices are represented/missing, why this matters, and what to do about it when processing and analyzing data to explore connections between identity and public policy.
+
+**What do we hope to achieve by analyzing data on different aspects of personal identity? What should we avoid doing?** Data on personal identity can help [empower communities and counter bias](https://d4bl.org/){target="_blank"}, motivate policy change and movements for social change, improve transparency from our institutions, and [disrupt algorithmic bias](https://scholarlypublishingcollective.org/psup/information-policy/article/doi/10.5325/jinfopoli.8.2018.0078/314474/How-Algorithms-Discriminate-Based-on-Data-They){target="_blank"}. Data can amplify personal stories and lived experience. But it can also be [reductive](https://twitter.com/BlackDisability/status/1297996682232246274){target="_blank"}, misrepresent individual and communal experiences, and enable or reinforce oppression and inequality.
+
+**What would "better" data look like, and what could we do with it?** Richer and more nuanced data on personal identity can help us better understand the ways that systems of oppression interact with identity to limit opportunity. It can help inform more equitable policies and notions of distributive/restorative justice.
+
+**How do we get the most of data that exists in the world? How do we use the data at hand for "good"? What information are we missing and what are the implications?** These are questions that we will come back to throughout the semester, as we learn from each other about what data we'd like to see in the future and what "data for good" should look and feel like.
+
+
+# US Census categories: the limits of taking identity data at face value
+
+Every 10 years the US conducts a Census to take stock of who lives in the country. This data is used to inform funding levels for federal programs and civil rights policies.
+
+The evolution of race and ethnicity categories recognized in the US Census highlights how race is a social construct. Consider the history of racial categories in the Census for Asians, as summarized by the [Pew Research Center](https://www.pewresearch.org/fact-tank/2020/02/25/the-changing-categories-the-u-s-has-used-to-measure-race/){target="_blank"}:
+
+> The first racial category for Asians was introduced nationwide in 1870 with “Chinese, reflecting increased concern over immigration as many people came from China to work on the Central Pacific Railroad. In 1910, “Other” was offered as a race category for the first time, but the vast majority of those who selected it were Korean, Filipino and Asian Indian. “Other” or “Some other race” was included on most subsequent questionnaires, encompassing a broader range of races, and the Asian racial categories were later expanded. Asian Indians were called “Hindus” on the census form from 1920 to 1940, regardless of religion. Beginning in 2000, people could select from among six different Asian groups in addition to “Other Asian,” with the option to write in a specific group." 
+
+[Vox](https://www.vox.com/2016/8/18/12404688/census-race-history-intersectionality){target="_blank"} explains how somebody who identified as Hispanic or Latino has been counted by the decennial US Census over time:
+
+- *In 1930, someone who identified as Hispanic or Latino was counted by the census as **MEXICAN**.*
+
+- *In 1960, someone who identified as Hispanic or Latino **WAS NOT COUNTED BY THE CENSUS**.*
+
+- *In 2000, someone who identified as Hispanic or Latino was counted by the census as **MEXICAN, MEXICAN AMERICAN, CHICANO, PUERTO RICAN, CUBAN, OR OTHER SPANISH/HISPANIC/LATINO**.*
+
+Federally recognized categories evolved along with social context about what it means to be Hispanic or Asian in the US, for example... but not according to any clear and consistent logic. Many systems for collecting race and ethnicity data are thus limited by institutional definitions.
+
+One takeaway for policy analysis is not to take pre-defined categories at face value. Instead, we should think about salient aspects of identity that might not be visible in the data, consider which identity categories we choose to emphasize under different circumstances, and which identity labels individuals under study would choose for themselves. 
+
+#### 2020 Census questions on race: {-}
+
+![](censusracequestion.jpg){width=50%}
+
+While systems for collecting data and categorizing identity are limited by changing institutional definitions and the way they allow people to report their identity, the data that is produced is also shaped by how people view and to choose to report their own identity. Ideas about whiteness, proximity to Blackness, and a growing multiracial population continue to evolve, and thus so do people's choices about how to report their identity. This should serve as a reminder to be careful about drawing conclusions from time trends that rely on evolving race and ethnicity categories. The 2020 Census showed a "historic" decline in the white population, but the question of what is driving this change is more complicated, as [NPR explains](https://www.npr.org/2021/08/22/1029609786/2020-census-data-results-white-population-shrinking-decline-non-hispanic-race){target="_blank"}.
+
+
+# Multi-dimensional identity and intersectionality
+
+Simplicity is often a good thing that can make information more accessible, but reducing people to a single dimension of identity is obviously limiting in many ways. Modeling how intersectional identity relates to outcomes should allow for [multiplicative interactions](https://weallcount.com/2019/06/21/intersectionality-data-2/){target="_blank"} between dimensions of identity rather than additively separable components of identity. 
+
+Intersectionality goes far beyond race, ethnicity, and other commonly reported dimensions of identity such as gender and education, of course. Think about the 2021 hate crime targeting Asian women who worked at spas in Atlanta. Some of the responses from the AAPI community included reminders that, regardless of the backgrounds and occupations of the victims in this one incident, these hate crimes cannot be separated from the broader social context of structural violence towards Asian identities, immigrants, women and sex workers.
+
+![](aapihatecrimeonig.jpg){width=50%}
+
+Focusing on race and ethnicity, what if the data and surrounding discourse focus on measures that reduce multiracial/ethnic identity to a single dimension? Is a desire to simplify (and sample size limitations) a valid reason to assign individuals to one of several mutually exclusive identity categories, as in the below wage gap graphic? Which identity category should an individual who identifies as both Black and Hispanic, for example, be assigned to? Would assigning them to a separate multiracial category add valuable context, or would it muddle our understanding of what it means to be Black and Hispanic, respectively, by assigning them to a third category? Is this sort of simplification just too reductive, or is it preferable to a longer, expanded graphic with added multiracial categories?
+
+![](equalpaydaygraphic.jpg){width=55%}
+\
+Source: [The Guardian](https://www.theguardian.com/us-news/datablog/2017/apr/04/equal-pay-day-us-wage-gap-gender-race-ethnicity){target="_blank"} and @monachalabi on Instagram
+
+How much should the context impact the specific approach to coding identity? For example, should Hispanic identity be more salient in an analysis examining the role of native English fluency? If the focus is on policing and colourism, should Black racial identity be centered in the analysis in the absence of data on skin tone?
+
+For some applications, we can consider restructuring the data to measure the prevalence of a certain dimension of identity within broader groups (e.g. neighborhoods or cohorts) rather than prescribing limited measures of identity to specific individuals. This sort of aggregation is something we'll come back to as we think about how to better understand the nature of discriminatory NYPD enforcement.
+
+
+# Should we use more "progressive" identity labels?
+
+Identity is deeply personal, and so are the labels people use to self-identify. The Census asks people if they identify as "Hispanic, Latino, or Spanish origin." Some unknown share of younger, progressive Americans who would say they identify as Hispanic might prefer to identify as Latinx or Latine, for example. Many people question "the very underpinnings of this common identity, an idea known as Latinidad (loosely translated as “Latino-ness”)", according to an article published by [The Nation](https://www.thenation.com/article/archive/hispanic-heritage-month-latinidad/){target="_blank"} in 2019.
+
+![](Latinidad-done_r2.gif)
+
+**So what identity categories should we use?**
+
+When presenting your own analysis of raw data that uses gendered race and ethnicity labels with colonial roots, should you replace them with more "progressive", gender-neutral labels? 
+
+Some people may have strong feelings about what terms do/don't express their own identity -- sometimes in ways that do not align with other people who might have checked the same box(es) in the Census, for example.
+
+Would your decision to relabel Hispanic identity as Latinx substantially misrepresent the underlying data, or enrich the meaning of identity on balance? How will the identity labels affect how different audiences engage with your analysis? Are you using labels that the individuals and communities centered in your analysis would use to describe themselves?
+
+<iframe width="560" height="315" src="https://www.youtube.com/embed/0Zx4m2ok6D0" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen data-external="1"></iframe>
+
+This [Vice News](https://www.youtube.com/watch?v=0Zx4m2ok6D0){target="_blank"} video is a good reminder that racial identity labels are necessarily limiting and our own notions of identity justice may not align with how other people identify. This [Fox News](https://www.foxnews.com/world/how-do-latinos-prefer-to-be-identified-hint-not-as-latinos-asks-study){target="_blank"} piece take a very different tone on how "Latinos prefer to be identified."
+
+The New York Times didn't start [capitalizing  Black](https://www.nytimes.com/2020/07/05/insider/capitalized-black.html){target="_blank"} until July 5, 2020. stating "we believe this style best conveys elements of shared history and identity, and reflects our goal to be respectful of all the people and communities we cover." The Times National editor explained that "there was a growing agreement in the country to capitalize and that The Times should not be a holdout" (sidebar: how "liberal" of the Times).
+
+
+# The missing MENA/SWANA category
+
+Lam Thuy Vo explains in her article for [Vox](https://www.vox.com/2016/8/18/12404688/census-race-history-intersectionality){target="_blank"} that, according to the US Office of Management and Budget, "someone classified as White is someone who has origins in any of the original peoples of Europe, the Middle East, or North Africa". In other words, as far as the federal government is concerned, Arabs, Iranians and others of Middle East and North Africa (MENA) descent are considered white. [Al Jazeera](https://www.aljazeera.com/news/2020/04/mena-category-2020-census-200401114334500.html){target="_blank"} summarizes recent (failed) attempts at adding the MENA category to the Census:
+
+> A MENA category would represent a diverse set of dismissed identities with specific needs ... Getting census data would be a good start to meet those needs.
+
+Samer Khalaf, the national president of American-Arab Anti-Discrimination Committee (ADC), explains that the exclusion of the MENA category was a politicized act: "Why? If you take Arabs out of the white category, it's going to drop."
+
+[Opinion: I am Middle Eastern. Not White.](https://www.washingtonpost.com/opinions/2021/08/12/i-am-middle-eastern-not-white/){target="_blank"}
+
+As an alternative to the MENA label, some prefer the term SWANA. The [SWANA Alliance](https://swanaalliance.com/about){target="_blank"} explains:
+
+> S.W.A.N.A. is a decolonial word for the South West Asian/North African (S.W.A.N.A.) region in place of Middle Eastern, Near Eastern, Arab World or Islamic World that have colonial, Eurocentric, and Orientalist origins and are created to conflate, contain and dehumanize our people. We use SWANA to speak to the diversity of our communities and to forward the most vulnerable in our liberation.
+
+
+# Disaggregating data for Asian sub-groups in NY
+
+At the end of 2019, the governor of New York vetoed State Assembly Bill 677 that would have required state agencies to collect data disaggregated by specific Asian, Pacific Islander and Native Hawaiian ethnicities, such as Vietnamese, Hmong, Bangladeshi, and many more. The following borrows heavily from Navjot's Kaur's article for [Medium](https://medium.com/@KaurRepublic/the-veto-of-asian-american-and-pacific-islanders-in-new-york-state-d2655cefd06a){target="_blank"} and Kimmy Yang's article for [NBC News](https://www.nbcnews.com/news/asian-america/gov-cuomo-vetoes-bill-would-have-helped-underserved-asian-americans-n1101681){target="_blank"}.
+
+Why the need for disaggregated data on Asian ethnicity? Kimmy Yang explains:
+
+> While the “model minority myth” suggests that the community is financially well off, research shows that those from the Cambodian and Laotian communities, among others, are more economically vulnerable compared to those from the Chinese or Indian communities, a 2018 report on Asian American wealth disparity points out. Disaggregated data on Asian American and Pacific Islander median household income shows while Bangladeshi Americans make a median of $46,950, Indian Americans make $95,000.
+
+Yang goes on to note how the bill could have resulted in better policy:
+
+> The bill would have not only prevented exclusion, but more precise data would also uncover hidden challenges the AAPI communities face and aid legislators in figuring out how and where to allocate resources, [Assemblywoman] Niou said. Existing services including poverty relief, health outcome improvement programs, and language access within the programs could be made more effective.
+
+In addition to budgetary concerns, Governor Cuomo cited privacy concerns as another reason for his veto:
+
+> Cuomo also wrote that he was concerned the bill’s requirement to collect data on “an individual’s place of birth and national origin will have unintended consequences” given the “overly aggressive” approach the Trump administration has taken to immigration enforcement. 
+
+
+Advocates countered that existing data gaps pose a bigger threat:
+
+> But the unintended consequences of inaccurate data to meet the needs of AAPI and immigrant communities pose a greater threat, Carlyn Cowen, CPC’s chief policy and public affairs officer said.
+
+
+# Assignment: due by 11:59pm this coming Monday 
+
+The US has a long history of environmental racism that continues to disproportionately impact communities of color through heightened proximity to highways, toxic waste sites, and industry. This means people of color tend to [breath more polluted air](https://www.theatlantic.com/politics/archive/2018/02/the-trump-administration-finds-that-environmental-racism-is-real/554315/){target="_blank"} and [drink more polluted water](https://link.springer.com/article/10.1007/s12111-020-09511-5){target="_blank"}, both of which are linked to serious adverse health effects. They also tend to live in [greater proximity to oil and gas pipelines](https://eos.org/research-spotlights/americas-natural-gas-pipeline-routes-and-environmental-justice){target="_blank"} that further degrade the surrounding environment and increase exposure to hazards and disasters such as leaks and explosions. 
+
+But environmental injustice is not just about race: racism [intersects](https://www.mdpi.com/2071-1050/11/14/3942){target="_blank"} with class, immigration status, and indigenous identity, among other aspects of personal identity, to adversely impact marginalized communities that are particularly vulnerable to health risks and have less resources to respond to disasters.
+
+Consider the recently constructed fracked gas transmission pipeline in Brooklyn known as the Metropolitan Reliability Infrastructure (MRI), or North Brooklyn Pipeline. The pipeline was constructed by National Grid in spite of ongoing opposition from community groups such as [Frack Outta Brooklyn](https://www.instagram.com/frackouttabk/?hl=en){target="_blank"} and many others driving the [No North Brooklyn Pipeline campaign](https://www.nonbkpipeline.org/about){target="_blank"}. National Grid are currently seeking final approval to construct two new liquefied natural gas [vaporizers](https://greenpointers.com/2022/09/15/national-grid-wants-to-add-more-vaporizers-to-its-greenpoint-facility-but-must-face-public-hearings-first/){target="_blank"}.
+
+Brooklyn community members assert that the pipeline's location, approval and operation [discriminate](https://www.thecity.nyc/environment/2021/8/30/22649465/brooklyn-civil-rights-complaint-gas-pipeline){target="_blank"} against communities of color along its route, citing a long history of environmental injustice that disproportionately impacts Black, Latinx, and Indigenous people. Megan Hicks, an Assistant Professor at Hunter College and member of Frack Outta Brooklyn, explains that sometimes Hispanic or Latinx identity can serve as a label that homogenizes people who also identify as Black, Indigenous, or other identity labels that may or may not appear in US Census Data. Dr. Hicks adds that sometimes this focus on Latinx identity can obscure our understanding of colourism or intersectional effects with other aspects of personal identity, making it harder to understand and demonstrate the full extent of environmental injustice affecting some of our most vulnerable communities; in other words, Latinx is not a monolith, and treating it as such can obscure our understanding of how personal identity correlates with environmental risks and related health outcomes.
+
+[Here](https://usa.ipums.org/usa-action/variables/group?id=race_eth){target="_blank"} is a list of "race, ethnicity and nativity" variables available in the most recent wave of the US Census Bureau's American Survey (accessible via the [IPUMS](https://usa.ipums.org/usa/about.shtml){target="_blank"} portal), though you may also browse for additional variables to consider in order to respond to the questions below.
+
+[Please reply to [this](https://courseworks2.columbia.edu/courses/187109/discussion_topics/1167798){target="_blank"} CW Discussion post by 11:59pm on Monday night before the next class meeting, with a response that specifically addresses the following methodological decisions:]{.underline}
+
+**How would you go about analyzing and presenting data from the American Community Survey (ACS) to examine the potential for heightened environmental harm against the** ***most vulnerable Latinx community members*** **due to their proximity to the North Brooklyn Pipeline?** In other words, you are tasked with describing how you would go about assessing Dr. Hicks' assertion that Latinx identity might intersect with other aspects of identity in ways that correlate with proximity to the pipeline and associated environmental risks.
+
+- Describe which other aspects of identity--in addition to Hispanic identity--you would choose to explore in the ACS in order to define Latinx subgroups that may live in closer proximity to the pipeline compared to other Latinx subgroups or non-Latinx individuals.
+- Be specific about how would you define these Latinx subgroups using ACS variables in order to examine Dr. Hicks' assertion that Latinx identity is just one salient aspect of identity that should be further disaggregated. What statistic(s) would you consider presenting for these different identity groups? (*You are not expected to present any data or statistics, just describe your approach.*)
+
+To get you started, here are three maps showing the spatial distribution of Hispanic identity, Black identity, and median household income across Brooklyn, overlaid with the approximate pipeline route. You can use these maps to help you brainstorm, but you should not limit yourself to these three variables.
+
+![](plot_zoom.png)
+[This assignment was developed with Megan Hicks from Frack Outta Brooklyn and Hunter College]
