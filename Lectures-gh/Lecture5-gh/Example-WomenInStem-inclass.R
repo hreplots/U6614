@@ -3,7 +3,7 @@
 ## [ PROJ ] Supplemental Example: Women in STEM
 ## [ FILE ] womeninstem.r
 ## [ AUTH ] < YOUR NAME >
-## [ INIT ] < September 30, 2025 >
+## [ INIT ] < Feb 17, 2026 >
 ##
 ################################################################################
 
