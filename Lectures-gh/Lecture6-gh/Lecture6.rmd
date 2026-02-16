@@ -1,0 +1,463 @@
+---
+title: 'Lecture 6: Working with Panel Data and Fixed Effects Estimation'
+#subtitle: ""
+author: "DSPC 7514 | Instructor: Harold Stolper"
+date: 
+urlcolor: blue
+output: 
+  html_document:
+    toc: TRUE
+    toc_depth: 3
+    toc_float: TRUE
+    number_sections: TRUE
+    highlight: tango
+    theme: default
+    fig_caption: TRUE
+    df_print: tibble # Method to be used for printing data frames. Valid values include "default", "kable", "tibble", and "paged". The "default" method uses print.data.frame. 
+editor_options: 
+  markdown: 
+    wrap: 72
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Introduction
+
+Load packages:
+
+```{r, message = FALSE, warning = FALSE}
+library(tidyverse)
+library(gapminder)
+library(panelr)
+library(fixest)
+library(estimatr)
+library(lmtest) 
+library(multiwayvcov)
+library(broom)
+library(sandwich)
+```
+
+Resources used to create this lesson:
+
+-   <https://www.econometrics-with-r.org/10-3-fixed-effects-regression.html>
+
+# What is panel data?
+
+**Panel data** refers to information obtained from observing the *same
+set of entities (or units) at multiple points in time*. **Longitudinal
+data** is another term used when the underlying data tracks the same
+subjects over time.
+
+Some examples:
+
+-   A sample of youth observed every year to assess their educational
+    achievement and subsequent employment outcomes
+    -   in this example the *entities* are individuals and the time
+        periods are years
+-   A sample of businesses surveyed every month since the beginning of
+    the pandemic
+    -   in this example the *entities* are businesses and the time
+        periods are months
+-   Administrative units (e.g. provinces) report quarterly information
+    on hate crimes
+    -   in this example the *entities* are provinces and the time
+        periods are quarters
+
+When observations span multiple time periods, the critical distinction
+between **panel data** and **pooled cross-sectional data** is that in
+the former the *same entities* are observed repeatedly over time, while
+in the latter *different entities* are observed in each time period.
+
+# Key advantage of panel data: within-entity variation
+
+Comparisons between entities in the same period are often susceptible to
+omitted variable bias. Say we're interested in evaluating the impact of
+national mask mandates on pandemic outcomes. Countries with national
+mask mandates may also be implementing additional public health
+measures, face different economic conditions, and may be responding to
+being harder hit by the pandemic.
+
+Thus comparing COVID cases per capita between countries with/without
+national mask mandates in a given month amounts to comparing countries
+that are very different in terms of other factors driving pandemic
+outcomes; in other words, comparisons between "treated" and "untreated"
+countries within a cross-section (e.g. a given month) may not be very
+informative, as any association between the mask-mandate "treatment" and
+outcomes may in large part be explained by these other factors.
+
+In this example, relying on **cross-sectional variation (*between***
+**countries within one period) to identify the impacts of a mask-mandate
+is very prone to bias** (omitted variable bias and reverse causality).
+
+With panel data, one can use **variation in the mask-mandate treatment
+over time** ***within*** **countries** to identify the impacts of a
+mask-mandate. More specifically, in this example fixed effects can be
+used to control for two broad categories of potentially confounding
+factors: (1) fixed (time-invariant) country-specific differences; and
+(2) time-varying differences shared by all countries.
+
+Note how salient the major limitation of fixed effects models is in this
+example: any factors that vary within-countries over time cannot be accounted
+for with fixed effects. Said another way, you can't have country-month
+fixed effects, because *that would attempt to control for the policy
+variable under consideration*; it would introduce perfect
+multicollinearity between the treatment dummy variable and the
+corresponding country-year fixed effect, leading one of them to be
+dropped from the regression).
+
+What's an example of a threat to internal validity that fixed effects
+can't account for this research question? If a particular country's
+decision to implement a national mask mandate is made in tandem with
+other effective public health measures like free testing programs, then
+it is impossible to distinguish between the relative contributions of
+these two policies using fixed effects alone. Maybe you can start to
+explicitly control for these other policies and other confounding
+factors with the available data, but trying to explicitly control for
+all observable sources of OVB seems like a losing battle in many cases.
+
+***Self-assessment question:***
+
+*Given the hypothetical panel data structure implied above, can you
+think of additional research design features and/or data that might help
+researchers to distinguish the impacts of a mask-mandate from any
+national testing policies implemented at the same time?*
+
+# Panel data structure
+
+## Long-form panel data
+
+Just because the underlying data is panel in nature doesn't mean the
+input data is structured in a useful way.
+
+Fixed effects regression analysis generally require **long-form panel
+data**: each observation represents a unique entity-time period pairing
+(e.g. country-month).
+
+Using the familiar gapminder data, we can confirm that this data frame
+is long-form panel data with one observation for each surveyed country
+(or reporting unit like provinces!) every 5 years.
+
+```{r}
+head(gapminder, n = 20)
+```
+
+## Wide-form panel data
+
+Alternatively, panel data can be structured in **wide form**, where the
+unit of observation in the data frame is the entity (here: country), and
+the observed values for each entity across different time periods appear
+as separate columns of data (e.g. lifeExp1952, lifeExp1957,...,
+lifeExp2007).
+
+One advantage to wide-form panel data is that it is generally easier to
+compute some country-level statistics; e.g. the change in life
+expectancy from 1952 to 2007 for each country can be easily computed as
+the difference between the lifeExp1952 and lifeExp2007 columns.
+
+## Reshaping data
+
+How can we reshape the gapminder data frame from long to wide form and
+obtain country-level statistics?
+
+The `tidyr` package include a number of useful functions for
+restructuring data frames, including `pivot_longer` and `pivot_wider`
+that we used in the Women in STEM example:
+
+```{r}
+#load gapminder df into our environment
+gap <- gapminder
+
+#reshape gap from long to wide form data
+gap_wide <- gap %>% 
+  ungroup() %>%  # pivot_wider doesn't work well with grouped data!
+  pivot_wider(names_from = year,
+              values_from = c(lifeExp, pop, gdpPercap))
+
+#confirm reshape and dimensions of wide data
+dim(gap_wide)
+head(gap_wide)
+
+#reshape back to wide from long 
+#this creates a row for every year, then we'll drop NA rows afterwards
+gap_long <- gap_wide %>% 
+  select(country, continent, lifeExp_1952:lifeExp_2007) %>% #easier to pivot 1 var at a time
+  pivot_longer(cols = lifeExp_1952:lifeExp_2007,
+               names_to = c('var_name', 'year'), #splits lifeExp_1952 into lifeExp and 1952
+               names_sep = '_', #splits around the '_'
+               values_to = 'lifeExp') %>% 
+  select(!var_name) #remove the redundant var_name col
+
+#confirm reshape and dimensions of long data
+dim(gap_long)
+head(gap_long)
+```
+
+The `panelr` package also has its own functions for reshaping panel data
+and estimating panel data models, which we'll use here. First call the
+`panel_data()` function to tell R the nature of the panel data frame:
+use the `id` argument to specify the entity variable, and the `wave`
+argument to specify the time variable.
+
+From there one can use the `long_panel()` and `widen_panel()` functions
+to move between long- and wide-form data as needed, as in the following
+code example:
+
+```{r}
+#use the panel_data function to specify panel nature
+gap <- panel_data(gapminder, id = country, wave = year)
+
+#reshape gap from long to wide form data
+gap_wide <- widen_panel(gap)
+
+#confirm reshape and dimensions of wide data
+dim(gap_wide)
+head(gap_wide)
+
+#reshape back to wide from long 
+#this creates a row for every year, then we'll drop NA rows afterwards
+gap_long_temp <- long_panel(gap_wide, 
+                            prefix = "_", 
+                            begin = 1952, 
+                            end = 2007,
+                            id = "country") %>% 
+  rename(year = wave)
+head(gap_long_temp)
+
+#drop rows with NA values
+gap_long <- gap_long_temp %>% na.omit(lifeExp)
+
+#confirm reshape and dimensions of long data
+dim(gap_long)
+head(gap_long)
+```
+
+The following is a visual representation of reshaping from long to wide
+form data and vice versa from [Manny Gimond's EDA
+Course](https://mgimond.github.io/ES218/tidyr.html#wide-and-long-table-formats){target="_blank"}.
+
+![](longtowide.JPG){width="100%"}
+
+<br>
+
+![](widetolong.JPG){width="100%"}
+
+# Fixed effects estimation
+
+Fixed effects models allow us to control for certain kinds of unobserved
+factors (unobserved = not observed in the data frame): (1) factors that
+vary between entities but are constant over time (e.g. differences
+between countries that are "fixed" over time); and (2) factors that vary
+over time that are shared by all entities (e.g. differences between
+years that are "fixed" for all countries). We can account for these
+otherwise omitted variables in a regression model without observing them
+in the data by incorporating entity and time fixed effects,
+respectively. Models that include both entity and time fixed effects are
+referred to as two-way fixed effects (TWFE) models.
+
+Also note that in a conventional panel data setting you can choose to
+include both entity and time fixed effects, one, or neither. The
+decision to incorporate fixed effects should be done carefully as a
+reasoned strategy for controlling for unobserved factors that could
+result in biased coefficient estimates of interest.
+
+For a conceptual review of fixed effects models, please review this
+[Quant II video
+lecture](https://drive.google.com/file/d/1NPCtAUMg9eocWBaPr5jaY3KgsbxPkkeD/view?usp=sharing).
+For a textbook treatment of fixed effects models with R code, another
+good resource is Chapter 10 of [Introduction to Econometrics with
+R](https://www.econometrics-with-r.org/10-rwpd.html). The following is
+an excerpt from that chapter that summarizes two equivalent approaches
+for using R to estimate fixed effects models: the Least Squares Dummy
+Variable model, and traditional fixed effects models.
+
+------------------------------------------------------------------------
+
+Consider the panel regression model
+
+<p>[$$Y_{it} = \beta_0 + \beta_1 X_{it} + \beta_2 Z_i +  u_{it}$$]{.math
+.display} where the [$Z_i$]{.math .inline} are unobserved time-invariant
+heterogeneities across the entities [$i=1,\dots,n$]{.math .inline}. We
+aim to estimate [$\beta_1$]{.math .inline}, the effect on [$Y_i$]{.math
+.inline} of a change in [$X_i$]{.math .inline} holding constant
+[$Z_i$]{.math .inline}. Letting
+[$\alpha_i = \beta_0 + \beta_2 Z_i$]{.math .inline} we obtain the model
+[$$\begin{align}
+Y_{it} = \alpha_i + \beta_1 X_{it} + u_{it} \tag{10.1}.
+\end{align}$$]{#eq:femodel .math .display} Having individual specific
+intercepts [$\alpha_i$]{.math .inline}, [$i=1,\dots,n$]{.math .inline},
+where each of these can be understood as the fixed effect of entity
+[$i$]{.math .inline}, this model is called the <em>fixed effects
+model</em>. The variation in the [$\alpha_i$]{.math .inline},
+[$i=1,\dots,n$]{.math .inline} comes from the [$Z_i$]{.math .inline}.
+<a href="10-3-fixed-effects-regression.html#eq:femodel">(10.1)</a> can
+be rewritten as a regression model containing [$n-1$]{.math .inline}
+dummy regressors and a constant: [$$\begin{align}
+Y_{it} = \beta_0 + \beta_1 X_{it} + \gamma_2 D2_i + \gamma_3 D3_i + \cdots + \gamma_n Dn_i + u_{it} \tag{10.2}.
+\end{align}$$]{#eq:drmodel .math .display} Model
+<a href="10-3-fixed-effects-regression.html#eq:drmodel">(10.2)</a> has
+[$n$]{.math .inline} different intercepts — one for every entity.
+<a href="10-3-fixed-effects-regression.html#eq:femodel">(10.1)</a> and
+<a href="10-3-fixed-effects-regression.html#eq:drmodel">(10.2)</a> are
+equivalent representations of the fixed effects model.</p>
+
+<p>
+
+The fixed effects model can be generalized to contain more than just one
+determinant of [$Y$]{.math .inline} that is correlated with [$X$]{.math
+.inline} and changes over time.
+
+------------------------------------------------------------------------
+
+If specified properly, estimating a fixed effects model (as in 10.1) and
+a Least Squares Dummy Variable (LSDV) model (as in 10.2) will yield
+identical estimates for [$\beta_1$]{.math .inline}. The LSDV model will
+also report estimates for every "fixed effect" coefficient, whereas the
+fixed effects model will *sweep away* these fixed effects rather than
+estimating them; this happens by *residualizing* (or *demeaning*) the
+underlying data, as outlined in the fixed effects [video
+lecture](https://drive.google.com/file/d/1NPCtAUMg9eocWBaPr5jaY3KgsbxPkkeD/view?usp=sharing)
+from Quant II.
+
+Also note that you need to think carefully about the underlying error
+structure when estimating standard errors for inference on
+[$\hat\beta_1$]{.math .inline}. Examples of R functions for clustered
+standard errors for the LSDV and fixed effects models can be found below
+in Sections 5.1 and 5.2.
+
+## Least Squares Dummy Variable model estimation
+
+The LSDV model can be estimated in R using the `lm()` or `lm_robust()` functions. The code examples below use the gapminder panel data frame to estimate the effect of GDP per capita on life expectancy with fixed effects for country and year (wave).
+
+```{r}
+#specify LSDV model
+lsdv1 <- lm_robust(lifeExp ~ gdpPercap + factor(country) + factor(year),
+                   data = gap_long)
+```
+
+LSDV model estimates coefficients for every single FE term, i.e., `n_distinct(gap$country)` countries (minus one reference country) and `n_distinct(gap$year)` years (minus one reference year). The full output from this model is incredibly long! But we are not particularly interested in the magnitude or significance of these estimates. Rather, our intention was to control for these fixed effects when estimating the effect of GDP per capita—to eliminate some sources of omitted variable bias. We can easily display the results for just GDP per capita, along with certain regression statistics:
+
+```{r, collapse= TRUE}
+# report estimated coefficient and robust SE for GDP per capita
+coeftest(lsdv1)[2,]
+```
+
+```{r, collapse= TRUE}
+# report model R-squared and adjusted R-squared
+summary(lsdv1)$r.squared %>% round(3)
+summary(lsdv1)$adj.r.squared %>% round(3)
+```
+
+<br>
+
+Note that the estimated slope effect of GDP per capita on life expectancy is negative! (Try running without year fixed effects and see how the estimated slope effect changes.) In other words, once we control for time-invariant country-specific characteristics and year-specific factors shared by all countries, we estimate a negative association between GDP per capita and life expectancy -- this seems contrary to our expectations!
+
+
+## Fixed effects estimation with `feols()`
+
+`feols()` in the `fixest` package is another way to estimate fixed effects models, and is particularly good at handling lots of fixed effects terms really fast.
+
+```{r}
+#specify model with FEs for country and year, and robust SEs
+feols_robust <- feols(lifeExp ~ gdpPercap | country + year, 
+                data = gap_long,
+                vcov = "hetero")
+#obtain results
+summary(feols_robust) 
+#you can also use tidy in the broom package to obtain results
+tidy(feols_robust) %>% filter(term == "gdpPercap")
+```
+
+When estimating TWFE models, it is generally recommended to estimate standard errors that are clustered by entity (year in this case), provided that there are enough entities or clusters (ideally 50 or more). Clustered standard errors generally lead to over-rejection of the null hypothesis when the number of clusters is small (\<50). See [Cameron and Miller (2015)](http://cameron.econ.ucdavis.edu/research/Cameron_Miller_JHR_2015_February.pdf)
+for more details.
+
+```{r}
+#specify model with FEs for country and year, and cluster robust SEs by country
+feols_cluster <- feols(lifeExp ~ gdpPercap | country + year, 
+                data = gap_long,
+                cluster = ~ country)
+summary(feols_cluster) 
+```
+
+[Here](https://alexmiller.phd/posts/when-to-use-fixed-effects-vs-clustered-standard-errors-panel-data/) is a very short overview of the motivation for clustered standard errors
+in panel data settings along with some practical guidance, and here is a
+short [video lecture](https://drive.google.com/file/d/1VJk5VGqJ4hyVxt8c-tboLQy-8K7zCa5C/view?usp=sharing) on the topic from Quant II.
+
+[Here](https://evalf21.classes.andrewheiss.com/example/standard-errors/) is another helpful resource for obtaining robust and clustered SEs in R.
+
+
+## Visualizing fixed effects results
+
+In the fixed effects models estimated above, life expectancy is regressed on GDP capita with fixed effects for country and year. How can we think about visualizing the results of this fixed effects model? Let's start by writing out the population regression function (PRF),
+
+$$lifeExp_{ct} = \beta_0 + \beta_1 gdpPercap_{ct} + \phi_c + \theta_t + u_{ct} \tag{1}$$
+
+where *c* indexes countries and *t* indexes years. For notational purposes we generally prefer the traditional FE model notation, since we often aren't interested in the values of the fixed effect terms themselves (we just want to use them to control for certain types of
+omitted variables). But it can still be instructive to return to the LSDV framework to understand what we're estimating.
+
+The LSDV model reminds us that we are estimating a single slope effect for GDP per capita, but we are allowing for different intercepts for every country and year. So we could plot separate regression lines to illustrate how the linear relationship between GDP per capita and life expectancy differs for every single country in 2007, for example; all
+the regression lines would be parallel, only the intercepts would differ.
+
+In many cases, including this one, that approach would result in way too many regression lines on the same plot -- it would just look like a big mess to have separate regression lines for every country in 2007. Moreover, we're probably not even interested in visualizing different intercepts between countries. Rather, the point is to control for these differences so they aren't a source of omitted variable bias when estimating $\beta_1$, the slope effect of GDP per capita on life expectancy.
+
+Hence the more common FE notation is seen in equation (1), rather than the LSDV model. Estimation of equation 1 can be implemented by using ***residualized*** (or *demeaned*) versions of GDP per capita and life expectancy. That's how `feols()` works: first, regress the outcome (lifeExp) on dummy variables for every country and year, and then obtain the residual for every observation. This residual represents the variation in the outcome that is *not* explained by time-invariant country-specific characteristics or year-specific factors shared by all countries. The regressor of interest (gdpPercap) is residualized in a similar fashion. Then the FE coefficient estimate for $\beta_1$ can be obtained by regressing residualized life expectancy on residualized GDP per capita. 
+
+With this process in mind, a natural visualization of how the FE coefficient estimate of interest fits the data is to plot the regression line over the scatterplot of *residualized* GDP per capita vs *residualized* life expectancy.
+
+```{r}
+#obtain residualized lifeExp and gdpPercap (with country and year FEs)
+lifeExp_r <- resid(lm(gap_long$lifeExp ~ factor(gap_long$country) + factor(gap_long$year)))
+gdpPercap_r <- resid(lm(gap_long$gdpPercap ~ factor(gap_long$country) + factor(gap_long$year)))
+
+#add residualized variables to gap_long as new columns (similar to cbind)
+gap_long_fe <- data.frame(gap_long, lifeExp_r, gdpPercap_r)
+
+#plot slope effect from FE model over residualized data
+ggplot(gap_long_fe, aes(x = gdpPercap_r, y = lifeExp_r)) +
+  geom_point(alpha = 0.2) + #adjusts the transparency of the geom_point layer
+  geom_smooth(method = 'lm', formula = y ~ x, se = FALSE) +
+  ggtitle(label = "Plot of residualized GDP per capita vs residualized life expectancy",
+          subtitle = "*Residuals take into account country and year fixed effects")
+  
+```
+
+
+# Exploratory data analysis with panel data
+
+When the data includes observations for entities over time and not just a single cross-section of data, we need to think carefully about what sort of descriptive statistics would be informative. More specifically, we usually don't want to compute summary statistics by pooling all observations over time (e.g., a difference in groups means averaged across all times periods). Instead it may be informative to calculate summary statistics separately *within groups*, or *within one or more time periods* (e.g. a difference in group means within in each time period).
+
+Time series plots for different entities (or groups of entities) may be an informative visualization. In the simple example above with GDP per capita as the 'treatment' variable, however, there aren't pre-determined treatment and control groups. Instead, the treatment varies continuously in intensity over time within each country. In some cases—but not all—it may make sense to split entities into groups that correspond with different levels of the treatment. That is not so straightforward in this case, but we could try splitting countries into quartiles of base year (1952) GDP per capita and comparing how outcomes evolve over time for each group
+
+```{r}
+# compute quartiles of base year (1952) GDP per capita
+gdp1952quartiles <- quantile(gap_wide$gdpPercap_1952, 
+                             probs = c(0, 0.25, 0.5, 0.75, 1))
+
+# create new col in wide form panel that cuts base year GDP per cap into quartiles
+gap_wide$gdp1952quartiles <- cut(gap_wide$gdpPercap_1952,
+                                 gdp1952quartiles,
+                                 include.lowest = TRUE,
+                                 labels = FALSE) %>% as.factor()
+
+# select only necessary columns and join into full long form panel 
+gap_wide_temp <- gap_wide %>% select(country, gdp1952quartiles)
+gap_long_joined <- gap_long %>% right_join(gap_wide_temp, by = 'country')
+
+# visualize time trends in life expectancy by base year GDP per capita quartile
+gap_long_joined %>% 
+  ggplot(aes(x = year, y = lifeExp, 
+             color = gdp1952quartiles, group = gdp1952quartiles)) +
+  stat_summary(fun = mean, geom = "line") + 
+  ggtitle("Life expectancy over time by base year GDP per capita quartile")
+```
+
+When viewed in this light, there is limited evidence of convergence in life expectancy between countries that started in the lowest and highest quartiles of GDP per capita.
+
+Also note that the above plot calculates the unweighted mean of lifeExp across all quantiles for a given quantile-year grouping. If we wanted to report population-weighted means for each quantile-year, we would need to transform the data frame *before* passing it to `ggplot()`, not from within the `ggplot()` function call. This is because the ggplot
+statistical transformation `stat_summary()` doesn't accept weights as an argument to allow for weighted mean calculations.
+
+
+# Difference-in-differences and staggered treatment timing
+
+We can also think of TWFE models with panel data as generalized difference-in-difference (DID) models: the estimator for the coefficient of interest in a TWFE model can be thought of as a DID estimator with a continuous treatment that allows for multiple time periods and controls for both time-invariant differences between entities and time-specific factors shared by all entities. However, the fact that treatment levels vary at different points in time in different entities causes problems for TWFE estimation when treatment effects are heterogeneous over time! This is a tricky issue that we will revisit later in the semester when we cover DID with staggered treatment timing.
