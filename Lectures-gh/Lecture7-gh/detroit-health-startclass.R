@@ -1,7 +1,7 @@
 ################################################################################
 ##
 ## [ PROJ ] Water shutoffs in Detroit: Estimating Public Health Effects
-## [ FILE ] detroit-health-inclass.r
+## [ FILE ] detroit-health-starclass.r
 ## [ AUTH ] < YOUR NAME >
 ## [ INIT ] < March 3, 2026 >
 ##
@@ -24,6 +24,7 @@
 ## ---------------------------
  
 #install.packages("fixest")
+#install.packages("multiwayvcov")
 #install.packages("estimatr")
 #install.packages("modelsummary")
 #install.packages("tidycensus")
@@ -36,9 +37,9 @@ library(weights)
 library(fixest)
 library(estimatr)
 library(modelsummary)
+library(tidycensus)
 library(ggrepel)
 library(ggpmisc)
-#library(tidycensus)
 
 
 ## -----------------------------------------------------------------------------
@@ -132,8 +133,7 @@ library(ggpmisc)
   # also use mutate along with make_date to create a date variable(month_year)
   # sort by zip5, then year, then month
   joined_temp1 <- input_hcup_zip %>% 
-    left_join(MI_acs_zip.clean,
-              by = c("zip5", "year")) %>% 
+    left_join(MI_acs_zip.clean,by = c("zip5", "year")) %>% 
     mutate(month_year = make_date(year, month)) %>% 
     arrange(zip5, year, month)
   
@@ -145,7 +145,7 @@ library(ggpmisc)
 # C. Read in SI (service interruption) data and aggregate to zip code level
 
   # get service interruption data
-  input_si <- read.dta13("Data/si_1017_cleaned.dta")
+    input_si <- read.dta13("Data/si_1017_cleaned.dta")
   
   # focus on variables needed to identify month/tract of every shutoff
   # we'll eventually want to join to demographic data to get zip5-month_year obs
@@ -153,7 +153,7 @@ library(ggpmisc)
     select(si_order_number, zip5, year, month) %>% 
     arrange(zip5, year, month)
   
-  # aggregate to zip5-month_year totals
+  #aggregate to zip5-month_year totals
   si_zip_ym <- si.clean %>% 
     group_by(zip5, year, month) %>% 
     summarise(si_count = n_distinct(si_order_number)) %>% 
@@ -169,28 +169,23 @@ library(ggpmisc)
   
   # Q: WHAT KIND OF JOIN? DIFFERENT WAYS TO APPROACH THIS...
   # HINT: start by thinking about the unit of obs you want to end up with
-  # esson w/join examples: https://hreplots.github.io/U6614/Lectures/Lecture4/Lecture4.1.html
+  # lesson w/join examples: https://hreplots.github.io/U6614/Lectures/Lecture4/Lecture4.1.html
     
   # one catch here: missing SI data (before 2018) should be 0's not missing
     
-  # after join, extend pipe:
-    # exclude two zip codes that extend past Detroit's borders: 
-    # 48225 (Harper Woods) and 48127 (Dearborn Heights)
-      #inspect and rename columns so you 1 col each for year and month w/no NAs
-    
-    joined_temp2 <- joined_temp1 %>% 
-      full_join(si_zip_ym,
-                by = c("zip5", "month_year")) %>% 
-      filter(zip5 != 48225, zip5 != 48127)  %>%  
-      #drop Harper Woods & Dearborn Heights (53 obs) bc they extend past Detroit
-      mutate(si_count = replace_na(si_count, 0)) %>%
-      #fill in SI count for months w/health data but no SI present
-      rename(year = year.x, 
-             month = month.x ) %>% 
-      select(-month.y, -year.y) 
+  joined_temp2 <- joined_temp1 %>% 
+    full_join(si_zip_ym,
+              by = c("zip5", "month_year")) %>% 
+    filter(zip5 != 48225, zip5 != 48127)  %>%  
+    #drop Harper Woods & Dearborn Heights (53 obs) bc they extend past Detroit
+    mutate(si_count = replace_na(si_count, 0)) %>%
+    #fill in SI count for months w/health data but no SI present
+    rename(year = year.x, 
+           month = month.x ) %>% 
+    select(-month.y, -year.y) 
 
-    # inspect
-    summary(joined_temp2)
+  # inspect
+  summary(joined_temp2)
 
 
   # generate quarter column for joining home vacancy data in next step
@@ -209,8 +204,8 @@ library(ggpmisc)
   table(input_vacancy_qtr$zip5, input_vacancy_qtr$year)
   table(input_vacancy_qtr$quarter, input_vacancy_qtr$year)
   
-  # data for zip codes in Detroit, or more than that?
-  # are any Detroit zip codes missing?
+    # data for zip codes in Detroit, or more than that?
+    # are any Detroit zip codes missing?
   
   # Q: WHAT KIND OF JOIN DO WE WANT
   joined_temp4 <- joined_temp3 %>% 
@@ -218,9 +213,10 @@ library(ggpmisc)
               by = c("zip5", "year", "quarter"))
   # inspect
   head(joined_temp4)
+  table(joined_temp4$year, joined_temp4$month)
   
 
-#F. prepare panel data: transform input vars to "rates" and get IDs for panel data
+# F. prep panel data: transform input vars to "rates" and get IDs for panel data
   
   zip_panel <- joined_temp4 %>% 
     mutate(total_obs_1000 = (total_obs/ pop) *1000,
@@ -230,7 +226,6 @@ library(ggpmisc)
     mutate(ym = group_indices(joined_temp4, year, month),
            zip5_fac = as.factor(zip5),
            ym_fac = as.factor(ym)) 
-  
   
   # get FE dummy for each year-month combination, and for each zipcode
   zip_panel <- dummy_cols(zip_panel, 
@@ -272,9 +267,9 @@ library(ggpmisc)
 ## dependent variable: total hospital admissions 
   
   cross_total_1 <- lm_robust(total_obs_1000 ~ si_1000, 
-                             data = zip_cross, 
-                             weight = pop, 
-                             se_type = "stata")
+                                data = zip_cross, 
+                                weight = pop, 
+                                se_type = "stata")
   summary(cross_total_1)
   
   # QUESTION: Write out the PRF and interpret coefficient
@@ -282,12 +277,12 @@ library(ggpmisc)
   
   # add vacancy rate control variable
   cross_total_2 <- lm_robust(total_obs_1000 ~ si_1000 + vac_res_p100, 
-                             data = zip_cross, 
-                             weight = pop, 
-                             se_type = "stata")
+                        data = zip_cross, 
+                        weight = pop, 
+                        se_type = "stata")
   summary(cross_total_2)
-  
-  
+
+
   # plot cross-sectional data: shutoff rate vs. hospital admissions
   ggplot(data = zip_cross, 
          aes(x = si_1000, 
@@ -314,6 +309,7 @@ library(ggpmisc)
   # QUESTION: what should we make of this association? 
   # think about internal validity
   
+  
 
 ## -----------------------------------------------------------------------------
 ## 3. Panel: analyze health outcomes vs service interruptions using Two Way FEs
@@ -321,19 +317,19 @@ library(ggpmisc)
 
 ## TWFE: zip5 (entity) and ym (time), cluster SEs by zipcode
   
-  
+
 # QUESTION: write out the PRF we want to estimate
-  
-  
+
+
 # Approach A: LSDV model
-  
+    
   # QUESTION: FILL IN MODEL FORMULA
-  panel_total_lsdv_1 <- lm_robust(total_obs_1000 ~ si_1000 + zip5_fac + ym_fac,
+  panel_total_lsdv_1 <- lm_robust(FORMULA HERE,
                                   data = zip_panel,
                                   weight = pop, 
                                   clusters = zip5) # SEs clustered by zipcode
   summary(panel_total_lsdv_1) 
-  
+
   # refer to coefficient of interest and p-value
   summary(panel_total_lsdv_1)$coefficients["si_1000",]
   summary(panel_total_lsdv_1)$coefficients["si_1000", "Estimate"]
@@ -344,17 +340,15 @@ library(ggpmisc)
   
   # refer to adj r-squared
   summary(panel_total_lsdv_1)$adj.r.squared
-  
-  # QUESTION: what would happen if we didn't coerce zip5 into a factor?
     
+  # QUESTION: what would happen if we didn't coerce zip5 into a factor?
   
-  
-# Approach B: FE estimation (using feols() in the fixest package)
+    
+# Approach B: FE estimation ( using feols() in the fixest package)
   
   # specify model with FEs for country and wave
   # QUESTION: FILL IN MODEL FORMULA
-  panel_total_fe_1 <- feols(total_obs_1000 ~ si_1000 |
-                              factor(zip5) + factor(ym),
+  panel_total_fe_1 <- feols(FORMULA HERE,
                             data = zip_panel,
                             weights = zip_panel$pop, #note the bug w/weights arg
                             vcov = ~zip5)
@@ -362,21 +356,21 @@ library(ggpmisc)
   summary(panel_total_fe_1)
   tidy(panel_total_fe_1) %>% filter(term == "si_1000")
   
-  
+        
   # QUESTION: interpret the coefficient on si_1000
   
-  
-  # Present regression table to compare alternative models side by side
-  
+      
+# Present regression table to compare alternative models side by side
+
   # packages for displaying formatted regression output:
-  # modelsummary: https://modelsummary.com/articles/modelsummary.html
-  # stargazer: https://cran.r-project.org/web/packages/stargazer/vignettes/stargazer.pdf
-  
+    # modelsummary: https://modelsummary.com/articles/modelsummary.html
+    # stargazer: https://cran.r-project.org/web/packages/stargazer/vignettes/stargazer.pdf
+    
   # packages and functions have the same name here:
-  # modelsummary::modelsummary()
-  # stargazer::stargazer()
-  
-  
+    # modelsummary::modelsummary()
+    # stargazer::stargazer()
+    
+    
   # compare model results
   models <- list(
     "1" = feols(total_obs_1000 ~ si_1000 | factor(zip5), 
@@ -384,20 +378,20 @@ library(ggpmisc)
                 weights = zip_panel$pop, 
                 vcov = ~zip5),
     "2" = feols(total_obs_1000 ~ si_1000 | factor(zip5) + factor(ym), 
-                data = zip_panel,
-                weights = zip_panel$pop, 
-                vcov = ~zip5),
+                    data = zip_panel,
+                    weights = zip_panel$pop, 
+                    vcov = ~zip5),
     "3" = feols(total_obs_1000 ~ si_1000 + vac_res_p100 | 
                   factor(zip5) + factor(ym), 
-                data = zip_panel,
-                weights = zip_panel$pop,
-                vcov = ~zip5),
+                    data = zip_panel,
+                    weights = zip_panel$pop,
+                    vcov = ~zip5),
     "4" = feols(total_obs_1000 ~ si_1000 + vac_res_p100 + medianinc | 
                   factor(zip5) + factor(ym), 
                 data = zip_panel,
                 weights = zip_panel$pop,
                 vcov = ~zip5)
-  )
+    )
   modelsummary(models,
                output = "html", # Note: use output="latex" to knit to pdf
                coef_omit = "Intercept",
@@ -406,10 +400,10 @@ library(ggpmisc)
                stars = c('*' = .1, '**' = .05, '***' = .01))
   
   save(models, file = "m.Rdata")
-  
+
     
 # Plot model results 
-  
+   
   # plot relationship using pooled cross-sectional data
   ggplot(zip_panel, 
          aes(x = si_1000, 
@@ -421,15 +415,16 @@ library(ggpmisc)
                 method.args = list(se_type = "stata")) +
     xlab("Shutoffs per 1,000 residents") +
     ylab("Hospitalizations per 1,000 residents")
-  
+    
   # QUESTION: why doesn't this plot correspond to our FEs estimates?
   # HINT: in the above ggplot object, try mapping zip5 to color aesthetic
+    
   
   # CORRECT PLOT CORRESPONDING TO FE ESTIMATES:
     # plot FE results by plotting residual shutoff rate vs residual hospital admission rate 
     # residuals after accounting for zipcode and year-month FEs
     # if you're confused about why, review pre-class Lesson 7 & Quant II Video Lecture 5.2.a
-  
+    
   zip_panel_feplot <- zip_panel %>% 
     filter(year > 2010) %>% 
     na.omit() 
@@ -453,5 +448,5 @@ library(ggpmisc)
                 method.args = list(cluster = zip_panel_feplot$zip5_fac)) +
     xlab("Shutoff rate (residualized)") +
     ylab("Hospitalizations rate (residualized")
-  # scale_x_continuous(limits = c(-10, 20)) 
-  # can add this ggplot option to zoom in and investigate main cluster of data
+    # scale_x_continuous(limits = c(-10, 20)) 
+      # can add this ggplot option to zoom in and investigate main cluster of data
