@@ -305,7 +305,7 @@ $$
   Y_{it} = \beta_0 + \beta_1 1\{D_i = 1\} + \beta_2 1\{t = 2014\} + \beta^{2x2} (1\{D_i = 1\} \times  1\{t = 2014\}) + \epsilon_{it}
 $$
 
-## QUESTION: To see why $\hat{\beta}^{2x2} = \hat{ATT}(2014)$, write out the SRF for each of the four groups defined by the treatment ($D_i$) and year. Following the first mean below, fill in the rest to show tha tthe following holds true:
+## QUESTION: To see why $\hat{\beta}^{2x2} = \hat{ATT}(2014)$, write out the SRF for each of the four groups defined by the treatment ($D_i$) and year. Following the first mean below, fill in the rest to show that the following holds true:
 
 \begin{align}
 \hat{ATT}(2014) = (\bar{Y}_{D_i = 1, t = 2014} -  \bar{Y}_{D_i = 1, t = 2013}) -
@@ -680,21 +680,19 @@ data_cs <- short_data %>%
 
 ```{r}
 # unweighted ATT using doubly robust (DR) method
-att_gt(
-    yname = "crude_rate_20_64",
-    tname = "year",
-    idname = "county_code",
-    gname = "treat_year",
-    xformla =  as.formula(paste("~", paste(covs, collapse = "+"))),
-    data = data_cs,
-    panel = TRUE,
-    control_group = "nevertreated",
-    bstrap = TRUE,
-    cband = TRUE,
-    est_method = "dr",
-    base_period = "universal",
-    biters = 25000
-  )
+att_gt(yname = "crude_rate_20_64",
+       tname = "year",
+       idname = "county_code",
+       gname = "treat_year",
+       xformla =  as.formula(paste("~", paste(covs, collapse = "+"))),
+       data = data_cs,
+       panel = TRUE,
+       control_group = "nevertreated",
+       bstrap = TRUE,
+       cband = TRUE,
+       est_method = "dr",
+       base_period = "universal",
+       biters = 25000)
 
 # weighted ATT using doubly robust (DR) method
 att_gt(
