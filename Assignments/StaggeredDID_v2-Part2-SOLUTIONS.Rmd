@@ -1075,7 +1075,7 @@ We can plot weighted mortality by year for each treatment year (year of Medicaid
 set.seed(20240924)
 
 # load cleaned data
-mydata <- read_csv(here::here("data", "county_mortality_data.csv")) %>% 
+mydata <- read_csv("county_mortality_data.csv") %>% 
   # make state the abbreviation
   mutate(state = str_sub(county, nchar(county) - 1, nchar(county))) %>% 
   # drop DC and pre-2014 adoption states
